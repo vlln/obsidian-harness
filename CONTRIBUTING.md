@@ -211,12 +211,14 @@ devloop 特有约定：
 |------|------|
 | `npm run test` | 单元测试（vitest） |
 | `npm run test:watch` | 测试 watch 模式 |
+| `npm run test:e2e` | E2E 测试（wdio-obsidian-service） |
 
 ### 测试目录
 
 | 层级 | 目录路径 |
 |------|---------|
 | 单元测试 | `test/` |
+| E2E 测试 | `e2e/` |
 
 ---
 
