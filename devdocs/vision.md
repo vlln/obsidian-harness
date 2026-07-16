@@ -2,7 +2,7 @@
 title: Vision — Obsidian Harness 顶层愿景
 description: 以 Obsidian 知识库为驾驶舱，ACP Agent 为执行引擎，笔记为控制平面的 AI 工作平台。
 type: vision
-status: proposed
+status: active
 created: 2026-07-15T00:00:00Z
 ---
 

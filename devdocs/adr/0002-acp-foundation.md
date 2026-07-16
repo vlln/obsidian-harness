@@ -2,7 +2,7 @@
 title: ADR-0002: ACP 层作为基础设施，复用边界
 description: 定义从上游 Fork 的代码哪些保留不动、哪些可修改、哪些需重写。
 type: adr
-status: proposed
+status: accepted
 created: 2026-07-15T00:00:00Z
 ---
 

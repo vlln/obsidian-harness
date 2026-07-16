@@ -2,7 +2,7 @@
 title: ADR-0003: Session 入口文件设计
 description: Session 通过 vault note 文件作为入口点，而非统一的侧边栏 Session 列表。
 type: adr
-status: proposed
+status: accepted
 created: 2026-07-15T00:00:00Z
 ---
 
