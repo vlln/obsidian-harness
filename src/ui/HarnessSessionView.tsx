@@ -97,6 +97,15 @@ export class HarnessSessionView extends FileView {
 
 	async onLoadFile(file: TFile): Promise<void> {
 		const container = this.containerEl.children[1];
+
+		// Unmount previous React root before clearing DOM
+		// (container.empty() only removes DOM nodes; React needs unmount()
+		// to trigger cleanup effects and prevent memory leaks)
+		if (this.root) {
+			this.root.unmount();
+			this.root = null;
+		}
+
 		container.empty();
 
 		// Read and parse the .session file
