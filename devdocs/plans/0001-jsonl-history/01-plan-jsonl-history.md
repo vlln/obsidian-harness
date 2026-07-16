@@ -2,7 +2,7 @@
 title: Plan-01: JSONL 追加式 History 存储
 description: 实现 sessions/{sessionId}/main.jsonl 追加式存储，每行一条原始 ACP SessionUpdate 事件。
 type: plan
-status: pending
+status: done
 created: 2026-07-16T00:00:00Z
 ---
 
