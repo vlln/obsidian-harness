@@ -7,4 +7,4 @@
 | 编号 | 容器 | 分支 | 状态 |
 |------|------|------|------|
 | 0001 | [0001-jsonl-history](0001-jsonl-history/) | `feat/0001-jsonl-history` | done |
-| 0002 | [0002-session-entry](0002-session-entry/) | `feat/0002-session-entry` | pending |
+| 0002 | [0002-session-entry](0002-session-entry/) | `feat/0002-session-entry` | done |

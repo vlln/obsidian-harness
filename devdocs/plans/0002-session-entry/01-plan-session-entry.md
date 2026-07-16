@@ -2,7 +2,7 @@
 title: Plan-02: Session 入口文件创建与打开
 description: 生产化 HarnessSessionView + createSessionFile + session_index.jsonl 管理，覆盖 AC-0001 和 AC-0002 全部场景。
 type: plan
-status: pending
+status: done
 created: 2026-07-16T00:00:00Z
 ---
 
