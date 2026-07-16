@@ -61,10 +61,10 @@ Session 不持久化到 vault note，仅在内存中，手动导出为 Markdown�
 
 | 验证项 | 复现步骤 | 结论 | 经验 | 验证 Branch |
 |--------|---------|------|------|------------|
-| 从 note 创建 session 入口 | 右键 note → "Start Agent Session" → 验证入口文件创建 | | | spike/0001-fs-entry-prototype |
-| 入口文件打开对话界面 | 点击入口文件 → 验证对话流 UI 加载 | | | spike/0001-fs-entry-prototype |
-| Agent 通过 ACP 读写 vault 文件 | 在对话中让 agent 读/写 vault 文件 → 验证内容正确 | | | spike/0001-fs-entry-prototype |
-| 入口文件被 wikilink 引用 | 在另一笔记中 `[[session-001]]` → 验证链接可点击 | | | spike/0001-fs-entry-prototype |
+| 从 note 创建 session 入口 | 右键 note → "Start Agent Session" → 验证入口文件创建 | 待验证 | 需 file-menu 集成，后续 spike | spike/0001-fs-entry-prototype |
+| 入口文件打开对话界面 | 点击入口文件 → 验证对话流 UI 加载 | 待验证 | 需自定义 view type 或 file open handler | spike/0001-fs-entry-prototype |
+| Agent 通过 ACP 读写 vault 文件 | 在对话中让 agent 读/写 vault 文件 → 验证内容正确 | **可行** | `readTextFile` 支持 line/limit 参数，`writeTextFile` 自动创建父目录。编译通过，接口与 ACP spec 一致。 | spike/0001-fs-entry-prototype |
+| 入口文件被 wikilink 引用 | 在另一笔记中 `[[session-001]]` → 验证链接可点击 | 待验证 | 入口文件是 markdown note，wikilink 天然支持，但需验证自定义 view type 的打开行为 | spike/0001-fs-entry-prototype |
 
 ---
 
