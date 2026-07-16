@@ -548,6 +548,46 @@ export interface SessionResult {
  * Used when agent doesn't support session/list but supports load/resume/fork.
  * Saved to plugin settings via plugin.saveData().
  */
+// ============================================================================
+// Session File Data (.session file in vault)
+// ============================================================================
+
+/**
+ * Data stored in a .session file in the vault.
+ * This is the user-visible entry point for a session.
+ */
+export interface SessionFileData {
+	/** Format version for backward compatibility */
+	version: number;
+	/** Unique session identifier (UUID) */
+	sessionId: string;
+	/** Agent ID (claude-code-acp, pi-acp, custom agent ID, etc.) */
+	agentId: string;
+	/** Working directory for the agent */
+	cwd: string;
+	/** Human-readable session title */
+	title: string;
+	/** ISO 8601 creation timestamp */
+	createdAt: string;
+	/** ISO 8601 last activity timestamp */
+	updatedAt: string;
+	/** Forked from session ID, null if original */
+	forkedFrom: string | null;
+}
+
+/**
+ * Entry in session_index.jsonl (plugin directory).
+ * Maps sessionId → entry file path for quick lookup.
+ */
+export interface SessionIndexEntry {
+	/** Unique session identifier */
+	sessionId: string;
+	/** Working directory for the agent */
+	cwd: string;
+	/** Relative path of the .session file in vault */
+	entryFile: string;
+}
+
 export interface SavedSessionInfo {
 	/** Unique session identifier */
 	sessionId: string;
