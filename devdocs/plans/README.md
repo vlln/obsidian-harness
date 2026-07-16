@@ -8,3 +8,4 @@
 |------|------|------|------|
 | 0001 | [0001-jsonl-history](0001-jsonl-history/) | `feat/0001-jsonl-history` | done |
 | 0002 | [0002-session-entry](0002-session-entry/) | `feat/0002-session-entry` | done |
+| 0003 | [0003-wikilink](0003-wikilink/) | `feat/0003-wikilink` | done |
