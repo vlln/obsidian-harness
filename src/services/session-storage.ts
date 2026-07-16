@@ -4,6 +4,8 @@
  * Handles:
  * - Session metadata CRUD (in plugin settings savedSessions array)
  * - Session message file I/O (sessions/{id}.json)
+ * - Session index file (session_index.jsonl)
+ * - JSONL history (append-only, AC-0003)
  */
 
 import { Platform } from "obsidian";
@@ -11,7 +13,7 @@ import { Platform } from "obsidian";
 import type { AgentClientPluginSettings } from "../plugin";
 import type AgentClientPlugin from "../plugin";
 import type { ChatMessage, MessageContent } from "../types/chat";
-import type { SavedSessionInfo, SessionUpdate } from "../types/session";
+import type { SavedSessionInfo, SessionUpdate, SessionIndexEntry } from "../types/session";
 import { convertWindowsPathToWsl } from "../utils/platform";
 import { getLogger } from "../utils/logger";
 
@@ -228,7 +230,7 @@ export class SessionStorage {
 	// Session Message History Methods
 	// ============================================================
 
-	private getSessionsDir(): string {
+	getSessionsDir(): string {
 		return `${this.plugin.app.vault.configDir}/plugins/obsidian-harness/sessions`;
 	}
 
@@ -441,6 +443,92 @@ export class SessionStorage {
 				await adapter.remove(file);
 			}
 			await adapter.rmdir(dir, false);
+		}
+	}
+
+	// ============================================================
+	// Session Index Methods (session_index.jsonl)
+	// ============================================================
+
+	private getSessionIndexPath(): string {
+		return `${this.getSessionsDir()}/session_index.jsonl`;
+	}
+
+	/**
+	 * Append a session entry to session_index.jsonl.
+	 * Called when a new .session file is created.
+	 */
+	async appendSessionIndex(entry: SessionIndexEntry): Promise<void> {
+		await this.ensureSessionsDir();
+		const adapter = this.plugin.app.vault.adapter;
+		const filePath = this.getSessionIndexPath();
+		const line = JSON.stringify(entry) + "\n";
+
+		if (await adapter.exists(filePath)) {
+			await adapter.append(filePath, line);
+		} else {
+			await adapter.write(filePath, line);
+		}
+	}
+
+	/**
+	 * Read all session index entries, optionally filtered by cwd.
+	 */
+	async getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]> {
+		const adapter = this.plugin.app.vault.adapter;
+		const filePath = this.getSessionIndexPath();
+
+		if (!(await adapter.exists(filePath))) {
+			return [];
+		}
+
+		const content = await adapter.read(filePath);
+		const lines = content.trim().split("\n");
+		const entries: SessionIndexEntry[] = [];
+
+		for (const line of lines) {
+			try {
+				const parsed = JSON.parse(line) as SessionIndexEntry;
+				if (parsed.sessionId && parsed.cwd && parsed.entryFile) {
+					if (!cwd || parsed.cwd === cwd) {
+						entries.push(parsed);
+					}
+				}
+			} catch {
+				continue;
+			}
+		}
+
+		return entries;
+	}
+
+	/**
+	 * Remove a session entry from session_index.jsonl.
+	 * Rewrites the file without the matching entry.
+	 */
+	async removeSessionIndex(sessionId: string): Promise<void> {
+		const adapter = this.plugin.app.vault.adapter;
+		const filePath = this.getSessionIndexPath();
+
+		if (!(await adapter.exists(filePath))) {
+			return;
+		}
+
+		const content = await adapter.read(filePath);
+		const lines = content.trim().split("\n");
+		const filtered = lines.filter((line) => {
+			try {
+				const parsed = JSON.parse(line) as SessionIndexEntry;
+				return parsed.sessionId !== sessionId;
+			} catch {
+				return true; // keep malformed lines
+			}
+		});
+
+		if (filtered.length === 0) {
+			await adapter.remove(filePath);
+		} else {
+			await adapter.write(filePath, filtered.join("\n") + "\n");
 		}
 	}
 }

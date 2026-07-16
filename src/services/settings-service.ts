@@ -9,7 +9,7 @@
 import type { AgentClientPluginSettings } from "../plugin";
 import type AgentClientPlugin from "../plugin";
 import type { ChatMessage } from "../types/chat";
-import type { SavedSessionInfo, SessionUpdate } from "../types/session";
+import type { SavedSessionInfo, SessionUpdate, SessionIndexEntry } from "../types/session";
 import { updateDebugMode } from "../utils/logger";
 import { SessionStorage } from "./session-storage";
 
@@ -180,6 +180,14 @@ export interface ISettingsAccess {
 	): Promise<SessionUpdate[]>;
 
 	deleteHistory(sessionId: string): Promise<void>;
+
+	// ============================================================
+	// Session Index Methods (session_index.jsonl)
+	// ============================================================
+
+	appendSessionIndex(entry: SessionIndexEntry): Promise<void>;
+	getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]>;
+	removeSessionIndex(sessionId: string): Promise<void>;
 }
 
 /** Listener callback invoked when settings change */
@@ -375,6 +383,22 @@ export class SettingsService implements ISettingsAccess {
 
 	async deleteHistory(sessionId: string): Promise<void> {
 		return this.sessionStorage.deleteHistory(sessionId);
+	}
+
+	// ============================================================
+	// Session Index Methods
+	// ============================================================
+
+	async appendSessionIndex(entry: SessionIndexEntry): Promise<void> {
+		return this.sessionStorage.appendSessionIndex(entry);
+	}
+
+	async getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]> {
+		return this.sessionStorage.getSessionIndex(cwd);
+	}
+
+	async removeSessionIndex(sessionId: string): Promise<void> {
+		return this.sessionStorage.removeSessionIndex(sessionId);
 	}
 }
 
