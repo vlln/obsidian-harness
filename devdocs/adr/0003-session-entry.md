@@ -124,10 +124,10 @@ Session 不持久化，仅在内存中，手动导出。
 
 | 验证项 | 复现步骤 | 结论 | 经验 | 验证 Branch |
 |--------|---------|------|------|------------|
-| 注册 .session 扩展名和自定义 view type | 在 plugin.ts 中注册 `registerExtensions` + `registerView` | **可行** | `registerExtensions(["session"], VIEW_TYPE)` + `ItemView` 子类，编译通过，Obsidian 实测点击 `.session` 文件成功打开自定义 view | spike/0001-session-entry |
-| 创建 .session 文件 | 命令面板 → "Create new .session file" → 验证 JSON 文件写入 vault | **可行** | `app.vault.create()` 创建文件，`app.workspace.getLeaf().openFile()` 打开。实测文件创建成功，内容正确 | spike/0001-session-entry |
-| 点击 .session 打开对话界面 | 点击 .session 文件 → 验证对话 UI 加载，session 参数正确 | 待验证 | HarnessSessionView 当前只渲染 JSON，需替换为 ChatPanel 组件 | spike/0001-session-entry |
-| 追加式 JSONL 存储 | 发送消息 → 验证事件追加到 main.jsonl，不重写整个文件 | 待验证 | 需实现 session 连接后才能验证 | — |
+| 注册 .session 扩展名和自定义 view type | 在 plugin.ts 中注册 `registerExtensions` + `registerView` | **可行** | `registerExtensions(["session"], VIEW_TYPE)` + `FileView` 子类，Obsidian 实测点击 `.session` 打开自定义 view | spike/0001-session-entry |
+| 创建 .session 文件 | 命令面板 → "Create new .session file" → 验证 JSON 文件写入 vault | **可行** | `app.vault.create()` + `openFile()`，实测文件创建成功 | spike/0001-session-entry |
+| 点击 .session 打开对话界面 | 点击 .session 文件 → 验证对话 UI 加载，session 参数正确 | **可行** | `FileView.onLoadFile(file)` 原生 API 直接传入文件，ChatPanel 渲染成功，agentId/cwd 从 .session 文件读取 | spike/0001-session-entry |
+| 追加式 JSONL 存储 | 发送消息 → 验证事件追加到 main.jsonl，不重写整个文件 | 待验证 | 需配置 Agent 并实际对话后才能验证 | — |
 | wikilink 引用 | 在笔记中 `[[session-xxx.session]]` → 验证链接可点击 | 待验证 | 依赖 Obsidian 的 wikilink 解析，.session 文件在 vault 中应自动支持 | — |
 
 ---
