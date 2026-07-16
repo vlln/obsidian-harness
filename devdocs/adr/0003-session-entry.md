@@ -1,70 +1,134 @@
 ---
-title: ADR-0003: Session 入口文件设计
-description: Session 通过 vault note 文件作为入口点，而非统一的侧边栏 Session 列表。
+title: ADR-0003: Session 入口文件与存储设计
+description: Session 以 .session 扩展名文件作为 vault 入口，history 以追加式 JSONL 存储原始 ACP 事件。
 type: adr
 status: accepted
 created: 2026-07-15T00:00:00Z
 ---
 
-# ADR-0003: Session 入口文件设计
+# ADR-0003: Session 入口文件与存储设计
 
 ---
 
 ## 背景
 
-当前 Session 的入口是统一的侧边栏 ChatView 或 SessionManagerView。Session 列表通过 SessionHistoryModal 集中展示。这与"笔记即控制台"的产品哲学不符——用户需要从 vault 中分散的 note 文件直接启动和管理 Session，而非通过中央面板。
+当前 Session 的入口是统一的侧边栏 ChatView，Session 通过 SessionHistoryModal 集中管理。这与"笔记即控制台"的产品哲学不符。
 
-Session 入口文件是一个 vault note，它逻辑上代表一个 Session。用户点击或打开该文件时，进入对话流界面。Session 入口文件可以分散在 vault 各处（如 `Projects/xxx/session-001.md`），被其他笔记引用，自然融入知识网络。
+Session 入口文件是一个独立的文件格式（`.session`），是 vault 中的一等公民。用户点击它进入对话界面，可在笔记中通过 wikilink 引用它。Session 分散在 vault 各处，自然支持以 Project 为单位的 Session 管理。
+
+存储设计参考了现有 harness（kimi-code、pi、Claude Code）的实践：原始事件流以追加式 JSONL 存储，一条事件一行。
+
+关键概念区分：
+- **Session**：用户视角，一次完整对话。可能包含多个 agent 交互。
+- **History**：单个 agent 的 ACP 生命周期，即一条 `main.jsonl`。
 
 ---
 
 ## 决策内容
 
-**Session 入口文件是 vault 中的 markdown note，逻辑上代表一个 Session。插件通过 file-menu 和自定义 view type 提供从 note 启动 Session 的机制。**
+**三层结构：`.session` 文件（vault 入口）→ `session_index.jsonl`（总索引）→ `sessions/{sessionId}/main.jsonl`（追加式 history）。**
+
+---
+
+## 三层结构
+
+```
+vault/
+├── Projects/my-project/
+│   ├── notes.md
+│   └── refactor-auth.session        # 入口（元数据），几乎不改动
+
+插件数据目录 (.obsidian/plugins/obsidian-harness/)
+├── session_index.jsonl              # 索引 session（用户视角），非索引文件
+└── sessions/
+    └── {sessionId}/
+        └── main.jsonl               # 追加式 history，原始 ACP 事件流
+```
+
+### `.session` 文件（vault，≈ state.json）
+
+```json
+{
+  "version": 1,
+  "sessionId": "abc123",
+  "agentId": "claude-code-acp",
+  "cwd": "/Users/vlln/GithubProjects/my-project",
+  "title": "Refactor auth module",
+  "createdAt": "2026-07-15T10:30:00Z",
+  "updatedAt": "2026-07-15T14:00:00Z",
+  "forkedFrom": null
+}
+```
+
+轻量 JSON，不含历史。可被 Obsidian 文件浏览器识别，可被 wikilink 引用。点击打开时，插件渲染对话界面。
+
+### `session_index.jsonl`（插件数据目录）
+
+```jsonl
+{"sessionId":"abc123","cwd":"/Users/vlln/GithubProjects/my-project","entryFile":"refactor-auth.session"}
+```
+
+JSONL 格式，一行一个 session。索引 session 的元信息，让插件能快速查找 session 而不需要扫描整个 vault。`sessions/` 目录本身可通过 `ls` 发现所有 session 目录。
+
+### `sessions/{sessionId}/main.jsonl`（追加式 history）
+
+```jsonl
+{"type":"metadata","version":1,"sessionId":"abc123","agentId":"claude-code-acp","cwd":"/Users/vlln/GithubProjects/my-project","title":"Refactor auth","createdAt":"...","updatedAt":"..."}
+{"type":"user_message_chunk","sessionId":"abc123","text":"Refactor the auth module"}
+{"type":"agent_message_chunk","sessionId":"abc123","text":"I'll start by analyzing..."}
+{"type":"tool_call","sessionId":"abc123","toolCallId":"t1","title":"Read","status":"completed","kind":"read","content":[...],"locations":[...]}
+{"type":"agent_message_chunk","sessionId":"abc123","text":"Done."}
+```
+
+- 首行：元数据（session 的完整信息）
+- 后续行：原始 ACP `SessionUpdate` 事件，事件来了就 append，不做任何转换
+- 格式与 `types/session.ts` 的 12 种 `SessionUpdate` 类型一一对应
+- 追加式写入：新事件不断往后写，无需重写整个文件。部分损坏不影响整体。按需加载（只读最近 N 条）
+- `version` 字段预留格式演进
+- 目录结构预留多 agent 扩展（`{sessionId}/` 下可放多个 `.jsonl`）
 
 ---
 
 ## 备选方案
 
-### 方案 A: Session 文件存储全量历史
+### 方案 A: 单文件存储（全量 history 在 .session 中）
 
-Session 入口文件同时存储全部对话历史。每次对话更新时重写整个文件。
+.session 文件同时包含元数据和全量历史。
 
-- 优点：一个文件包含所有内容，简单直观
-- 缺点：大文件写入开销大、部分损坏影响整体、与 Obsidian 的自动同步冲突（文件被外部修改时）
+- 优点：一个文件，简单
+- 缺点：大文件写入开销大、每次对话更新需重写整个文件、与 Obsidian 文件同步冲突
 
-### 方案 B: 入口文件 + 分离存储（选择）
+### 方案 B: 三层结构（选择）
 
-Session 入口文件是轻量的"指针"——包含 session 元数据（sessionId、agentId、cwd、frontmatter），对话历史存储在独立的追加式存储中。入口文件可被 wikilink 引用，对话历史按需加载。
+元数据、索引、历史分离。
 
-- 优点：入口文件轻量、写入开销小、可被图谱索引和 wikilink 引用、历史存储可独立优化（追加式、分卷、摘要）
-- 缺点：两个文件需要保持一致性
+- 优点：入口文件轻量、追加式写入低开销、部分损坏不影响整体、按需加载
+- 缺点：需要维护三个文件的一致性
 
-### 方案 C: 纯内存 + 导出
+### 方案 C: 不持久化，仅内存
 
-Session 不持久化到 vault note，仅在内存中，手动导出为 Markdown。
+Session 不持久化，仅在内存中，手动导出。
 
 - 优点：最简单
-- 缺点：Session 不是一等公民，无法被引用、无法跨 session 恢复
+- 缺点：Session 不是一等公民，无法跨 session 恢复
 
 ---
 
 ## 选择理由
 
-方案 B 在"Session 作为一等公民"和"存储效率"之间取得平衡。入口文件是轻量的 markdown note，可被 Obsidian 的 wikilink、图谱、搜索自然索引。对话历史使用追加式存储，为未来的分卷、摘要、跨设备优化预留空间。
+三层结构参考了现有 harness（kimi-code、pi、Claude Code）的实践，且已被验证可行。`.session` 文件作为 vault 入口让 Session 成为 Obsidian 知识网络的一等公民。JSONL 追加式存储是处理长对话历史的最优方式。
 
 ---
 
 ## 验证
 
-需通过 spike 原型验证：
-
 | 验证项 | 复现步骤 | 结论 | 经验 | 验证 Branch |
 |--------|---------|------|------|------------|
-| 从 note 创建 session 入口 | 右键 note → "Start Agent Session" → 验证入口文件创建 | 待验证 | 需 file-menu 集成，后续 spike | spike/0001-fs-entry-prototype |
-| 入口文件打开对话界面 | 点击入口文件 → 验证对话流 UI 加载 | 待验证 | 需自定义 view type 或 file open handler | spike/0001-fs-entry-prototype |
-| Agent 通过 ACP 读写 vault 文件 | 在对话中让 agent 读/写 vault 文件 → 验证内容正确 | **可行** | `readTextFile` 支持 line/limit 参数，`writeTextFile` 自动创建父目录。编译通过，接口与 ACP spec 一致。 | spike/0001-fs-entry-prototype |
-| 入口文件被 wikilink 引用 | 在另一笔记中 `[[session-001]]` → 验证链接可点击 | 待验证 | 入口文件是 markdown note，wikilink 天然支持，但需验证自定义 view type 的打开行为 | spike/0001-fs-entry-prototype |
+| 注册 .session 扩展名和自定义 view type | 在 plugin.ts 中注册 `registerExtensions` + `registerView` | 待验证 | | spike/0001-fs-entry-prototype |
+| 从 file-menu 创建 .session 文件 | 右键文件夹 → "New Agent Session" → 选择 agent → 验证文件创建 | 待验证 | | spike/0001-fs-entry-prototype |
+| 点击 .session 打开对话界面 | 点击 .session 文件 → 验证对话 UI 加载，session 参数正确 | 待验证 | | spike/0001-fs-entry-prototype |
+| 追加式 JSONL 存储 | 发送消息 → 验证事件追加到 main.jsonl，不重写整个文件 | 待验证 | | spike/0001-fs-entry-prototype |
+| wikilink 引用 | 在笔记中 `[[refactor-auth.session]]` → 验证链接可点击 | 待验证 | | spike/0001-fs-entry-prototype |
 
 ---
 
@@ -74,19 +138,20 @@ Session 不持久化到 vault note，仅在内存中，手动导出为 Markdown�
 
 - Session 融入 Obsidian 知识网络，可被引用、搜索、图谱展示
 - 入口文件分散在 vault 中，自然支持以 Project 为单位的 Session 管理
-- 轻量入口 + 分离存储为未来扩展（分卷、摘要、跨设备）预留空间
+- 追加式 JSONL 写入低开销，支持长对话历史
+- 目录结构预留多 agent 扩展
 
 ### 负面
 
 - 需要实现新的 view type 和 file-menu 集成
-- 入口文件与历史存储的一致性需要维护
+- 三层结构的文件一致性需要维护
 - 与现有 ChatView 架构的兼容需要过渡期
 
 ---
 
 ## 约束范围
 
-`ui/ChatView.tsx`、`ui/ChatPanel.tsx`、`services/session-storage.ts`、`types/session.ts`、`plugin.ts`
+`plugin.ts`、`ui/ChatView.tsx`（新增 HarnessSessionView）、`services/session-storage.ts`、`types/session.ts`
 
 ---
 
@@ -94,10 +159,11 @@ Session 不持久化到 vault note，仅在内存中，手动导出为 Markdown�
 
 | 规则编号 | 规则 | 适用范围 | 违反时如何检出 |
 |----------|------|---------|--------------|
-| AR-001 | Session 入口文件必须是有效的 Obsidian markdown note，包含 frontmatter | `session-storage.ts` | 文件解析失败 |
-| AR-002 | 对话历史存储与入口文件分离，入口文件不包含全量历史 | `session-storage.ts` | code review |
-| AR-003 | 入口文件可被 wikilink 引用，不依赖插件自定义语法 | vault note 格式 | 在 Obsidian 中测试 wikilink |
-| AR-004 | Agent 的 fs read/write 通过 ACP 协议，不绕过 Obsidian vault API | `acp-handler.ts` | code review |
+| AR-001 | `.session` 文件使用 `.session` 扩展名，内容为 JSON，包含 version、sessionId、agentId、cwd、title | `plugin.ts` 注册 | 文件解析失败 |
+| AR-002 | History 以追加式 JSONL 存储，每行一条原始 ACP SessionUpdate 事件，不做聚合转换 | `session-storage.ts` | code review |
+| AR-003 | History 文件首行为元数据行（type: metadata） | `session-storage.ts` | 读取时校验首行 |
+| AR-004 | Session 入口文件不包含 history 内容 | `.session` 文件格式 | code review |
+| AR-005 | 入口文件可被 wikilink 引用 | vault 文件格式 | 在 Obsidian 中测试 |
 
 ---
 
@@ -105,4 +171,6 @@ Session 不持久化到 vault note，仅在内存中，手动导出为 Markdown�
 
 | 日期 | 修订内容 | 修订原因 |
 |------|---------|----------|
-| | | |
+| 2026-07-15 | 重写：从 markdown note 方案改为 .session 文件 + 三层结构 | 明确区分 Session 和 History，参考现有 harness 实践 |
+| 2026-07-15 | 移除 fs read/write 验证项 | 所有 ACP 后端都不使用该接口，Agent 通过自己的工具操作文件 |
+| 2026-07-15 | 补充 .session 文件格式和 session_index.jsonl 设计 | 设计细化 |
