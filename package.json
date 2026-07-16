@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-agent-client",
-	"version": "0.11.0",
-	"description": "Use AI coding agents via the Agent Client Protocol directly inside Obsidian",
+	"name": "obsidian-harness",
+	"version": "0.1.0",
+	"description": "Obsidian as cockpit, Agent as engine — manage AI coding agents from your knowledge base",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -18,7 +18,8 @@
 		"docs:preview": "vitepress preview docs"
 	},
 	"keywords": [],
-	"author": "",
+	"author": "vlln",
+	"repository": "https://github.com/vlln/obsidian-harness-frontend",
 	"license": "Apache-2.0",
 	"devDependencies": {
 		"@eslint/json": "^0.14.0",
