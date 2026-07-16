@@ -6,4 +6,4 @@
 
 | 编号 | 文档 | 状态 |
 |------|------|------|
-| [0001](0001-session-entry.md) | Session 入口文件 | proposed |
+| [0001](0001-session-entry.md) | Session 入口文件 | active |

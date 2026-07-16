@@ -2,7 +2,7 @@
 title: Spec-0001: Session 入口文件
 description: Session 以 .session 文件作为 vault 入口，通过 FileView 自定义视图打开对话界面。
 type: spec
-status: proposed
+status: active
 version: 1
 created: 2026-07-15T00:00:00Z
 ---

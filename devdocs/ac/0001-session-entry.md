@@ -2,7 +2,7 @@
 title: AC-0001: Session 入口文件
 description: Session 入口文件的创建、打开、存储的验收标准。
 type: ac
-status: proposed
+status: active
 created: 2026-07-15T00:00:00Z
 ---
 
