@@ -17,13 +17,14 @@ Obsidian Harness — 以 Obsidian 知识库为驾驶舱的 AI Agent 管理平台
 | 本文档（AGENTS.md） | 项目入口地图 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 编码/Commit/文档/测试规范 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本变更记录（Keep a Changelog） |
-| [docs/vision.md](docs/vision.md) | 全局顶层愿景：业务目标、用户范围、长期理想形态 |
-| [docs/spec/](docs/spec/) | Spec：需求规格。用户故事、模块划分、数据模型 |
-| [docs/interface/](docs/interface/) | 接口定义 |
-| [docs/ac/](docs/ac/) | 验收标准（AC）：正常/边界/异常/失败四场景 |
-| [docs/adr/](docs/adr/) | 架构决策记录：技术选型、方案对比、取舍 |
-| [docs/plans/](docs/plans/) | 执行容器：对应一个 Git 分支 |
-| [docs/README.md](docs/README.md) | 子目录索引 + 当前系统状态 |
+| [devdocs/vision.md](devdocs/vision.md) | 全局顶层愿景：业务目标、用户范围、长期理想形态 |
+| [devdocs/spec/](devdocs/spec/) | Spec：需求规格。用户故事、模块划分、数据模型 |
+| [devdocs/interface/](devdocs/interface/) | 接口定义 |
+| [devdocs/ac/](devdocs/ac/) | 验收标准（AC）：正常/边界/异常/失败四场景 |
+| [devdocs/adr/](devdocs/adr/) | 架构决策记录：技术选型、方案对比、取舍 |
+| [devdocs/plans/](devdocs/plans/) | 执行容器：对应一个 Git 分支 |
+| [devdocs/README.md](devdocs/README.md) | 子目录索引 + 当前系统状态 |
+| [docs/](docs/) | 用户文档（Vitepress 站点） |
 
 ### 文档目录结构
 
@@ -31,7 +32,7 @@ Obsidian Harness — 以 Obsidian 知识库为驾驶舱的 AI Agent 管理平台
 ├── AGENTS.md
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
-├── docs/
+├── devdocs/                  # 开发文档（devloop）
 │   ├── README.md
 │   ├── vision.md
 │   ├── spec/
@@ -39,6 +40,11 @@ Obsidian Harness — 以 Obsidian 知识库为驾驶舱的 AI Agent 管理平台
 │   ├── ac/
 │   ├── adr/
 │   └── plans/
+├── docs/                     # 用户文档（Vitepress）
+│   ├── index.md
+│   ├── agent-setup/
+│   ├── getting-started/
+│   └── ...
 ├── src/
 └── .github/workflows/
 ```
