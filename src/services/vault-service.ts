@@ -274,6 +274,10 @@ export class VaultService implements IVaultAccess {
 		const activeFile = this.plugin.app.workspace.getActiveFile();
 		if (!activeFile) return Promise.resolve(null);
 
+			// Exclude .session files — they are metadata, not content
+			if (activeFile.extension === "session") return Promise.resolve(null);
+
+
 		const metadata = this.convertToMetadata(activeFile);
 
 		// Add selection if we have it stored for this file
