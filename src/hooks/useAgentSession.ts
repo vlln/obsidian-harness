@@ -48,6 +48,13 @@ export interface UseAgentSessionReturn {
 		overrideAgentId?: string,
 		overrideCwd?: string,
 	) => Promise<void>;
+
+		/** Restore an existing session via ACP session/load. Agent replays history. */
+		restoreSession: (
+			sessionId: string,
+			cwd: string,
+		) => Promise<void>;
+
 	restartSession: (
 		newAgentId?: string,
 		overrideCwd?: string,
@@ -291,6 +298,55 @@ export function useAgentSession(
 			}
 		},
 		[agentClient, settingsAccess, workingDirectory, setErrorInfo],
+	);
+
+	const restoreSession = useCallback(
+		async (sessionId: string, cwd: string) => {
+			const s = sessionRef.current;
+			const settings = settingsAccess.getSnapshot();
+			const agentId = s.agentId;
+	
+			setSession((prev) => ({
+				...prev,
+				sessionId: null,
+				state: "initializing",
+			}));
+			setErrorInfo(null);
+	
+			try {
+				const agentSettings = findAgentSettings(settings, agentId);
+				if (!agentSettings) throw new Error(`Agent not found: ${agentId}`);
+	
+				const agentConfig = buildAgentConfigWithApiKey(
+					settings, agentSettings, agentId, cwd,
+				);
+	
+				// Initialize agent if not already connected
+				if (!agentClient.isInitialized() || agentClient.getCurrentAgentId() !== agentId) {
+					await agentClient.initialize(agentConfig);
+				}
+	
+				// Load existing session — agent replays history via session/update
+				const result = await agentClient.loadSession(sessionId, cwd);
+	
+				setSession((prev) => ({
+					...prev,
+					sessionId: result.sessionId,
+					state: "ready",
+					modes: result.modes ?? prev.modes,
+					configOptions: result.configOptions ?? prev.configOptions,
+					lastActivityAt: new Date(),
+				}));
+			} catch (error) {
+				setErrorInfo({
+					title: "Session Restore Failed",
+					message: extractErrorMessage(error),
+				});
+				setSession((prev) => ({ ...prev, state: "error" }));
+				throw error;
+			}
+		},
+		[agentClient, settingsAccess],
 	);
 
 	const restartSession = useCallback(
@@ -541,6 +597,8 @@ export function useAgentSession(
 		session,
 		isReady,
 		createSession,
+		restoreSession,
+
 		restartSession,
 		closeSession,
 		forceRestartAgent,

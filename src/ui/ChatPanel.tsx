@@ -249,29 +249,25 @@ export function ChatPanel({
 		onIgnoreUpdates: agent.setIgnoreUpdates,
 		onClearMessages: agent.clearMessages,
 	});
-	const { restoreSession } = sessionHistory;
-	// Restore session history when opening a .session file
-	const historyRestoredRef = useRef(false);
+	// Restore session via ACP session/load when opening a .session file
+	const sessionRestoredRef = useRef(false);
 	useEffect(() => {
-
-		// Only try restore for ACP sessionIds (ULID, 26+ chars), skip local UUIDs
-
-		// ACP ULID: 26 chars, no hyphens. Local UUID: 36 chars with hyphens.
-		const isAcpSessionId = initialSessionId && initialSessionId.length === 26 && initialSessionId.indexOf("-") === -1;
-		if (!isAcpSessionId) {
-			historyRestoredRef.current = true;
-			return;
-		}
-
-		if (!initialSessionId || historyRestoredRef.current) return;
-		if (!isSessionReady) return;
+		if (!initialSessionId || sessionRestoredRef.current) return;
 	
-		historyRestoredRef.current = true;
+		// ACP ULID: 26 chars, no hyphens. Local UUID: 36 chars with hyphens.
+		const isAcpSessionId = initialSessionId.length === 26 && initialSessionId.indexOf("-") === -1;
+		if (!isAcpSessionId) {
+			sessionRestoredRef.current = true;
+			return; // Local UUID — first open, createSession will handle it
+		}
+	
+		sessionRestoredRef.current = true;
 		logger.log(`[ChatPanel] Restoring session: ${initialSessionId}`);
-		restoreSession(initialSessionId, agentCwd).catch((err) => {
-			logger.warn(`[ChatPanel] Session restore failed: ${err}`);
+		agent.restoreSession(initialSessionId, agentCwd).catch((err) => {
+			logger.warn(`[ChatPanel] Session restore failed, falling back to new session: ${err}`);
+			void agent.createSession(initialAgentId);
 		});
-	}, [initialSessionId, isSessionReady, restoreSession, agentCwd]);
+	}, [initialSessionId, agentCwd, agent.restoreSession, agent.createSession, initialAgentId]);
 
 
 	// ============================================================
@@ -694,15 +690,22 @@ export function ChatPanel({
 	// ============================================================
 	// Effects - Session Lifecycle
 	// ============================================================
-	// Initialize session with the agent from .session file
+	// Initialize session on first open (local UUID) or when agent is selected
 	useEffect(() => {
 		const agentId = config?.agent || initialAgentId;
 		if (!agentId) {
-			// Agent not yet selected — wait for user to pick from menu
 			logger.log("[ChatPanel] No agent selected yet, waiting...");
 			return;
 		}
-		logger.log(`[ChatPanel] Starting session with agent: ${agentId}`);
+		// Skip if we have an ACP ULID — restoreSession will handle it
+		const isAcpSessionId = initialSessionId
+			&& initialSessionId.length === 26
+			&& initialSessionId.indexOf("-") === -1;
+		if (isAcpSessionId) {
+			logger.log("[ChatPanel] ACP session, waiting for restoreSession...");
+			return;
+		}
+		logger.log(`[ChatPanel] Starting new session with agent: ${agentId}`);
 		void agent.createSession(agentId);
 	}, [agent.createSession, config?.agent, initialAgentId]);
 

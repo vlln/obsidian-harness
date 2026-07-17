@@ -54,6 +54,13 @@ export interface UseAgentReturn {
 		overrideAgentId?: string,
 		overrideCwd?: string,
 	) => Promise<void>;
+
+		/** Restore an existing session via ACP session/load */
+		restoreSession: (
+			sessionId: string,
+			cwd: string,
+		) => Promise<void>;
+
 	restartSession: (
 		newAgentId?: string,
 		overrideCwd?: string,
@@ -181,6 +188,8 @@ export function useAgent(
 			messages: agentMessages.messages,
 			isSending: agentMessages.isSending,
 			lastUserMessage: agentMessages.lastUserMessage,
+			restoreSession: agentSession.restoreSession,
+
 
 			// Combined error
 			errorInfo,
