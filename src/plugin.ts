@@ -48,6 +48,10 @@ import {
 	xyPoint,
 } from "./services/settings-normalizer";
 import {
+	selectPreferredDefaultAgentId,
+	uniqueNonEmpty,
+} from "./services/session-helpers";
+import {
 	AgentEnvVar,
 	GeminiAgentSettings,
 	ClaudeAgentSettings,
@@ -56,6 +60,8 @@ import {
 } from "./types/agent";
 import type { SavedSessionInfo, SessionIndexEntry } from "./types/session";
 import { initializeLogger, getLogger } from "./utils/logger";
+
+const PLUGIN_RELEASE_REPO = "vlln/obsidian-harness-frontend";
 
 // Re-export for backward compatibility
 export type { AgentEnvVar, CustomAgentSettings };
@@ -743,10 +749,15 @@ export default class AgentClientPlugin extends Plugin {
 	}
 
 	/**
-	 * Get all available agents (claude, codex, gemini, custom)
+	 * Get all available agents.
+	 *
+	 * Locally discovered backends are listed first because they are known to be
+	 * present in this environment. Built-ins remain visible as configurable
+	 * options, but their commands may still need user setup.
 	 */
 	getAvailableAgents(): Array<{ id: string; displayName: string }> {
-		const agents = [
+		const discovered = this.getDiscoveredAgents();
+		const configured = [
 			{
 				id: this.settings.claude.id,
 				displayName:
@@ -768,14 +779,18 @@ export default class AgentClientPlugin extends Plugin {
 			})),
 		];
 
-		// Auto-discover pi-acp if installed as a pi plugin
-		if (this.isPiAcpAvailable()) {
-			agents.push({
-				id: "pi-acp",
-				displayName: "pi-acp",
-			});
-		}
+		const discoveredIds = new Set(discovered.map((agent) => agent.id));
+		return [
+			...discovered,
+			...configured.filter((agent) => !discoveredIds.has(agent.id)),
+		];
+	}
 
+	private getDiscoveredAgents(): Array<{ id: string; displayName: string }> {
+		const agents: Array<{ id: string; displayName: string }> = [];
+		if (this.isPiAcpAvailable()) {
+			agents.push({ id: "pi-acp", displayName: "pi-acp" });
+		}
 		return agents;
 	}
 
@@ -1205,9 +1220,9 @@ export default class AgentClientPlugin extends Plugin {
 			floatingButtonPosition: xyPoint(raw.floatingButtonPosition),
 		};
 
-		this.ensureDefaultAgentId();
+		const defaultAgentChanged = this.ensureDefaultAgentId();
 
-		if (migratedSecrets) {
+		if (migratedSecrets || defaultAgentChanged) {
 			await this.saveSettings();
 		}
 	}
@@ -1298,30 +1313,38 @@ export default class AgentClientPlugin extends Plugin {
 	 * Fetch the latest stable release version from GitHub.
 	 */
 	private async fetchLatestStable(): Promise<string | null> {
-		const response = await requestUrl({
-			url: "https://api.github.com/repos/RAIT-09/obsidian-agent-client/releases/latest",
-		});
-		const data = response.json as { tag_name?: string };
-		return data.tag_name ? semver.clean(data.tag_name) : null;
+		try {
+			const response = await requestUrl({
+				url: `https://api.github.com/repos/${PLUGIN_RELEASE_REPO}/releases/latest`,
+			});
+			const data = response.json as { tag_name?: string };
+			return data.tag_name ? semver.clean(data.tag_name) : null;
+		} catch {
+			return null;
+		}
 	}
 
 	/**
 	 * Fetch the latest prerelease version from GitHub.
 	 */
 	private async fetchLatestPrerelease(): Promise<string | null> {
-		const response = await requestUrl({
-			url: "https://api.github.com/repos/RAIT-09/obsidian-agent-client/releases",
-		});
-		const releases = response.json as Array<{
-			tag_name: string;
-			prerelease: boolean;
-		}>;
+		try {
+			const response = await requestUrl({
+				url: `https://api.github.com/repos/${PLUGIN_RELEASE_REPO}/releases`,
+			});
+			const releases = response.json as Array<{
+				tag_name: string;
+				prerelease: boolean;
+			}>;
 
-		// Find the first prerelease (releases are sorted by date descending)
-		const latestPrerelease = releases.find((r) => r.prerelease);
-		return latestPrerelease
-			? semver.clean(latestPrerelease.tag_name)
-			: null;
+			// Find the first prerelease (releases are sorted by date descending)
+			const latestPrerelease = releases.find((r) => r.prerelease);
+			return latestPrerelease
+				? semver.clean(latestPrerelease.tag_name)
+				: null;
+		} catch {
+			return null;
+		}
 	}
 
 	/**
@@ -1352,7 +1375,7 @@ export default class AgentClientPlugin extends Plugin {
 					? latestStable
 					: latestPrerelease;
 				new Notice(
-					`[Agent Client] Update available: v${newestVersion}`,
+					`Obsidian harness: update available, v${newestVersion}`,
 				);
 				return true;
 			}
@@ -1360,7 +1383,9 @@ export default class AgentClientPlugin extends Plugin {
 			// Stable version user: check stable only
 			const latestStable = await this.fetchLatestStable();
 			if (latestStable && semver.gt(latestStable, currentVersion)) {
-				new Notice(`[Agent Client] Update available: v${latestStable}`);
+				new Notice(
+					`Obsidian harness: update available, v${latestStable}`,
+				);
 				return true;
 			}
 		}
@@ -1368,36 +1393,43 @@ export default class AgentClientPlugin extends Plugin {
 		return false;
 	}
 
-	ensureDefaultAgentId(): void {
-		const availableIds = this.collectAvailableAgentIds();
-		if (availableIds.length === 0) {
-			this.settings.defaultAgentId = DEFAULT_SETTINGS.claude.id;
-			return;
-		}
-		if (!availableIds.includes(this.settings.defaultAgentId)) {
-
-			// Prefer pi-acp if available, otherwise fall back to first available
-			this.settings.defaultAgentId = this.isPiAcpAvailable() ? "pi-acp" : availableIds[0];
-		}
+	ensureDefaultAgentId(): boolean {
+		const configuredIds = this.collectConfiguredAgentIds();
+		const discoveredIds = this.collectDiscoveredAgentIds();
+		const nextDefaultAgentId = selectPreferredDefaultAgentId({
+			currentDefaultId: this.settings.defaultAgentId,
+			configuredAgentIds: configuredIds,
+			discoveredAgentIds: discoveredIds,
+			fallbackAgentId: DEFAULT_SETTINGS.claude.id,
+		});
+		if (nextDefaultAgentId === this.settings.defaultAgentId) return false;
+		this.settings.defaultAgentId = nextDefaultAgentId;
+		return true;
 	}
 
 	private collectAvailableAgentIds(): string[] {
-		const ids = new Set<string>();
-		ids.add(this.settings.claude.id);
-		ids.add(this.settings.codex.id);
-		ids.add(this.settings.gemini.id);
+		return uniqueNonEmpty([
+			...this.collectDiscoveredAgentIds(),
+			...this.collectConfiguredAgentIds(),
+		]);
+	}
+
+	private collectConfiguredAgentIds(): string[] {
+		const ids = [
+			this.settings.claude.id,
+			this.settings.codex.id,
+			this.settings.gemini.id,
+		];
 		for (const agent of this.settings.customAgents) {
 			if (agent.id && agent.id.length > 0) {
-				ids.add(agent.id);
+				ids.push(agent.id);
 			}
 		}
+		return uniqueNonEmpty(ids);
+	}
 
-			// Include auto-discovered pi-acp
-			if (this.isPiAcpAvailable()) {
-				ids.add("pi-acp");
-			}
-
-		return Array.from(ids);
+	private collectDiscoveredAgentIds(): string[] {
+		return this.getDiscoveredAgents().map((agent) => agent.id);
 	}
 
 	/**

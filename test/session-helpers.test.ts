@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
 	decideInitialSessionLifecycle,
 	findAgentSettings,
+	selectPreferredDefaultAgentId,
 	shouldPersistResolvedSessionId,
 	shouldRestoreInitialSession,
 	shouldPersistResolvedAgentId,
+	uniqueNonEmpty,
 } from "../src/services/session-helpers";
 import type { AgentClientPluginSettings } from "../src/plugin";
 
@@ -179,5 +181,53 @@ describe("session restore helpers", () => {
 			args: [],
 			env: [],
 		});
+	});
+
+	it("deduplicates non-empty agent ids", () => {
+		expect(uniqueNonEmpty(["", " pi-acp ", "codex-acp", "pi-acp"])).toEqual([
+			"pi-acp",
+			"codex-acp",
+		]);
+	});
+
+	it("prefers discovered backends over the built-in fallback default", () => {
+		expect(
+			selectPreferredDefaultAgentId({
+				currentDefaultId: "claude-code-acp",
+				configuredAgentIds: [
+					"claude-code-acp",
+					"codex-acp",
+					"gemini-cli",
+				],
+				discoveredAgentIds: ["pi-acp"],
+				fallbackAgentId: "claude-code-acp",
+			}),
+		).toBe("pi-acp");
+	});
+
+	it("keeps an explicit non-fallback default when it is configured", () => {
+		expect(
+			selectPreferredDefaultAgentId({
+				currentDefaultId: "codex-acp",
+				configuredAgentIds: [
+					"claude-code-acp",
+					"codex-acp",
+					"gemini-cli",
+				],
+				discoveredAgentIds: ["pi-acp"],
+				fallbackAgentId: "claude-code-acp",
+			}),
+		).toBe("codex-acp");
+	});
+
+	it("falls back to the first configured agent when no discovered backend exists", () => {
+		expect(
+			selectPreferredDefaultAgentId({
+				currentDefaultId: "missing-agent",
+				configuredAgentIds: ["claude-code-acp", "codex-acp"],
+				discoveredAgentIds: [],
+				fallbackAgentId: "claude-code-acp",
+			}),
+		).toBe("claude-code-acp");
 	});
 });

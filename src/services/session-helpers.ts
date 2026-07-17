@@ -31,6 +31,38 @@ export interface AgentDisplayInfo {
 	displayName: string;
 }
 
+export function uniqueNonEmpty(
+	values: Array<string | null | undefined>,
+): string[] {
+	return Array.from(
+		new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)),
+	);
+}
+
+export function selectPreferredDefaultAgentId({
+	currentDefaultId,
+	configuredAgentIds,
+	discoveredAgentIds,
+	fallbackAgentId,
+}: {
+	currentDefaultId: string | null | undefined;
+	configuredAgentIds: string[];
+	discoveredAgentIds: string[];
+	fallbackAgentId: string;
+}): string {
+	const configured = uniqueNonEmpty(configuredAgentIds);
+	const discovered = uniqueNonEmpty(discoveredAgentIds);
+	const current = currentDefaultId?.trim() ?? "";
+
+	if (current && discovered.includes(current)) return current;
+	if (current && current !== fallbackAgentId && configured.includes(current)) {
+		return current;
+	}
+	if (discovered.length > 0) return discovered[0];
+	if (current && configured.includes(current)) return current;
+	return configured[0] ?? fallbackAgentId;
+}
+
 export type InitialSessionLifecycleAction =
 	| { type: "idle" }
 	| { type: "wait_for_agent" }
