@@ -116,8 +116,8 @@ export function findAgentSettings(
 			return {
 				id: "pi-acp",
 				displayName: "pi-acp",
-				command: "pi-acp",
-				args: [],
+				command: "npx",
+				args: ["-y", "pi-acp"],
 				env: [],
 			};
 		}
