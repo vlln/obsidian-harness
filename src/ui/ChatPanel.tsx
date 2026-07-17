@@ -97,6 +97,9 @@ export interface ChatPanelProps {
 	 * triggers Obsidian to re-read getDisplayText() and update the tab header).
 	 */
 	onSessionTitleChanged?: () => void;
+	/** Called when ACP returns a sessionId (different from the .session file sessionId) */
+	onSessionIdChanged?: (sessionId: string) => void;
+
 	// Floating-specific
 	onMinimize?: () => void;
 	onClose?: () => void;
@@ -144,6 +147,8 @@ export function ChatPanel({
 	initialSessionId,
 
 	config,
+	onSessionIdChanged,
+
 	onRegisterCallbacks,
 	onAgentIdChanged,
 	onSessionTitleChanged,
@@ -891,7 +896,7 @@ export function ChatPanel({
 	useEffect(() => {
 		onSessionTitleChanged?.();
 	}, [onSessionTitleChanged, sessionTitle]);
-
+	// BR-002: Notify when ACP sessionId changes (write back to .session file)	useEffect(() => {		if (session.sessionId && session.sessionId !== initialSessionId) {			onSessionIdChanged?.(session.sessionId);		}	}, [session.sessionId, initialSessionId, onSessionIdChanged]);
 	// ============================================================
 	// Effects - System Notification on Permission Request
 	// ============================================================
