@@ -39,6 +39,8 @@ function SessionChatComponent({
 				viewId={viewId}
 				workingDirectory={config.cwd || undefined}
 				initialAgentId={config.agentId}
+					initialSessionId={config.sessionId}
+
 				viewHost={view}
 				onSessionTitleChanged={() => view.refreshDisplayText()}
 			/>
