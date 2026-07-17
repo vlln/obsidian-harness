@@ -115,16 +115,11 @@ export function findAgentSettings(
 		// Auto-discovered pi-acp: use pi Node.js npx path
 		// (Electron does not inherit the user PATH, so npx is not found)
 		if (agentId === "pi-acp") {
-			const { join } = require("path");
-			const { homedir } = require("os");
-			const piBin = join(homedir(), ".local", "share", "pi-node", "current", "bin");
-			const nodeBin = join(piBin, "node");
-			const npxJs = join(piBin, "..", "lib", "node_modules", "npm", "bin", "npx-cli.js");
 			return {
 				id: "pi-acp",
 				displayName: "pi-acp",
-				command: nodeBin,
-				args: [npxJs, "-y", "pi-acp"],
+				command: "pi-acp",
+				args: [],
 				env: [],
 			};
 		}
