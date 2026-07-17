@@ -249,24 +249,29 @@ export function ChatPanel({
 		onIgnoreUpdates: agent.setIgnoreUpdates,
 		onClearMessages: agent.clearMessages,
 	});
-	// Restore session history from local storage when opening a .session file
+	const { restoreSession } = sessionHistory;
+	// Restore session history when opening a .session file
 	const historyRestoredRef = useRef(false);
 	useEffect(() => {
+
+		// Only try restore for ACP sessionIds (ULID, 26+ chars), skip local UUIDs
+
+		// ACP ULID: 26 chars, no hyphens. Local UUID: 36 chars with hyphens.
+		const isAcpSessionId = initialSessionId && initialSessionId.length === 26 && initialSessionId.indexOf("-") === -1;
+		if (!isAcpSessionId) {
+			historyRestoredRef.current = true;
+			return;
+		}
+
 		if (!initialSessionId || historyRestoredRef.current) return;
 		if (!isSessionReady) return;
 	
 		historyRestoredRef.current = true;
-		plugin.settingsService.loadSessionMessages(initialSessionId).then((localMessages) => {
-			if (localMessages && localMessages.length > 0) {
-				agent.setMessagesFromLocal(localMessages);
-				logger.log(`[ChatPanel] Restored ${localMessages.length} messages from local storage`);
-			} else {
-				logger.log(`[ChatPanel] No local history found for session: ${initialSessionId}`);
-			}
-		}).catch((err) => {
-			logger.warn(`[ChatPanel] Failed to load local history: ${err}`);
+		logger.log(`[ChatPanel] Restoring session: ${initialSessionId}`);
+		restoreSession(initialSessionId, agentCwd).catch((err) => {
+			logger.warn(`[ChatPanel] Session restore failed: ${err}`);
 		});
-	}, [initialSessionId, isSessionReady, plugin, agent.setMessagesFromLocal]);
+	}, [initialSessionId, isSessionReady, restoreSession, agentCwd]);
 
 
 	// ============================================================
