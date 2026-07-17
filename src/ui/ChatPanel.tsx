@@ -255,7 +255,9 @@ export function ChatPanel({
 	useEffect(() => {
 
 		// Only try restore for ACP sessionIds (ULID, 26+ chars), skip local UUIDs
-		const isAcpSessionId = initialSessionId && initialSessionId.length >= 26;
+
+		// ACP ULID: 26 chars, no hyphens. Local UUID: 36 chars with hyphens.
+		const isAcpSessionId = initialSessionId && initialSessionId.length === 26 && initialSessionId.indexOf("-") === -1;
 		if (!isAcpSessionId) {
 			historyRestoredRef.current = true;
 			return;
