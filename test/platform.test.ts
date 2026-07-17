@@ -289,13 +289,14 @@ describe("prepareShellCommand", () => {
 		expect(r.args[r.args.length - 1]).toContain("ls | grep x");
 	});
 
-	it("macOS: wraps in a login shell (-l -c)", () => {
+	it("macOS: wraps in a interactive login shell (-i -l -c)", () => {
 		Platform.isMacOS = true;
 		const r = prepareShellCommand("agent", [], "/home/u", {
 			wslMode: false,
 		});
-		expect(r.args[0]).toBe("-l");
-		expect(r.args[1]).toBe("-c");
+		expect(r.args[0]).toBe("-i");
+		expect(r.args[1]).toBe("-l");
+		expect(r.args[2]).toBe("-c");
 		expect(r.needsShell).toBe(false);
 	});
 

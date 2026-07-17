@@ -587,7 +587,7 @@ export function prepareShellCommand(
 
 		return {
 			command: shell,
-			args: ["-l", "-c", commandString],
+			args: ["-i", "-l", "-c", commandString],
 			needsShell: false,
 		};
 	}
