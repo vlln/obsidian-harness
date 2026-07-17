@@ -2,7 +2,7 @@
 title: Spec-0002: Session 生命周期管理
 description: Session 文件的删除清理、索引查询、SessionManagerView 展示。
 type: spec
-status: draft
+status: active
 version: 1
 created: 2026-07-17T00:00:00Z
 ---

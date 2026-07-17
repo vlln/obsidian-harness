@@ -422,6 +422,15 @@ export default class AgentClientPlugin extends Plugin {
 				}
 			}),
 		);
+
+			// BR-004: Cascade delete session_index and history when .session file is deleted
+			this.registerEvent(
+				this.app.vault.on("delete", (file) => {
+					if (file.path.endsWith(".session")) {
+						void this.cleanupSessionFile(file.path);
+					}
+				}),
+			);
 	}
 
 	onunload() {
@@ -1426,6 +1435,28 @@ export default class AgentClientPlugin extends Plugin {
 		const file = this.app.vault.getAbstractFileByPath(filePath);
 		if (file instanceof TFile) {
 			await this.app.workspace.getLeaf().openFile(file);
+		}
+	}
+
+	/**
+	 * BR-004: Cascade delete session_index entry and history directory
+	 * when a .session file is deleted from the vault.
+	 */
+	async cleanupSessionFile(entryFilePath: string): Promise<void> {
+		try {
+			const entries = await this.settingsService.getSessionIndex();
+			const entry = entries.find((e) => e.entryFile === entryFilePath);
+			if (!entry) return;
+
+			await this.settingsService.removeSessionIndex(entry.sessionId);
+			await this.settingsService.deleteHistory(entry.sessionId);
+			getLogger().log(
+				`[Harness] Cleaned up session: ${entry.sessionId}`,
+			);
+		} catch (error) {
+			getLogger().warn(
+				`[Harness] Failed to clean up session file ${entryFilePath}: ${error}`,
+			);
 		}
 	}
 }
