@@ -8,9 +8,9 @@
 
 import type { AgentClientPluginSettings } from "../plugin";
 import type AgentClientPlugin from "../plugin";
-import { updateDebugMode } from "../utils/logger";
 import type { ChatMessage } from "../types/chat";
-import type { SavedSessionInfo } from "../types/session";
+import type { SavedSessionInfo, SessionUpdate, SessionIndexEntry } from "../types/session";
+import { updateDebugMode } from "../utils/logger";
 import { SessionStorage } from "./session-storage";
 
 // ============================================================================
@@ -154,6 +154,40 @@ export interface ISettingsAccess {
 	 * @returns Promise that resolves when file is deleted
 	 */
 	deleteSessionMessages(sessionId: string): Promise<void>;
+
+	// ============================================================
+	// JSONL History Methods (append-only, AC-0003)
+	// ============================================================
+
+	writeHistoryMetadata(
+		sessionId: string,
+		metadata: {
+			agentId: string;
+			cwd: string;
+			title: string;
+			createdAt: string;
+		},
+	): Promise<void>;
+
+	appendHistoryEvent(
+		sessionId: string,
+		event: SessionUpdate,
+	): Promise<void>;
+
+	readHistory(
+		sessionId: string,
+		limit?: number,
+	): Promise<SessionUpdate[]>;
+
+	deleteHistory(sessionId: string): Promise<void>;
+
+	// ============================================================
+	// Session Index Methods (session_index.jsonl)
+	// ============================================================
+
+	appendSessionIndex(entry: SessionIndexEntry): Promise<void>;
+	getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]>;
+	removeSessionIndex(sessionId: string): Promise<void>;
 }
 
 /** Listener callback invoked when settings change */
@@ -315,6 +349,56 @@ export class SettingsService implements ISettingsAccess {
 
 	async deleteSessionMessages(sessionId: string): Promise<void> {
 		return this.sessionStorage.deleteSessionMessages(sessionId);
+	}
+
+	// ============================================================
+	// JSONL History Methods
+	// ============================================================
+
+	async writeHistoryMetadata(
+		sessionId: string,
+		metadata: {
+			agentId: string;
+			cwd: string;
+			title: string;
+			createdAt: string;
+		},
+	): Promise<void> {
+		return this.sessionStorage.writeHistoryMetadata(sessionId, metadata);
+	}
+
+	async appendHistoryEvent(
+		sessionId: string,
+		event: SessionUpdate,
+	): Promise<void> {
+		return this.sessionStorage.appendHistoryEvent(sessionId, event);
+	}
+
+	async readHistory(
+		sessionId: string,
+		limit?: number,
+	): Promise<SessionUpdate[]> {
+		return this.sessionStorage.readHistory(sessionId, limit);
+	}
+
+	async deleteHistory(sessionId: string): Promise<void> {
+		return this.sessionStorage.deleteHistory(sessionId);
+	}
+
+	// ============================================================
+	// Session Index Methods
+	// ============================================================
+
+	async appendSessionIndex(entry: SessionIndexEntry): Promise<void> {
+		return this.sessionStorage.appendSessionIndex(entry);
+	}
+
+	async getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]> {
+		return this.sessionStorage.getSessionIndex(cwd);
+	}
+
+	async removeSessionIndex(sessionId: string): Promise<void> {
+		return this.sessionStorage.removeSessionIndex(sessionId);
 	}
 }
 

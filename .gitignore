@@ -48,3 +48,6 @@ dev/
 
 # Local implementation plans and working documents
 plan/
+
+# E2E test cache
+.obsidian-cache/

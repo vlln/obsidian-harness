@@ -3,9 +3,16 @@ import {
 	WorkspaceLeaf,
 	Notice,
 	requestUrl,
+	TFile,
+	normalizePath,
+	FileSystemAdapter,
 } from "obsidian";
 import * as semver from "semver";
 import { ChatView, VIEW_TYPE_CHAT } from "./ui/ChatView";
+import {
+	HarnessSessionView,
+	VIEW_TYPE_HARNESS_SESSION,
+} from "./ui/HarnessSessionView";
 import {
 	SessionManagerView,
 	VIEW_TYPE_SESSION_MANAGER,
@@ -44,7 +51,7 @@ import {
 	CodexAgentSettings,
 	CustomAgentSettings,
 } from "./types/agent";
-import type { SavedSessionInfo } from "./types/session";
+import type { SavedSessionInfo, SessionIndexEntry } from "./types/session";
 import { initializeLogger, getLogger } from "./utils/logger";
 
 // Re-export for backward compatibility
@@ -243,6 +250,14 @@ export default class AgentClientPlugin extends Plugin {
 			(leaf) => new SessionManagerView(leaf, this),
 		);
 
+		// Register .session file extension and view type
+		this.app.workspace.detachLeavesOfType(VIEW_TYPE_HARNESS_SESSION);
+		this.registerView(
+			VIEW_TYPE_HARNESS_SESSION,
+			(leaf) => new HarnessSessionView(leaf, this),
+		);
+		this.registerExtensions(["session"], VIEW_TYPE_HARNESS_SESSION);
+
 		const ribbonIconEl = this.addRibbonIcon(
 			"bot-message-square",
 			"Open agent client",
@@ -291,6 +306,15 @@ export default class AgentClientPlugin extends Plugin {
 			name: "Open session manager",
 			callback: () => {
 				void this.activateSessionManager();
+			},
+		});
+
+		// Create .session file command
+		this.addCommand({
+			id: "create-session-file",
+			name: "Create new .session file",
+			callback: () => {
+				void this.createSessionFile();
 			},
 		});
 
@@ -1332,5 +1356,76 @@ export default class AgentClientPlugin extends Plugin {
 			}
 		}
 		return Array.from(ids);
+	}
+
+	/**
+	 * Create a new .session file in the vault root.
+	 *
+	 * Generates a UUID-based sessionId, writes the .session file with
+	 * metadata, appends to session_index.jsonl, and opens the file
+	 * in a HarnessSessionView tab.
+	 */
+	async createSessionFile(): Promise<void> {
+		const sessionId = crypto.randomUUID();
+
+		// Default cwd to vault root
+		const adapter = this.app.vault.adapter;
+		const vaultPath =
+			adapter instanceof FileSystemAdapter
+				? adapter.getBasePath()
+				: "";
+
+		const content = JSON.stringify(
+			{
+				version: 1,
+				sessionId,
+				agentId: this.settings.defaultAgentId,
+				cwd: vaultPath,
+				title: "New Session",
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+				forkedFrom: null,
+			},
+			null,
+			"\t",
+		);
+
+		const fileName = `session-${sessionId.slice(0, 8)}.session`;
+		const filePath = normalizePath(fileName);
+
+		const existing = this.app.vault.getAbstractFileByPath(filePath);
+		if (existing) {
+			new Notice(`[Harness] File already exists: ${fileName}`);
+			return;
+		}
+
+		try {
+			await this.app.vault.create(filePath, content);
+		} catch (error) {
+			new Notice(`[Harness] Failed to create session file: ${error}`);
+			return;
+		}
+
+		// Append to session_index.jsonl
+		const indexEntry: SessionIndexEntry = {
+			sessionId,
+			cwd: vaultPath,
+			entryFile: filePath,
+		};
+		try {
+			await this.settingsService.appendSessionIndex(indexEntry);
+		} catch (error) {
+			getLogger().warn(
+				`[Harness] Failed to update session_index.jsonl: ${error}`,
+			);
+		}
+
+		new Notice(`[Harness] Created ${fileName}`);
+
+		// Open the file in a HarnessSessionView
+		const file = this.app.vault.getAbstractFileByPath(filePath);
+		if (file instanceof TFile) {
+			await this.app.workspace.getLeaf().openFile(file);
+		}
 	}
 }

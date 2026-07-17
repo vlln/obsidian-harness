@@ -1,0 +1,18 @@
+diff --git a/node_modules/obsidian-launcher/dist/chunk-UTMESK7O.js b/node_modules/obsidian-launcher/dist/chunk-UTMESK7O.js
+index e0ddbc3..e6a719e 100644
+--- a/node_modules/obsidian-launcher/dist/chunk-UTMESK7O.js
++++ b/node_modules/obsidian-launcher/dist/chunk-UTMESK7O.js
+@@ -74,7 +74,12 @@ async function linkOrCp(src, dest) {
+   try {
+     await fsAsync.link(src, dest);
+   } catch {
+-    await fsAsync.copyFile(src, dest);
++    try {
++      await fsAsync.cp(src, dest, { recursive: true, dereference: true, filter: (_src) => !_src.endsWith('.sock') });
++    } catch {
++      // Fallback: symlink if copy also fails
++      await fsAsync.symlink(src, dest, 'dir');
++    }
+   }
+ }
+ async function tryParseJson(file) {

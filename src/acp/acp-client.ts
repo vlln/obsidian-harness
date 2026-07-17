@@ -115,6 +115,16 @@ export class AcpClient {
 			() => this.currentSessionId,
 			this.logger,
 		);
+
+		// Wire up JSONL history persistence
+		this.handler.setHistoryWriter((update) => {
+			const sid = this.currentSessionId;
+			if (!sid) return;
+			void this.plugin.settingsService.appendHistoryEvent(
+				sid,
+				update,
+			);
+		});
 	}
 
 	/**
@@ -502,6 +512,18 @@ export class AcpClient {
 				response,
 			);
 			this.currentSessionId = result.sessionId;
+
+			// Write JSONL metadata
+			void this.plugin.settingsService.writeHistoryMetadata(
+				result.sessionId,
+				{
+					agentId: this.currentAgentId ?? "unknown",
+					cwd: workingDirectory,
+					title: "New Session",
+					createdAt: new Date().toISOString(),
+				},
+			);
+
 			return result;
 		} catch (error) {
 			this.logger.error("[AcpClient] New Session Error:", error);

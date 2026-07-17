@@ -22,6 +22,9 @@ export class AcpHandler {
 	/** Tracks session updates during a prompt. */
 	private promptSessionUpdateCount = 0;
 
+	/** Callback for persisting raw events to JSONL history. */
+	private historyWriter: ((update: SessionUpdate) => void) | null = null;
+
 	constructor(
 		private permissionManager: PermissionManager,
 		private terminalManager: TerminalManager,
@@ -29,6 +32,14 @@ export class AcpHandler {
 		private getCurrentSessionId: () => string | null,
 		private logger: Logger,
 	) {}
+
+	// ====================================================================
+	// Callback Registration
+	// ====================================================================
+
+	setHistoryWriter(writer: (update: SessionUpdate) => void): void {
+		this.historyWriter = writer;
+	}
 
 	// ====================================================================
 	// Callback Registration
@@ -55,6 +66,8 @@ export class AcpHandler {
 		if (currentId && update.sessionId !== currentId) {
 			return;
 		}
+		// Persist to JSONL history
+		this.historyWriter?.(update);
 		for (const listener of this.sessionUpdateListeners) {
 			listener(update);
 		}
