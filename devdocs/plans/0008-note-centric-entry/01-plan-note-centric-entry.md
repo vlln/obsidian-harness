@@ -2,7 +2,7 @@
 title: Plan-0008-01: Note-Centric Agent Entry
 description: Implement and verify starting Harness sessions from Markdown notes and selections.
 type: plan
-status: pending
+status: done
 created: 2026-07-17T00:00:00Z
 ---
 
