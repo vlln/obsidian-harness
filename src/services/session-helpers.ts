@@ -31,6 +31,69 @@ export interface AgentDisplayInfo {
 	displayName: string;
 }
 
+export type InitialSessionLifecycleAction =
+	| { type: "idle" }
+	| { type: "wait_for_agent" }
+	| { type: "restore_existing"; sessionId: string }
+	| { type: "create_new"; agentId: string };
+
+/**
+ * New .session files are created before the user/backend choice is resolved.
+ * Once the runtime session has a concrete agentId, persist it exactly once so
+ * future session/load calls use the same backend instead of guessing defaults.
+ */
+export function shouldPersistResolvedAgentId(
+	storedAgentId: string | null | undefined,
+	resolvedAgentId: string | null | undefined,
+): boolean {
+	return Boolean(!storedAgentId && resolvedAgentId);
+}
+
+/**
+ * ACP session IDs are opaque. Some backends use ULIDs, pi-acp uses UUID-like
+ * IDs, and clients must not infer local-vs-remote state from string shape.
+ * Once a .session file has both a sessionId and agentId, try session/load and
+ * fall back to session/new if the backend rejects it.
+ */
+export function shouldRestoreInitialSession(
+	sessionId: string | null | undefined,
+	agentId: string | null | undefined,
+): boolean {
+	return Boolean(sessionId && agentId);
+}
+
+/**
+ * Decide the first lifecycle action for a ChatPanel opened from either a
+ * normal chat view or a .session file. This keeps restore/create decisions
+ * consistent across React effects.
+ */
+export function decideInitialSessionLifecycle({
+	initialSessionId,
+	initialAgentId,
+	selectedAgentId,
+	restoreStarted,
+}: {
+	initialSessionId: string | null | undefined;
+	initialAgentId: string | null | undefined;
+	selectedAgentId: string | null | undefined;
+	restoreStarted: boolean;
+}): InitialSessionLifecycleAction {
+	if (restoreStarted) return { type: "idle" };
+	if (initialSessionId && initialAgentId) {
+		return { type: "restore_existing", sessionId: initialSessionId };
+	}
+	const agentId = selectedAgentId || initialAgentId;
+	if (!agentId) return { type: "wait_for_agent" };
+	return { type: "create_new", agentId };
+}
+
+export function shouldPersistResolvedSessionId(
+	initialSessionId: string | null | undefined,
+	resolvedSessionId: string | null | undefined,
+): boolean {
+	return Boolean(resolvedSessionId && resolvedSessionId !== initialSessionId);
+}
+
 // ============================================================================
 // Helper Functions (Inlined from SwitchAgentUseCase)
 // ============================================================================
@@ -109,22 +172,21 @@ export function findAgentSettings(
 	const customAgent = settings.customAgents.find(
 		(agent) => agent.id === agentId,
 	);
-		if (customAgent) return customAgent;
+	if (customAgent) return customAgent;
 
+	// Auto-discovered pi-acp: use pi Node.js npx path
+	// (Electron does not inherit the user PATH, so npx is not found)
+	if (agentId === "pi-acp") {
+		return {
+			id: "pi-acp",
+			displayName: "pi-acp",
+			command: "pi-acp",
+			args: [],
+			env: [],
+		};
+	}
 
-		// Auto-discovered pi-acp: use pi Node.js npx path
-		// (Electron does not inherit the user PATH, so npx is not found)
-		if (agentId === "pi-acp") {
-			return {
-				id: "pi-acp",
-				displayName: "pi-acp",
-				command: "pi-acp",
-				args: [],
-				env: [],
-			};
-		}
-
-		return null;
+	return null;
 }
 
 /**

@@ -36,24 +36,24 @@ function SessionChatComponent({
 	return (
 		<ChatContextProvider value={contextValue}>
 			<ChatPanel
-					variant="sidebar"
-					viewId={viewId}
-					workingDirectory={config.cwd || undefined}
-					initialAgentId={config.agentId}
-					initialSessionId={config.sessionId}
-					viewHost={view}
-					onSessionTitleChanged={() => view.refreshDisplayText()}
-					onAgentIdChanged={(agentId: string) => {
-						config.agentId = agentId;
-						void view.updateSessionConfig(config);
-					}}
-					onSessionIdChanged={(sessionId: string) => {
-						{
-							view.acpClient.setHistorySessionId(sessionId);
-							void view.onSessionIdChanged(sessionId, config);
-						}
-					}}
-				/>
+				variant="sidebar"
+				viewId={viewId}
+				workingDirectory={config.cwd || undefined}
+				initialAgentId={config.agentId}
+				initialSessionId={config.sessionId}
+				viewHost={view}
+				onSessionTitleChanged={() => view.refreshDisplayText()}
+				onAgentIdChanged={(agentId: string) => {
+					config.agentId = agentId;
+					void view.updateSessionConfig(config);
+				}}
+				onSessionIdChanged={(sessionId: string) => {
+					{
+						view.acpClient.setHistorySessionId(sessionId);
+						void view.onSessionIdChanged(sessionId, config);
+					}
+				}}
+			/>
 		</ChatContextProvider>
 	);
 }
@@ -136,7 +136,7 @@ export class HarnessSessionView extends FileView {
 		// Validate required fields
 		if (!config.sessionId || !config.cwd) {
 			container.createEl("div", {
-				text: "Invalid session file: missing required fields (sessionId, agentId, cwd)",
+				text: "Invalid session file: missing required fields",
 				cls: "harness-error",
 			});
 			return;
@@ -179,17 +179,11 @@ export class HarnessSessionView extends FileView {
 	 * BR-002: Write ACP sessionId back to .session file and session_index.
 	 * Called when the agent creates a new session (sessionId changes from null to a value).
 	 */
-	async onSessionIdChanged(acpSessionId: string, config: SessionFileData): Promise<void> {
+	async onSessionIdChanged(
+		acpSessionId: string,
+		config: SessionFileData,
+	): Promise<void> {
 		if (config.sessionId === acpSessionId) return;
-		// Only update on first ACP session creation (local UUID → ACP sessionId).
-		// ACP sessionIds are ULID format (26+ chars starting with digits).
-		// Local UUIDs are standard UUID format (36 chars with hyphens).
-		// Don't overwrite on subsequent session/load or newSession calls.
-		// ACP ULIDs are 26 chars, no hyphens. Local UUIDs are 36 chars with hyphens.
-		if (config.sessionId.length === 26 && config.sessionId.indexOf("-") === -1) {
-			return; // Already an ACP ULID, don't overwrite
-		}
-
 		const oldSessionId = config.sessionId;
 		config.sessionId = acpSessionId;
 		config.updatedAt = new Date().toISOString();
@@ -209,7 +203,9 @@ export class HarnessSessionView extends FileView {
 				entryFile: file?.path ?? "",
 			});
 		} catch (error) {
-			getLogger().warn(`[Harness] Failed to update session index: ${error}`);
+			getLogger().warn(
+				`[Harness] Failed to update session index: ${error}`,
+			);
 		}
 	}
 

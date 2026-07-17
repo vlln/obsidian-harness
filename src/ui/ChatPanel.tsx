@@ -10,11 +10,15 @@ import {
 } from "obsidian";
 
 import type { AttachedFile, ChatInputState, ChatMessage } from "../types/chat";
-import { applySingleUpdate, rebuildToolCallIndex } from "../services/message-state";
-import type { SessionUpdate } from "../types/session";
 
 import { isSameDirectory } from "../utils/platform";
-import { computeSessionTitle } from "../services/session-helpers";
+import {
+	buildGeminiDeprecationNotice,
+	computeSessionTitle,
+	decideInitialSessionLifecycle,
+	shouldPersistResolvedAgentId,
+	shouldPersistResolvedSessionId,
+} from "../services/session-helpers";
 import { useHistoryModal } from "../hooks/useHistoryModal";
 import { useChatActions } from "../hooks/useChatActions";
 import { ChangeDirectoryModal } from "./ChangeDirectoryModal";
@@ -44,7 +48,6 @@ import {
 } from "../types/session";
 import { checkAgentUpdate } from "../services/update-checker";
 import type { SessionStatus } from "../services/view-registry";
-import { buildGeminiDeprecationNotice } from "../services/session-helpers";
 
 /** Stable empty array for useSuggestions when no commands available */
 const EMPTY_COMMANDS: SlashCommand[] = [];
@@ -252,26 +255,36 @@ export function ChatPanel({
 	// Restore session via ACP session/load when opening a .session file
 	const sessionRestoredRef = useRef(false);
 	useEffect(() => {
-		if (!initialSessionId || sessionRestoredRef.current) return;
-	
-		// ACP ULID: 26 chars, no hyphens. Local UUID: 36 chars with hyphens.
-		const isAcpSessionId = initialSessionId.length === 26 && initialSessionId.indexOf("-") === -1;
-		if (!isAcpSessionId) {
-			sessionRestoredRef.current = true;
-			return; // Local UUID — first open, createSession will handle it
-		}
-	
-		sessionRestoredRef.current = true;
-		logger.log(`[ChatPanel] Restoring session: ${initialSessionId}`);
-		agent.restoreSession(initialSessionId, agentCwd).then(() => {
-			// Flush replay updates that were batched during loadSession await
-			agent.flushPendingUpdates();
-		}).catch((err) => {
-			logger.warn(`[ChatPanel] Session restore failed, falling back to new session: ${err}`);
-			void agent.createSession(initialAgentId);
+		const action = decideInitialSessionLifecycle({
+			initialSessionId,
+			initialAgentId,
+			selectedAgentId: config?.agent,
+			restoreStarted: sessionRestoredRef.current,
 		});
-	}, [initialSessionId, agentCwd, agent.restoreSession, agent.createSession, initialAgentId]);
+		if (action.type !== "restore_existing") return;
 
+		sessionRestoredRef.current = true;
+		logger.log(`[ChatPanel] Restoring session: ${action.sessionId}`);
+		agent
+			.restoreSession(action.sessionId, agentCwd)
+			.then(() => {
+				// Flush replay updates that were batched during loadSession await
+				agent.flushPendingUpdates();
+			})
+			.catch((err) => {
+				logger.warn(
+					`[ChatPanel] Session restore failed, falling back to new session: ${err}`,
+				);
+				void agent.createSession(initialAgentId);
+			});
+	}, [
+		initialSessionId,
+		initialAgentId,
+		config?.agent,
+		agentCwd,
+		agent.restoreSession,
+		agent.createSession,
+	]);
 
 	// ============================================================
 	// Local State
@@ -695,22 +708,27 @@ export function ChatPanel({
 	// ============================================================
 	// Initialize session on first open (local UUID) or when agent is selected
 	useEffect(() => {
-		const agentId = config?.agent || initialAgentId;
-		if (!agentId) {
+		const action = decideInitialSessionLifecycle({
+			initialSessionId,
+			initialAgentId,
+			selectedAgentId: config?.agent,
+			restoreStarted: sessionRestoredRef.current,
+		});
+		if (action.type === "wait_for_agent") {
 			logger.log("[ChatPanel] No agent selected yet, waiting...");
 			return;
 		}
-		// Skip if we have an ACP ULID — restoreSession will handle it
-		const isAcpSessionId = initialSessionId
-			&& initialSessionId.length === 26
-			&& initialSessionId.indexOf("-") === -1;
-		if (isAcpSessionId) {
-			logger.log("[ChatPanel] ACP session, waiting for restoreSession...");
+		if (action.type === "restore_existing" || action.type === "idle") {
+			logger.log(
+				"[ChatPanel] Existing session, waiting for restoreSession...",
+			);
 			return;
 		}
-		logger.log(`[ChatPanel] Starting new session with agent: ${agentId}`);
-		void agent.createSession(agentId);
-	}, [agent.createSession, config?.agent, initialAgentId]);
+		logger.log(
+			`[ChatPanel] Starting new session with agent: ${action.agentId}`,
+		);
+		void agent.createSession(action.agentId);
+	}, [agent.createSession, config?.agent, initialAgentId, initialSessionId]);
 
 	// Apply configured model (a select config option with category "model")
 	// when session is ready.
@@ -931,10 +949,21 @@ export function ChatPanel({
 	useEffect(() => {
 		onSessionTitleChanged?.();
 	}, [onSessionTitleChanged, sessionTitle]);
+	// Persist the runtime-resolved agentId for .session files created with an
+	// empty agentId, so future session/load calls target the same backend.
+	useEffect(() => {
+		if (shouldPersistResolvedAgentId(initialAgentId, session.agentId)) {
+			onAgentIdChanged?.(session.agentId);
+		}
+	}, [initialAgentId, onAgentIdChanged, session.agentId]);
 	// BR-002: Notify when ACP sessionId changes (write back to .session file)
 	useEffect(() => {
-		if (session.sessionId && session.sessionId !== initialSessionId) {
-			onSessionIdChanged?.(session.sessionId);
+		const resolvedSessionId = session.sessionId;
+		if (
+			resolvedSessionId &&
+			shouldPersistResolvedSessionId(initialSessionId, resolvedSessionId)
+		) {
+			onSessionIdChanged?.(resolvedSessionId);
 		}
 	}, [session.sessionId, initialSessionId, onSessionIdChanged]);
 	// ============================================================
@@ -1046,7 +1075,7 @@ export function ChatPanel({
 							await approveActivePermissionRef.current();
 						if (!success) {
 							new Notice(
-								"[Agent Client] No active permission request",
+								"Agent client: no active permission request",
 							);
 						}
 					})();
@@ -1063,7 +1092,7 @@ export function ChatPanel({
 							await rejectActivePermissionRef.current();
 						if (!success) {
 							new Notice(
-								"[Agent Client] No active permission request",
+								"Agent client: no active permission request",
 							);
 						}
 					})();

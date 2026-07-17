@@ -43,9 +43,9 @@ export function useHistoryModal(
 				onAgentCwdChange?.(
 					Platform.isWin ? convertWslPathToWindows(cwd) : cwd,
 				);
-				new Notice("[Agent Client] Session restored");
+				new Notice("Agent client: session restored");
 			} catch (error) {
-				new Notice("[Agent Client] Failed to restore session");
+				new Notice("Agent client: failed to restore session");
 				logger.error("Session restore error:", error);
 			}
 		},
@@ -66,9 +66,9 @@ export function useHistoryModal(
 				onAgentCwdChange?.(
 					Platform.isWin ? convertWslPathToWindows(cwd) : cwd,
 				);
-				new Notice("[Agent Client] Session forked");
+				new Notice("Agent client: session forked");
 			} catch (error) {
-				new Notice("[Agent Client] Failed to fork session");
+				new Notice("Agent client: failed to fork session");
 				logger.error("Session fork error:", error);
 			}
 		},
@@ -85,9 +85,9 @@ export function useHistoryModal(
 			try {
 				logger.log(`[ChatPanel] Deleting session: ${sessionId}`);
 				await sessionHistory.deleteSession(sessionId);
-				new Notice("[Agent Client] Session deleted");
+				new Notice("Agent client: session deleted");
 			} catch (error) {
-				new Notice("[Agent Client] Failed to delete session");
+				new Notice("Agent client: failed to delete session");
 				logger.error("Session delete error:", error);
 			}
 		},
@@ -102,9 +102,9 @@ export function useHistoryModal(
 					newTitle,
 					sessionCwd,
 				);
-				new Notice("[Agent Client] Title updated");
+				new Notice("Agent client: title updated");
 			} catch (error) {
-				new Notice("[Agent Client] Failed to update title");
+				new Notice("Agent client: failed to update title");
 				logger.error("Title update error:", error);
 			}
 		},

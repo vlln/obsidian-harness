@@ -20,6 +20,8 @@ import {
 	parseChatFontSize,
 } from "../services/settings-normalizer";
 
+/* eslint-disable obsidianmd/ui/sentence-case -- Settings labels contain product names, API acronyms, CLI names, environment variables, and placeholders. */
+
 export class AgentClientSettingTab extends PluginSettingTab {
 	plugin: AgentClientPlugin;
 	private agentSelector: DropdownComponent | null = null;
@@ -342,7 +344,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 								autoCollapseDiffs: value,
 							},
 						});
-						this.display();
+						this.refresh();
 					}),
 			);
 
@@ -491,7 +493,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.promptInjection.enabled = value;
 						await this.plugin.saveSettings();
-						this.display();
+						this.refresh();
 					}),
 			);
 
@@ -563,7 +565,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 							await this.plugin.settingsService.updateSettings({
 								windowsWslMode: value,
 							});
-							this.display(); // Refresh to show/hide distribution setting
+							this.refresh(); // Refresh to show/hide distribution setting
 						}),
 				);
 
@@ -684,7 +686,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 								includeImages: value,
 							},
 						});
-						this.display();
+						this.refresh();
 					}),
 			);
 
@@ -716,7 +718,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 										| "base64",
 								},
 							});
-							this.display();
+							this.refresh();
 						}),
 				);
 
@@ -848,6 +850,11 @@ export class AgentClientSettingTab extends PluginSettingTab {
 		if (settings.defaultAgentId !== currentValue) {
 			this.agentSelector.setValue(settings.defaultAgentId);
 		}
+	}
+
+	private refresh(): void {
+		// eslint-disable-next-line @typescript-eslint/no-deprecated -- Obsidian settings tabs still refresh by re-rendering display().
+		this.display();
 	}
 
 	/**
@@ -1247,7 +1254,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 					});
 					this.plugin.ensureDefaultAgentId();
 					await this.flushSettings();
-					this.display();
+					this.refresh();
 				});
 		});
 	}
@@ -1296,7 +1303,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 					this.plugin.settings.customAgents.splice(index, 1);
 					this.plugin.ensureDefaultAgentId();
 					await this.flushSettings();
-					this.display();
+					this.refresh();
 				});
 		});
 
@@ -1481,7 +1488,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 							: await resolveCommandPath(commandName);
 						if (found) {
 							await onResolved(found);
-							this.display();
+							this.refresh();
 						} else {
 							btn.setButtonText("Not found");
 							window.setTimeout(() => {

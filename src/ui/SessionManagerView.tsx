@@ -168,7 +168,7 @@ function SessionManagerComponent({
 
 	useEffect(() => {
 		let cancelled = false;
-		plugin.settingsService.getSessionIndex().then((entries) => {
+		void plugin.settingsService.getSessionIndex().then((entries) => {
 			if (!cancelled) {
 				setSavedSessions(entries);
 				setSavedSessionsLoaded(true);

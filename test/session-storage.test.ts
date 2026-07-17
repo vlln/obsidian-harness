@@ -48,6 +48,10 @@ function validateSessionFileData(raw: unknown): SessionFileData | null {
 	};
 }
 
+function parseJson(content: string): unknown {
+	return JSON.parse(content) as unknown;
+}
+
 describe("SessionFileData validation", () => {
 	it("accepts valid session data", () => {
 		const valid = {
@@ -150,12 +154,12 @@ describe("SessionFileData validation", () => {
 
 	// AC-0002-B-1: empty file content
 	it("AC-0002-B-1: rejects empty string", () => {
-		expect(() => JSON.parse("")).toThrow();
+		expect(() => parseJson("")).toThrow();
 	});
 
 	// AC-0002-B-2: malformed JSON
 	it("AC-0002-B-2: rejects malformed JSON", () => {
-		expect(() => JSON.parse("{invalid")).toThrow();
+		expect(() => parseJson("{invalid")).toThrow();
 	});
 });
 

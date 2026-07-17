@@ -49,11 +49,8 @@ export interface UseAgentSessionReturn {
 		overrideCwd?: string,
 	) => Promise<void>;
 
-		/** Restore an existing session via ACP session/load. Agent replays history. */
-		restoreSession: (
-			sessionId: string,
-			cwd: string,
-		) => Promise<void>;
+	/** Restore an existing session via ACP session/load. Agent replays history. */
+	restoreSession: (sessionId: string, cwd: string) => Promise<void>;
 
 	restartSession: (
 		newAgentId?: string,
@@ -305,30 +302,37 @@ export function useAgentSession(
 			const s = sessionRef.current;
 			const settings = settingsAccess.getSnapshot();
 			const agentId = s.agentId;
-	
+
 			setSession((prev) => ({
 				...prev,
 				sessionId: null,
 				state: "initializing",
 			}));
 			setErrorInfo(null);
-	
+
 			try {
 				const agentSettings = findAgentSettings(settings, agentId);
-				if (!agentSettings) throw new Error(`Agent not found: ${agentId}`);
-	
+				if (!agentSettings)
+					throw new Error(`Agent not found: ${agentId}`);
+
 				const agentConfig = buildAgentConfigWithApiKey(
-					settings, agentSettings, agentId, cwd,
+					settings,
+					agentSettings,
+					agentId,
+					cwd,
 				);
-	
+
 				// Initialize agent if not already connected
-				if (!agentClient.isInitialized() || agentClient.getCurrentAgentId() !== agentId) {
+				if (
+					!agentClient.isInitialized() ||
+					agentClient.getCurrentAgentId() !== agentId
+				) {
 					await agentClient.initialize(agentConfig);
 				}
-	
+
 				// Load existing session — agent replays history via session/update
 				const result = await agentClient.loadSession(sessionId, cwd);
-	
+
 				setSession((prev) => ({
 					...prev,
 					sessionId: result.sessionId,
@@ -357,14 +361,10 @@ export function useAgentSession(
 	);
 
 	const closeSession = useCallback(async () => {
-		const s = sessionRef.current;
-		if (s.sessionId) {
-			try {
-				await agentClient.cancel(s.sessionId);
-			} catch (error) {
-				getLogger().warn("Failed to cancel session:", error);
-			}
-		}
+		// Closing a tab/view is not the same operation as cancelling an
+		// in-flight prompt. Some ACP backends treat session/cancel as an
+		// interruption signal that can affect persistence, so normal close only
+		// tears down the process. The Stop action still uses cancelOperation().
 		try {
 			await agentClient.disconnect();
 		} catch (error) {

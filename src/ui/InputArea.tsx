@@ -402,7 +402,7 @@ export function InputArea({
 					});
 				} catch (error) {
 					getLogger().error("Failed to convert image:", error);
-					new Notice("[Agent Client] Failed to attach image");
+					new Notice("Agent client: failed to attach image");
 				}
 			}
 			return result;
@@ -425,7 +425,7 @@ export function InputArea({
 			for (const file of files) {
 				const filePath = webUtils.getPathForFile(file);
 				if (!filePath) {
-					new Notice("[Agent Client] Could not determine file path");
+					new Notice("Agent client: could not determine file path");
 					continue;
 				}
 				result.push({
@@ -490,7 +490,7 @@ export function InputArea({
 						newAttachments.push(...converted);
 					} else {
 						new Notice(
-							"[Agent Client] This agent does not support image paste. Try drag & drop instead.",
+							"Agent client: this agent does not support image paste. Try drag and drop instead.",
 						);
 					}
 				}
