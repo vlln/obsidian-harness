@@ -671,11 +671,31 @@ export function ChatPanel({
 	// ============================================================
 	// Effects - Session Lifecycle
 	// ============================================================
-	// Initialize session on mount
+	// Initialize session: try to resume existing, fall back to create new
 	useEffect(() => {
-		logger.log("[Debug] Starting connection setup via useSession...");
-		void agent.createSession(config?.agent || initialAgentId);
-	}, [agent.createSession, config?.agent, initialAgentId]);
+		const agentId = config?.agent || initialAgentId;
+		const doCreate = () => {
+			logger.log("[Debug] Creating new session via useSession...");
+			void agent.createSession(agentId);
+		};
+
+		if (initialSessionId) {
+			logger.log(`[ChatPanel] Attempting to load session: ${initialSessionId}`);
+			acpClient.loadSession(initialSessionId, agentCwd).then((result) => {
+				logger.log(`[ChatPanel] Session loaded: ${result.sessionId}`);
+				agent.updateSessionFromLoad(
+					result.sessionId,
+					result.modes,
+					result.configOptions,
+				);
+			}).catch((_err) => {
+				logger.log("[ChatPanel] Session load failed, creating new session");
+				doCreate();
+			});
+		} else {
+			doCreate();
+		}
+	}, [agent.createSession, agent.updateSessionFromLoad, config?.agent, initialAgentId, initialSessionId, acpClient, agentCwd]);
 
 	// Apply configured model (a select config option with category "model")
 	// when session is ready.
