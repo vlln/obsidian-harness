@@ -52,7 +52,7 @@ vault/
   "version": 1,
   "sessionId": "abc123",
   "agentId": "claude-code-acp",
-  "cwd": "/Users/vlln/GithubProjects/my-project",
+  "cwd": "/path/to/project",
   "title": "Refactor auth module",
   "createdAt": "2026-07-15T10:30:00Z",
   "updatedAt": "2026-07-15T14:00:00Z",
@@ -65,7 +65,7 @@ vault/
 ### `session_index.jsonl`（插件数据目录）
 
 ```jsonl
-{"sessionId":"abc123","cwd":"/Users/vlln/GithubProjects/my-project","entryFile":"refactor-auth.session"}
+{"sessionId":"abc123","cwd":"/path/to/project","entryFile":"refactor-auth.session"}
 ```
 
 JSONL 格式，一行一个 session。索引 session 的元信息，让插件能快速查找 session 而不需要扫描整个 vault。`sessions/` 目录本身可通过 `ls` 发现所有 session 目录。
@@ -73,7 +73,7 @@ JSONL 格式，一行一个 session。索引 session 的元信息，让插件能
 ### `sessions/{sessionId}/main.jsonl`（追加式 history）
 
 ```jsonl
-{"type":"metadata","version":1,"sessionId":"abc123","agentId":"claude-code-acp","cwd":"/Users/vlln/GithubProjects/my-project","title":"Refactor auth","createdAt":"...","updatedAt":"..."}
+{"type":"metadata","version":1,"sessionId":"abc123","agentId":"claude-code-acp","cwd":"/path/to/project","title":"Refactor auth","createdAt":"...","updatedAt":"..."}
 {"type":"user_message_chunk","sessionId":"abc123","text":"Refactor the auth module"}
 {"type":"agent_message_chunk","sessionId":"abc123","text":"I'll start by analyzing..."}
 {"type":"tool_call","sessionId":"abc123","toolCallId":"t1","title":"Read","status":"completed","kind":"read","content":[...],"locations":[...]}

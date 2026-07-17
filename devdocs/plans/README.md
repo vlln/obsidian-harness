@@ -9,3 +9,6 @@
 | 0001 | [0001-jsonl-history](0001-jsonl-history/) | `feat/0001-jsonl-history` | done |
 | 0002 | [0002-session-entry](0002-session-entry/) | `feat/0002-session-entry` | done |
 | 0003 | [0003-wikilink](0003-wikilink/) | `feat/0003-wikilink` | done |
+| 0004 | [0004-session-restore](0004-session-restore/) | `fix/0004-session-restore-agent-id` | done |
+| 0005 | [0005-lint-baseline](0005-lint-baseline/) | `fix/0004-session-restore-agent-id` | done |
+| 0006 | [0006-session-lifecycle-hardening](0006-session-lifecycle-hardening/) | `fix/0004-session-restore-agent-id` | done |
