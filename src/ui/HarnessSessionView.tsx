@@ -163,6 +163,16 @@ export class HarnessSessionView extends FileView {
 		// noop
 	}
 
+	/**
+	 * Update the .session file with new config (e.g., agentId change).
+	 */
+	async updateSessionConfig(config: SessionFileData): Promise<void> {
+		const file = this.app.workspace.getActiveFile();
+		if (!file || file.extension !== "session") return;
+		config.updatedAt = new Date().toISOString();
+		await this.app.vault.modify(file, JSON.stringify(config, null, "	"));
+	}
+
 	async onClose(): Promise<void> {
 		if (this.root) {
 			this.root.unmount();
