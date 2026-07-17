@@ -10,6 +10,9 @@ import {
 } from "obsidian";
 
 import type { AttachedFile, ChatInputState, ChatMessage } from "../types/chat";
+import { applySingleUpdate, rebuildToolCallIndex } from "../services/message-state";
+import type { SessionUpdate } from "../types/session";
+
 import { isSameDirectory } from "../utils/platform";
 import { computeSessionTitle } from "../services/session-helpers";
 import { useHistoryModal } from "../hooks/useHistoryModal";
@@ -82,6 +85,9 @@ export interface ChatPanelProps {
 	viewId: string;
 	workingDirectory?: string;
 	initialAgentId?: string;
+	/** .session file sessionId — restore history from JSONL on mount */
+	initialSessionId?: string;
+
 	config?: { agent?: string; model?: string };
 	onRegisterCallbacks?: (callbacks: ChatPanelCallbacks) => void;
 	/** Called when agent ID changes (sidebar only — persists in Obsidian state) */
@@ -135,6 +141,8 @@ export function ChatPanel({
 	viewId,
 	workingDirectory,
 	initialAgentId,
+	initialSessionId,
+
 	config,
 	onRegisterCallbacks,
 	onAgentIdChanged,
@@ -199,7 +207,7 @@ export function ChatPanel({
 		isSending,
 		errorInfo,
 	} = agent;
-
+	// Load session history from JSONL when opening a .session file	useEffect(() => {		if (!initialSessionId) return;			plugin.settingsService.readHistory(initialSessionId).then((events) => {			if (events.length === 0) return;				const toolCallIndex = new Map<string, number>();			let msgs: ChatMessage[] = [];			for (const event of events) {				msgs = applySingleUpdate(msgs, event as SessionUpdate, toolCallIndex);			}			rebuildToolCallIndex(msgs, toolCallIndex);				agent.setMessagesFromLocal(msgs);			logger.log(`[ChatPanel] Restored ${msgs.length} messages from history`);		}).catch((err) => {			logger.warn(`[ChatPanel] Failed to load history: ${err}`);		});	}, [initialSessionId, plugin, agent.setMessagesFromLocal]);
 	const suggestions = useSuggestions(
 		vaultService,
 		plugin,
