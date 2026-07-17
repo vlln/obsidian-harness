@@ -29,6 +29,7 @@ created: 2026-07-17T00:00:00Z
 | `npm run build` | PASS |
 | `npm run test:e2e` | PASS: 5/5 |
 | `node scripts/probe-pi-acp-session.mjs test/vaults/simple` | PASS: `session/load` replayed `user_message_chunk: hi`，第二轮能回答“你刚才说了 hi” |
+| develop 合并后 ACP probe 复验 | PASS: `session/load` replayed `user_message_chunk: hi`，第二轮回答包含“你刚刚说的是 \"hi\"” |
 | 手动测试 vault | PASS: 用户按“新建 session → pi-acp → hi → 切 tab → 恢复 → 询问刚才说了什么”路径确认 bug 已解决 |
 
 ## 已知限制
