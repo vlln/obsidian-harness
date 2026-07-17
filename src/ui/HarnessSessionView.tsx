@@ -183,9 +183,9 @@ export class HarnessSessionView extends FileView {
 		// ACP sessionIds are ULID format (26+ chars starting with digits).
 		// Local UUIDs are standard UUID format (36 chars with hyphens).
 		// Don't overwrite on subsequent session/load or newSession calls.
-		if (config.sessionId.length >= 26 && config.sessionId[0] >= "0" && config.sessionId[0] <= "9") {
-			// Already an ACP sessionId, don't overwrite
-			return;
+		// ACP ULIDs are 26 chars, no hyphens. Local UUIDs are 36 chars with hyphens.
+		if (config.sessionId.length === 26 && config.sessionId.indexOf("-") === -1) {
+			return; // Already an ACP ULID, don't overwrite
 		}
 
 		const oldSessionId = config.sessionId;
