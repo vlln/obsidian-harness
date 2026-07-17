@@ -10,3 +10,4 @@
 | [0002-acp-foundation](0002-acp-foundation.md) | ACP 层复用边界 | accepted |
 | [0003-session-entry](0003-session-entry.md) | Session 入口文件设计 | accepted |
 | [0004-test-infra](0004-test-infra.md) | 测试基础设施选型 | accepted |
+| [0005-note-centric-entry-boundary](0005-note-centric-entry-boundary.md) | Note-centric entry boundary | accepted |
