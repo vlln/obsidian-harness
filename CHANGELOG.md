@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-07-17
+
+### Added
+- **pi-acp 自动发现**: 检测 `~/.pi/pi-acp/` 目录，自动添加到 Agent 列表
+- **Session 删除清理**: 删除 .session 文件时级联删除 session_index 和 history
+- **SessionManagerView 集成**: 展示 session_index 中的已保存 session，按 cwd 分组
+
+### Fixed
+- **macOS shell**: 使用 `-i -l`（interactive login shell）替代 `-l`，确保 `.zshrc` 中的 PATH 可用
+- **React root 内存泄漏**: FileView `onLoadFile` 重复调用时先 unmount 旧 root
+
 ### Added
 - Fork from [RAIT-09/obsidian-agent-client](https://github.com/RAIT-09/obsidian-agent-client) v0.11.0
 - 建立独立产品身份：Obsidian Harness

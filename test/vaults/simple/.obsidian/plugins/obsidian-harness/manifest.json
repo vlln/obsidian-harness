@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-harness",
+	"name": "Obsidian Harness",
+	"version": "0.1.0",
+	"minAppVersion": "1.11.4",
+	"description": "Obsidian as cockpit, Agent as engine — manage AI coding agents from your knowledge base.",
+	"author": "vlln",
+	"authorUrl": "https://github.com/vlln",
+	"isDesktopOnly": true
+}
