@@ -743,7 +743,7 @@ export default class AgentClientPlugin extends Plugin {
 	 * Get all available agents (claude, codex, gemini, custom)
 	 */
 	getAvailableAgents(): Array<{ id: string; displayName: string }> {
-		return [
+		const agents = [
 			{
 				id: this.settings.claude.id,
 				displayName:
@@ -764,6 +764,31 @@ export default class AgentClientPlugin extends Plugin {
 				displayName: agent.displayName || agent.id,
 			})),
 		];
+
+		// Auto-discover pi-acp if installed as a pi plugin
+		if (this.isPiAcpAvailable()) {
+			agents.push({
+				id: "pi-acp",
+				displayName: "pi-acp",
+			});
+		}
+
+		return agents;
+	}
+
+	/**
+	 * Check if pi-acp is installed as a pi plugin.
+	 * Detection: ~/.pi/pi-acp/ directory exists.
+	 */
+	isPiAcpAvailable(): boolean {
+		try {
+			const { existsSync } = require("fs");
+			const { join } = require("path");
+			const { homedir } = require("os");
+			return existsSync(join(homedir(), ".pi", "pi-acp"));
+		} catch {
+			return false;
+		}
 	}
 
 	/**
