@@ -897,7 +897,12 @@ export function ChatPanel({
 	useEffect(() => {
 		onSessionTitleChanged?.();
 	}, [onSessionTitleChanged, sessionTitle]);
-	// BR-002: Notify when ACP sessionId changes (write back to .session file)	useEffect(() => {		if (session.sessionId && session.sessionId !== initialSessionId) {			onSessionIdChanged?.(session.sessionId);		}	}, [session.sessionId, initialSessionId, onSessionIdChanged]);
+	// BR-002: Notify when ACP sessionId changes (write back to .session file)
+	useEffect(() => {
+		if (session.sessionId && session.sessionId !== initialSessionId) {
+			onSessionIdChanged?.(session.sessionId);
+		}
+	}, [session.sessionId, initialSessionId, onSessionIdChanged]);
 	// ============================================================
 	// Effects - System Notification on Permission Request
 	// ============================================================

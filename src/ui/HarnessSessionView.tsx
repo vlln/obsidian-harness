@@ -36,15 +36,21 @@ function SessionChatComponent({
 	return (
 		<ChatContextProvider value={contextValue}>
 			<ChatPanel
-				variant="sidebar"
-				viewId={viewId}
-				workingDirectory={config.cwd || undefined}
-				initialAgentId={config.agentId}
+					variant="sidebar"
+					viewId={viewId}
+					workingDirectory={config.cwd || undefined}
+					initialAgentId={config.agentId}
 					initialSessionId={config.sessionId}
-
-				viewHost={view}
-				onSessionTitleChanged={() => view.refreshDisplayText()}
-			/>
+					viewHost={view}
+					onSessionTitleChanged={() => view.refreshDisplayText()}
+					onAgentIdChanged={(agentId: string) => {
+						config.agentId = agentId;
+						void view.updateSessionConfig(config);
+					}}
+					onSessionIdChanged={(sessionId: string) => {
+						void view.onSessionIdChanged(sessionId, config);
+					}}
+				/>
 		</ChatContextProvider>
 	);
 }
