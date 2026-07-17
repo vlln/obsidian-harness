@@ -250,6 +250,7 @@ export function ChatPanel({
 		onIgnoreUpdates: agent.setIgnoreUpdates,
 		onClearMessages: agent.clearMessages,
 	});
+	const { restoreSession } = sessionHistory;
 
 	// ============================================================
 	// Local State
