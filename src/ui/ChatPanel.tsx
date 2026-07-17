@@ -263,7 +263,10 @@ export function ChatPanel({
 	
 		sessionRestoredRef.current = true;
 		logger.log(`[ChatPanel] Restoring session: ${initialSessionId}`);
-		agent.restoreSession(initialSessionId, agentCwd).catch((err) => {
+		agent.restoreSession(initialSessionId, agentCwd).then(() => {
+			// Flush replay updates that were batched during loadSession await
+			agent.flushPendingUpdates();
+		}).catch((err) => {
 			logger.warn(`[ChatPanel] Session restore failed, falling back to new session: ${err}`);
 			void agent.createSession(initialAgentId);
 		});

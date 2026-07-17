@@ -93,6 +93,8 @@ export interface UseAgentReturn {
 		}>,
 	) => void;
 	setMessagesFromLocal: (localMessages: ChatMessage[]) => void;
+	flushPendingUpdates: () => void;
+
 	clearError: () => void;
 	setIgnoreUpdates: (ignore: boolean) => void;
 	// Permission
@@ -210,6 +212,8 @@ export function useAgent(
 			// Message operations
 			sendMessage: agentMessages.sendMessage,
 			clearMessages: agentMessages.clearMessages,
+			flushPendingUpdates: agentMessages.flushPendingUpdates,
+
 			setInitialMessages: agentMessages.setInitialMessages,
 			setMessagesFromLocal: agentMessages.setMessagesFromLocal,
 			clearError: agentMessages.clearError,

@@ -87,6 +87,8 @@ export interface UseAgentMessagesReturn {
 
 	/** Enqueue a message-level update (used by useAgent for unified handler) */
 	enqueueUpdate: (update: SessionUpdate) => void;
+		/** Force flush pending updates (used after session/load replay) */
+		flushPendingUpdates: () => void;
 }
 
 // ============================================================================
@@ -507,5 +509,7 @@ export function useAgentMessages(
 		approveActivePermission,
 		rejectActivePermission,
 		enqueueUpdate,
+		flushPendingUpdates,
+
 	};
 }
