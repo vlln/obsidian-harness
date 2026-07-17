@@ -1421,7 +1421,7 @@ export default class AgentClientPlugin extends Plugin {
 			{
 				version: 1,
 				sessionId,
-				agentId: this.settings.defaultAgentId,
+				agentId: "", // Set on first connection
 				cwd: vaultPath,
 				title: "New Session",
 				createdAt: new Date().toISOString(),

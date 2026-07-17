@@ -692,9 +692,14 @@ export function ChatPanel({
 	// ============================================================
 	// Effects - Session Lifecycle
 	// ============================================================
-	// Initialize session with the agent from .session file (or default)
+	// Initialize session with the agent from .session file
 	useEffect(() => {
 		const agentId = config?.agent || initialAgentId;
+		if (!agentId) {
+			// Agent not yet selected — wait for user to pick from menu
+			logger.log("[ChatPanel] No agent selected yet, waiting...");
+			return;
+		}
 		logger.log(`[ChatPanel] Starting session with agent: ${agentId}`);
 		void agent.createSession(agentId);
 	}, [agent.createSession, config?.agent, initialAgentId]);

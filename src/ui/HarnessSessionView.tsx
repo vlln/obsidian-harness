@@ -142,17 +142,19 @@ export class HarnessSessionView extends FileView {
 			return;
 		}
 
-		// Check if the configured agent is available
-		const availableAgents = this.plugin.getAvailableAgents();
-		const agentExists = availableAgents.some(
-			(a) => a.id === config.agentId,
-		);
-		if (!agentExists) {
-			container.createEl("div", {
-				text: `Agent "${config.agentId}" is not configured. Please add it in plugin settings.`,
-				cls: "harness-error",
-			});
-			return;
+		// Check if agent is configured (skip if not yet set)
+		if (config.agentId) {
+			const availableAgents = this.plugin.getAvailableAgents();
+			const agentExists = availableAgents.some(
+				(a) => a.id === config.agentId,
+			);
+			if (!agentExists) {
+				container.createEl("div", {
+					text: `Agent "${config.agentId}" is not configured. Please add it in plugin settings.`,
+					cls: "harness-error",
+				});
+				return;
+			}
 		}
 
 		this.acpClient = this.plugin.getOrCreateAcpClient(this.viewId);
