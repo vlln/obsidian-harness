@@ -1413,7 +1413,7 @@ export default class AgentClientPlugin extends Plugin {
 			{
 				version: 1,
 				sessionId,
-				agentId: this.settings.defaultAgentId,
+				agentId: this.isPiAcpAvailable() ? "pi-acp" : this.settings.defaultAgentId,
 				cwd: vaultPath,
 				title: "New Session",
 				createdAt: new Date().toISOString(),
