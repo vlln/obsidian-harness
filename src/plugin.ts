@@ -1375,7 +1375,9 @@ export default class AgentClientPlugin extends Plugin {
 			return;
 		}
 		if (!availableIds.includes(this.settings.defaultAgentId)) {
-			this.settings.defaultAgentId = availableIds[0];
+
+			// Prefer pi-acp if available, otherwise fall back to first available
+			this.settings.defaultAgentId = this.isPiAcpAvailable() ? "pi-acp" : availableIds[0];
 		}
 	}
 
@@ -1389,6 +1391,12 @@ export default class AgentClientPlugin extends Plugin {
 				ids.add(agent.id);
 			}
 		}
+
+			// Include auto-discovered pi-acp
+			if (this.isPiAcpAvailable()) {
+				ids.add("pi-acp");
+			}
+
 		return Array.from(ids);
 	}
 
@@ -1413,7 +1421,7 @@ export default class AgentClientPlugin extends Plugin {
 			{
 				version: 1,
 				sessionId,
-				agentId: this.isPiAcpAvailable() ? "pi-acp" : this.settings.defaultAgentId,
+				agentId: this.settings.defaultAgentId,
 				cwd: vaultPath,
 				title: "New Session",
 				createdAt: new Date().toISOString(),
