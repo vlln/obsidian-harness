@@ -33,6 +33,9 @@ function SessionChatComponent({
 		[plugin, view.acpClient, view.vaultService],
 	);
 
+	const sourcePrompt = useMemo(() => buildSourceNotePrompt(config), [config]);
+	const sourceLabel = useMemo(() => buildSourceNoteLabel(config), [config]);
+
 	return (
 		<ChatContextProvider value={contextValue}>
 			<ChatPanel
@@ -41,6 +44,8 @@ function SessionChatComponent({
 				workingDirectory={config.cwd || undefined}
 				initialAgentId={config.agentId}
 				initialSessionId={config.sessionId}
+				initialInputValue={sourcePrompt}
+				entryContextLabel={sourceLabel}
 				viewHost={view}
 				onSessionTitleChanged={() => view.refreshDisplayText()}
 				onAgentIdChanged={(agentId: string) => {
@@ -56,6 +61,33 @@ function SessionChatComponent({
 			/>
 		</ChatContextProvider>
 	);
+}
+
+function buildSourceNoteLabel(config: SessionFileData): string | undefined {
+	const sourceNote = config.sourceNote;
+	if (!sourceNote) return undefined;
+	const selection = sourceNote.selection;
+	if (selection) {
+		return `From ${sourceNote.path}, lines ${selection.fromLine}-${selection.toLine}`;
+	}
+	return `From ${sourceNote.path}`;
+}
+
+function buildSourceNotePrompt(config: SessionFileData): string | undefined {
+	const sourceNote = config.sourceNote;
+	if (!sourceNote) return undefined;
+	const selection = sourceNote.selection;
+	if (!selection) {
+		return `Please use this Obsidian note as context: @[[${sourceNote.name}]]\n\n`;
+	}
+	return [
+		`Please use this selected context from @[[${sourceNote.name}]]:${selection.fromLine}-${selection.toLine}:`,
+		"",
+		"```md",
+		selection.text,
+		"```",
+		"",
+	].join("\n");
 }
 
 /**

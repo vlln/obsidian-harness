@@ -90,6 +90,10 @@ export interface ChatPanelProps {
 	initialAgentId?: string;
 	/** .session file sessionId — restore history from JSONL on mount */
 	initialSessionId?: string;
+	/** Optional first prompt prefill for note-started session entries. */
+	initialInputValue?: string;
+	/** Optional compact label describing the durable entry context. */
+	entryContextLabel?: string;
 
 	config?: { agent?: string; model?: string };
 	onRegisterCallbacks?: (callbacks: ChatPanelCallbacks) => void;
@@ -148,6 +152,8 @@ export function ChatPanel({
 	workingDirectory,
 	initialAgentId,
 	initialSessionId,
+	initialInputValue,
+	entryContextLabel,
 
 	config,
 	onSessionIdChanged,
@@ -294,6 +300,15 @@ export function ChatPanel({
 	// Input state (for broadcast commands)
 	const [inputValue, setInputValue] = useState("");
 	const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+	const initialInputAppliedRef = useRef(false);
+	useEffect(() => {
+		if (initialInputAppliedRef.current) return;
+		if (!initialInputValue) return;
+		initialInputAppliedRef.current = true;
+		setInputValue((current) =>
+			current.trim() ? current : initialInputValue,
+		);
+	}, [initialInputValue]);
 
 	// ============================================================
 	// Refs
@@ -1294,6 +1309,23 @@ export function ChatPanel({
 			</div>
 		) : null;
 
+	const entryContextBanner = entryContextLabel ? (
+		<div
+			className="agent-client-entry-context-banner"
+			title={entryContextLabel}
+		>
+			<span
+				className="agent-client-entry-context-icon"
+				ref={(el) => {
+					if (el) setIcon(el, "file-text");
+				}}
+			/>
+			<span className="agent-client-entry-context-label">
+				{entryContextLabel}
+			</span>
+		</div>
+	) : null;
+
 	const messageListElement = (
 		<MessageList
 			messages={messages}
@@ -1365,6 +1397,7 @@ export function ChatPanel({
 				{cwdBanner}
 				<div className="agent-client-floating-content">
 					<div className="agent-client-floating-messages-container">
+						{entryContextBanner}
 						{messageListElement}
 					</div>
 					{inputAreaElement}
@@ -1382,6 +1415,7 @@ export function ChatPanel({
 		>
 			{headerElement}
 			{cwdBanner}
+			{entryContextBanner}
 			{messageListElement}
 			{inputAreaElement}
 		</div>
