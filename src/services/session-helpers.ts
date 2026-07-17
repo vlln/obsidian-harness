@@ -109,7 +109,22 @@ export function findAgentSettings(
 	const customAgent = settings.customAgents.find(
 		(agent) => agent.id === agentId,
 	);
-	return customAgent || null;
+		if (customAgent) return customAgent;
+
+
+		// Auto-discovered pi-acp: use pi Node.js npx path
+		// (Electron does not inherit the user PATH, so npx is not found)
+		if (agentId === "pi-acp") {
+			return {
+				id: "pi-acp",
+				displayName: "pi-acp",
+				command: "pi-acp",
+				args: [],
+				env: [],
+			};
+		}
+
+		return null;
 }
 
 /**

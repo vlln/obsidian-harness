@@ -422,6 +422,15 @@ export default class AgentClientPlugin extends Plugin {
 				}
 			}),
 		);
+
+			// BR-004: Cascade delete session_index and history when .session file is deleted
+			this.registerEvent(
+				this.app.vault.on("delete", (file) => {
+					if (file.path.endsWith(".session")) {
+						void this.cleanupSessionFile(file.path);
+					}
+				}),
+			);
 	}
 
 	onunload() {
@@ -734,7 +743,7 @@ export default class AgentClientPlugin extends Plugin {
 	 * Get all available agents (claude, codex, gemini, custom)
 	 */
 	getAvailableAgents(): Array<{ id: string; displayName: string }> {
-		return [
+		const agents = [
 			{
 				id: this.settings.claude.id,
 				displayName:
@@ -755,6 +764,31 @@ export default class AgentClientPlugin extends Plugin {
 				displayName: agent.displayName || agent.id,
 			})),
 		];
+
+		// Auto-discover pi-acp if installed as a pi plugin
+		if (this.isPiAcpAvailable()) {
+			agents.push({
+				id: "pi-acp",
+				displayName: "pi-acp",
+			});
+		}
+
+		return agents;
+	}
+
+	/**
+	 * Check if pi-acp is installed as a pi plugin.
+	 * Detection: ~/.pi/pi-acp/ directory exists.
+	 */
+	isPiAcpAvailable(): boolean {
+		try {
+			const { existsSync } = require("fs");
+			const { join } = require("path");
+			const { homedir } = require("os");
+			return existsSync(join(homedir(), ".pi", "pi-acp"));
+		} catch {
+			return false;
+		}
 	}
 
 	/**
@@ -1426,6 +1460,28 @@ export default class AgentClientPlugin extends Plugin {
 		const file = this.app.vault.getAbstractFileByPath(filePath);
 		if (file instanceof TFile) {
 			await this.app.workspace.getLeaf().openFile(file);
+		}
+	}
+
+	/**
+	 * BR-004: Cascade delete session_index entry and history directory
+	 * when a .session file is deleted from the vault.
+	 */
+	async cleanupSessionFile(entryFilePath: string): Promise<void> {
+		try {
+			const entries = await this.settingsService.getSessionIndex();
+			const entry = entries.find((e) => e.entryFile === entryFilePath);
+			if (!entry) return;
+
+			await this.settingsService.removeSessionIndex(entry.sessionId);
+			await this.settingsService.deleteHistory(entry.sessionId);
+			getLogger().log(
+				`[Harness] Cleaned up session: ${entry.sessionId}`,
+			);
+		} catch (error) {
+			getLogger().warn(
+				`[Harness] Failed to clean up session file ${entryFilePath}: ${error}`,
+			);
 		}
 	}
 }

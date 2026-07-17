@@ -1,6 +1,6 @@
-import { ItemView, WorkspaceLeaf, setIcon, Menu } from "obsidian";
+import { ItemView, WorkspaceLeaf, setIcon, Menu, TFile, Notice } from "obsidian";
 import * as React from "react";
-const { useRef, useEffect, useCallback } = React;
+const { useRef, useEffect, useCallback, useState } = React;
 import { useSyncExternalStore } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -11,6 +11,7 @@ import type {
 } from "../services/view-registry";
 import { addRenameSessionMenuItem } from "./EditTitleModal";
 import { useSettings } from "../hooks/useSettings";
+import type { SessionIndexEntry } from "../types/session";
 
 export const VIEW_TYPE_SESSION_MANAGER = "agent-client-session-manager";
 
@@ -69,8 +70,6 @@ const SessionItem = React.memo(function SessionItem({
 		if (moreRef.current) setIcon(moreRef.current, "more-horizontal");
 	}, []);
 
-	// `view` is stable for the same viewId (registry holds the same instance),
-	// so this callback is stable across renders — keeping React.memo effective.
 	const handleClick = useCallback(() => view.focus(), [view]);
 
 	const showMenu = useCallback(
@@ -163,27 +162,121 @@ function SessionManagerComponent({
 	// Subscribe to settings changes so renamed titles are reflected immediately
 	useSettings(plugin);
 
-	if (views.length === 0) {
-		return (
-			<div className="agent-client-session-manager-empty">
-				No active sessions
-			</div>
-		);
-	}
+	// Load saved sessions from session_index.jsonl
+	const [savedSessions, setSavedSessions] = useState<SessionIndexEntry[]>([]);
+	const [savedSessionsLoaded, setSavedSessionsLoaded] = useState(false);
+
+	useEffect(() => {
+		let cancelled = false;
+		plugin.settingsService.getSessionIndex().then((entries) => {
+			if (!cancelled) {
+				setSavedSessions(entries);
+				setSavedSessionsLoaded(true);
+			}
+		});
+		return () => { cancelled = true; };
+	}, [plugin]);
+
+	// Group saved sessions by cwd
+	const groupedSaved = savedSessions.reduce<Record<string, SessionIndexEntry[]>>(
+		(acc, entry) => {
+			const cwd = entry.cwd || "Unknown";
+			if (!acc[cwd]) acc[cwd] = [];
+			acc[cwd].push(entry);
+			return acc;
+		},
+		{},
+	);
+
+	const handleOpenSavedSession = useCallback(
+		async (entryFile: string) => {
+			const file = plugin.app.vault.getAbstractFileByPath(entryFile);
+			if (file instanceof TFile) {
+				await plugin.app.workspace.getLeaf().openFile(file);
+			} else {
+				// Orphan entry: clean up
+				new Notice(`Session file not found: ${entryFile}`);
+				const sessionId =
+					savedSessions.find((s) => s.entryFile === entryFile)?.sessionId ?? "";
+				if (sessionId) {
+					await plugin.settingsService.removeSessionIndex(sessionId);
+				}
+				// Refresh list
+				const entries = await plugin.settingsService.getSessionIndex();
+				setSavedSessions(entries);
+			}
+		},
+		[plugin, savedSessions],
+	);
 
 	return (
 		<div className="agent-client-session-manager">
-			{views.map((view) => (
-				<SessionItem
-					key={view.viewId}
-					view={view}
-					isFocused={view.viewId === focusedId}
-					plugin={plugin}
-					status={view.getSessionStatus()}
-					title={view.getSessionTitle()}
-					agentName={view.getDisplayName()}
-				/>
-			))}
+			{/* Active Sessions */}
+			{views.length > 0 && (
+				<>
+					<div className="tree-item">
+						<div className="tree-item-self agent-client-session-manager-header">
+							Active Sessions
+						</div>
+					</div>
+					{views.map((view) => (
+						<SessionItem
+							key={view.viewId}
+							view={view}
+							isFocused={view.viewId === focusedId}
+							plugin={plugin}
+							status={view.getSessionStatus()}
+							title={view.getSessionTitle()}
+							agentName={view.getDisplayName()}
+						/>
+					))}
+				</>
+			)}
+
+			{/* Saved Sessions */}
+			{Object.keys(groupedSaved).length > 0 && (
+				<>
+					<div className="tree-item">
+						<div className="tree-item-self agent-client-session-manager-header">
+							Saved Sessions
+						</div>
+					</div>
+					{Object.entries(groupedSaved).map(([cwd, entries]) => (
+						<div key={cwd} className="agent-client-session-manager-group">
+							<div className="tree-item">
+								<div className="tree-item-self agent-client-session-manager-cwd">
+									{cwd}
+								</div>
+							</div>
+							{entries.map((entry) => (
+								<div key={entry.sessionId} className="tree-item">
+									<div
+										className="tree-item-self is-clickable"
+										onClick={() => {
+											void handleOpenSavedSession(entry.entryFile);
+										}}
+									>
+										<div className="tree-item-inner agent-client-session-item-text">
+											<div className="agent-client-session-item-title">
+												{entry.entryFile.replace(/\.session$/, "")}
+											</div>
+										</div>
+									</div>
+								</div>
+							))}
+						</div>
+					))}
+				</>
+			)}
+
+			{/* Empty State */}
+			{views.length === 0 &&
+				Object.keys(groupedSaved).length === 0 &&
+				savedSessionsLoaded && (
+					<div className="agent-client-session-manager-empty">
+						No sessions. Use Cmd+P → "Create new .session file" to start.
+					</div>
+				)}
 		</div>
 	);
 }
