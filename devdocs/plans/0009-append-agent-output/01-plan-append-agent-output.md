@@ -2,7 +2,7 @@
 title: Plan-0009-01: Append Agent Output
 description: Implement explicit appending of latest Agent response to the active Markdown note.
 type: plan
-status: pending
+status: done
 created: 2026-07-17T00:00:00Z
 ---
 
