@@ -253,6 +253,14 @@ export function ChatPanel({
 	// Restore session history when opening a .session file
 	const historyRestoredRef = useRef(false);
 	useEffect(() => {
+
+		// Only try restore for ACP sessionIds (ULID, 26+ chars), skip local UUIDs
+		const isAcpSessionId = initialSessionId && initialSessionId.length >= 26;
+		if (!isAcpSessionId) {
+			historyRestoredRef.current = true;
+			return;
+		}
+
 		if (!initialSessionId || historyRestoredRef.current) return;
 		if (!isSessionReady) return;
 	
