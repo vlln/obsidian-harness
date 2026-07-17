@@ -12,3 +12,4 @@
 | 0004 | [0004-session-restore](0004-session-restore/) | `fix/0004-session-restore-agent-id` | done |
 | 0005 | [0005-lint-baseline](0005-lint-baseline/) | `fix/0004-session-restore-agent-id` | done |
 | 0006 | [0006-session-lifecycle-hardening](0006-session-lifecycle-hardening/) | `fix/0004-session-restore-agent-id` | done |
+| 0007 | [0007-fork-agent-defaults](0007-fork-agent-defaults/) | `develop` | done |
