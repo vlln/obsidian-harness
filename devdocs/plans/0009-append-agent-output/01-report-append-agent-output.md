@@ -10,7 +10,7 @@ created: 2026-07-17T00:00:00Z
 
 ## Summary
 
-Implemented explicit appending of the latest assistant text response to a Markdown note on branch `feat/0009-append-agent-output`.
+Implemented explicit appending of the latest assistant text response to a Markdown note on branch `feat/0009-append-agent-output` and merged it into `develop`.
 
 ## Changes
 
@@ -43,6 +43,8 @@ Implemented explicit appending of the latest assistant text response to a Markdo
 | `npm run build` | PASS |
 | `npm run test:e2e` | PASS, 8 tests |
 
+The same gates passed again on `develop` after merge commit `60fa5f2`.
+
 ## Boundary Review
 
 - No Project model was introduced.
@@ -55,3 +57,7 @@ Implemented explicit appending of the latest assistant text response to a Markdo
 
 - `2b84a9d docs(plan): define append agent output iteration`
 - `95d8e70 feat(notes): append latest agent response`
+- `6a164b8 docs(report): record append agent output verification`
+- `bf20634 merge: append agent output 0009`
+- `224bc47 test(notes): stabilize append response e2e`
+- `60fa5f2 merge: stabilize append response e2e`
