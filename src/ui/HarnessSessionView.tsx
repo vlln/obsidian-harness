@@ -134,7 +134,7 @@ export class HarnessSessionView extends FileView {
 		}
 
 		// Validate required fields
-		if (!config.sessionId || !config.agentId || !config.cwd) {
+		if (!config.sessionId || !config.cwd) {
 			container.createEl("div", {
 				text: "Invalid session file: missing required fields (sessionId, agentId, cwd)",
 				cls: "harness-error",
