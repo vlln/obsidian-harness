@@ -82,6 +82,9 @@ export class AcpClient {
 	private currentAgentId: string | null = null;
 	private currentSessionId: string | null = null;
 
+	/** Fixed sessionId for history writes (from .session file, survives newSession) */
+	private historySessionId: string | null = null;
+
 	// Callbacks (none — all events flow through onSessionUpdate via AcpHandler)
 
 	// Delegates
@@ -118,7 +121,7 @@ export class AcpClient {
 
 		// Wire up JSONL history persistence
 		this.handler.setHistoryWriter((update) => {
-			const sid = this.currentSessionId;
+			const sid = this.historySessionId || this.currentSessionId;
 			if (!sid) return;
 			void this.plugin.settingsService.appendHistoryEvent(
 				sid,
@@ -486,6 +489,18 @@ export class AcpClient {
 	 * Update the auto-allow permission setting on a live client.
 	 * Called by the plugin when the setting changes at runtime.
 	 */
+
+	/**
+	 * Set the permanent sessionId for history writes.
+	 * Called from HarnessSessionView via BR-002 to pin the .session file sessionId.
+	 * Once set, history writes always use this id regardless of newSession calls.
+	 */
+	setHistorySessionId(sessionId: string): void {
+		if (!this.historySessionId) {
+			this.historySessionId = sessionId;
+		}
+	}
+
 	updateAutoAllow(autoAllow: boolean): void {
 		this.permissionManager.setAutoAllow(autoAllow);
 	}

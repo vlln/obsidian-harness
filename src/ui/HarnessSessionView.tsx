@@ -48,7 +48,10 @@ function SessionChatComponent({
 						void view.updateSessionConfig(config);
 					}}
 					onSessionIdChanged={(sessionId: string) => {
-						void view.onSessionIdChanged(sessionId, config);
+						{
+							view.acpClient.setHistorySessionId(sessionId);
+							void view.onSessionIdChanged(sessionId, config);
+						}
 					}}
 				/>
 		</ChatContextProvider>
