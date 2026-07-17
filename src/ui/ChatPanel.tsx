@@ -212,7 +212,6 @@ export function ChatPanel({
 		isSending,
 		errorInfo,
 	} = agent;
-	// Load session history from JSONL when opening a .session file	useEffect(() => {		if (!initialSessionId) return;			plugin.settingsService.readHistory(initialSessionId).then((events) => {			if (events.length === 0) return;				const toolCallIndex = new Map<string, number>();			let msgs: ChatMessage[] = [];			for (const event of events) {				msgs = applySingleUpdate(msgs, event as SessionUpdate, toolCallIndex);			}			rebuildToolCallIndex(msgs, toolCallIndex);				agent.setMessagesFromLocal(msgs);			logger.log(`[ChatPanel] Restored ${msgs.length} messages from history`);		}).catch((err) => {			logger.warn(`[ChatPanel] Failed to load history: ${err}`);		});	}, [initialSessionId, plugin, agent.setMessagesFromLocal]);
 	const suggestions = useSuggestions(
 		vaultService,
 		plugin,
@@ -251,6 +250,19 @@ export function ChatPanel({
 		onClearMessages: agent.clearMessages,
 	});
 	const { restoreSession } = sessionHistory;
+	// Restore session history when opening a .session file
+	const historyRestoredRef = useRef(false);
+	useEffect(() => {
+		if (!initialSessionId || historyRestoredRef.current) return;
+		if (!isSessionReady) return;
+	
+		historyRestoredRef.current = true;
+		logger.log(`[ChatPanel] Restoring session: ${initialSessionId}`);
+		restoreSession(initialSessionId, agentCwd).catch((err) => {
+			logger.warn(`[ChatPanel] Session restore failed: ${err}`);
+		});
+	}, [initialSessionId, isSessionReady, restoreSession, agentCwd]);
+
 
 	// ============================================================
 	// Local State
