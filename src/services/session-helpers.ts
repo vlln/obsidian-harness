@@ -109,7 +109,20 @@ export function findAgentSettings(
 	const customAgent = settings.customAgents.find(
 		(agent) => agent.id === agentId,
 	);
-	return customAgent || null;
+		if (customAgent) return customAgent;
+
+		// Auto-discovered pi-acp: return synthetic settings
+		if (agentId === "pi-acp") {
+			return {
+				id: "pi-acp",
+				displayName: "pi-acp",
+				command: "pi-acp",
+				args: [],
+				env: [],
+			};
+		}
+
+		return null;
 }
 
 /**
