@@ -235,6 +235,8 @@ export function useAgent(
 			errorInfo,
 			agentSession.createSession,
 			agentSession.restartSession,
+				agentSession.restoreSession,
+
 			agentSession.closeSession,
 			agentSession.forceRestartAgent,
 			cancelOperation,
@@ -244,6 +246,8 @@ export function useAgent(
 			agentSession.setConfigOption,
 			agentMessages.sendMessage,
 			agentMessages.clearMessages,
+				agentMessages.flushPendingUpdates,
+
 			agentMessages.setInitialMessages,
 			agentMessages.setMessagesFromLocal,
 			agentMessages.clearError,
