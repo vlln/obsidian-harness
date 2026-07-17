@@ -170,6 +170,14 @@ export class HarnessSessionView extends FileView {
 	 */
 	async onSessionIdChanged(acpSessionId: string, config: SessionFileData): Promise<void> {
 		if (config.sessionId === acpSessionId) return;
+		// Only update on first ACP session creation (local UUID → ACP sessionId).
+		// ACP sessionIds are ULID format (26+ chars starting with digits).
+		// Local UUIDs are standard UUID format (36 chars with hyphens).
+		// Don't overwrite on subsequent session/load or newSession calls.
+		if (config.sessionId.length >= 26 && config.sessionId[0] >= "0" && config.sessionId[0] <= "9") {
+			// Already an ACP sessionId, don't overwrite
+			return;
+		}
 
 		const oldSessionId = config.sessionId;
 		config.sessionId = acpSessionId;
