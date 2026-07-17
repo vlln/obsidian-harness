@@ -2,7 +2,7 @@
 title: AC-0002: Session 生命周期管理
 description: Session 删除清理、索引查询、SessionManagerView 展示的验收标准。
 type: ac
-status: draft
+status: active
 created: 2026-07-17T00:00:00Z
 ---
 
