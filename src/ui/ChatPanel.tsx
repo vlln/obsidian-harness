@@ -97,6 +97,9 @@ export interface ChatPanelProps {
 	 * triggers Obsidian to re-read getDisplayText() and update the tab header).
 	 */
 	onSessionTitleChanged?: () => void;
+	/** Called when ACP returns a sessionId (different from the .session file sessionId) */
+	onSessionIdChanged?: (sessionId: string) => void;
+
 	// Floating-specific
 	onMinimize?: () => void;
 	onClose?: () => void;
@@ -144,6 +147,8 @@ export function ChatPanel({
 	initialSessionId,
 
 	config,
+	onSessionIdChanged,
+
 	onRegisterCallbacks,
 	onAgentIdChanged,
 	onSessionTitleChanged,
@@ -666,11 +671,31 @@ export function ChatPanel({
 	// ============================================================
 	// Effects - Session Lifecycle
 	// ============================================================
-	// Initialize session on mount
+	// Initialize session: try to resume existing, fall back to create new
 	useEffect(() => {
-		logger.log("[Debug] Starting connection setup via useSession...");
-		void agent.createSession(config?.agent || initialAgentId);
-	}, [agent.createSession, config?.agent, initialAgentId]);
+		const agentId = config?.agent || initialAgentId;
+		const doCreate = () => {
+			logger.log("[Debug] Creating new session via useSession...");
+			void agent.createSession(agentId);
+		};
+
+		if (initialSessionId) {
+			logger.log(`[ChatPanel] Attempting to load session: ${initialSessionId}`);
+			acpClient.loadSession(initialSessionId, agentCwd).then((result) => {
+				logger.log(`[ChatPanel] Session loaded: ${result.sessionId}`);
+				agent.updateSessionFromLoad(
+					result.sessionId,
+					result.modes,
+					result.configOptions,
+				);
+			}).catch((_err) => {
+				logger.log("[ChatPanel] Session load failed, creating new session");
+				doCreate();
+			});
+		} else {
+			doCreate();
+		}
+	}, [agent.createSession, agent.updateSessionFromLoad, config?.agent, initialAgentId, initialSessionId, acpClient, agentCwd]);
 
 	// Apply configured model (a select config option with category "model")
 	// when session is ready.
@@ -891,7 +916,7 @@ export function ChatPanel({
 	useEffect(() => {
 		onSessionTitleChanged?.();
 	}, [onSessionTitleChanged, sessionTitle]);
-
+	// BR-002: Notify when ACP sessionId changes (write back to .session file)	useEffect(() => {		if (session.sessionId && session.sessionId !== initialSessionId) {			onSessionIdChanged?.(session.sessionId);		}	}, [session.sessionId, initialSessionId, onSessionIdChanged]);
 	// ============================================================
 	// Effects - System Notification on Permission Request
 	// ============================================================
