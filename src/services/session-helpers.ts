@@ -117,12 +117,14 @@ export function findAgentSettings(
 		if (agentId === "pi-acp") {
 			const { join } = require("path");
 			const { homedir } = require("os");
-			const npxPath = join(homedir(), ".local", "share", "pi-node", "current", "bin", "npx");
+			const piBin = join(homedir(), ".local", "share", "pi-node", "current", "bin");
+			const nodeBin = join(piBin, "node");
+			const npxJs = join(piBin, "..", "lib", "node_modules", "npm", "bin", "npx-cli.js");
 			return {
 				id: "pi-acp",
 				displayName: "pi-acp",
-				command: npxPath,
-				args: ["-y", "pi-acp"],
+				command: nodeBin,
+				args: [npxJs, "-y", "pi-acp"],
 				env: [],
 			};
 		}
