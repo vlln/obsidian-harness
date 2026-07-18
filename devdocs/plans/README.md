@@ -14,3 +14,4 @@
 | 0006 | [0006-session-lifecycle-hardening](0006-session-lifecycle-hardening/) | `fix/0004-session-restore-agent-id` | done |
 | 0007 | [0007-fork-agent-defaults](0007-fork-agent-defaults/) | `develop` | done |
 | 0010 | [0010-session-file-initial-agent](0010-session-file-initial-agent/) | `fix/0010-session-file-initial-agent` | done |
+| 0011 | [0011-unified-session-persistence](0011-unified-session-persistence/) | `feat/0011-unified-session-persistence` | pending |

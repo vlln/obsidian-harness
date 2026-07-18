@@ -37,10 +37,10 @@ created: 2026-07-15T00:00:00Z
 | 模块 | 提供的能力 | 目录路径 | 优先级 |
 |------|-----------|---------|---------|
 | Session 入口视图 | 注册 .session 扩展名、FileView 渲染 ChatPanel、读取 session 元数据 | `ui/HarnessSessionView.tsx` | P0 |
-| Session 创建 | 命令面板创建 .session 文件、生成 sessionId、写入 JSON 元数据 | `plugin.ts` (createSessionFile) | P0 |
+| Session 创建 | 创建 .session 文件、生成 sessionId、写入 JSON 元数据 | `plugin.ts` (createSessionFile/materializeSessionFile) | P0 |
 | Session 索引 | session_index.jsonl 追加/删除、按 cwd 查询 | `services/session-storage.ts` (新增) | P0 |
 | History 存储 | 追加式 JSONL 写入、按需读取、首行元数据校验 | `services/session-storage.ts` (新增) | P0 |
-| 现有 ChatPanel 复用 | 对话 UI、消息渲染、Agent 连接、权限管理 | 现有 `ui/ChatPanel.tsx`，无需修改 | — |
+| 现有 ChatPanel 复用 | 对话 UI、消息渲染、Agent 连接、权限管理 | `ui/ChatPanel.tsx` | — |
 
 ---
 
@@ -83,6 +83,9 @@ created: 2026-07-15T00:00:00Z
 | BR-002 | sessionId 不存在时，首次对话创建新 ACP session，回写 sessionId | 发送第一条消息 | sessionId 写入 .session 和索引 |
 | BR-003 | 同一 cwd 下可有多个 .session 文件 | 创建多个 session | 无限制 |
 | BR-004 | 删除 .session 文件时同步清理索引和 history | 删除 .session 文件 | 索引和 history 同步删除 |
+| BR-005 | 所有可恢复 session 都有 .session 文件 | 打开任意 chat 入口 | 若未指定入口文件，创建默认 .session 后再启动 session |
+| BR-006 | 未指定 cwd 时使用 vault 根目录 | 创建默认 .session | cwd 写入 vault 根目录 |
+| BR-007 | 默认 .session 存放在可配置目录 | 创建默认 .session | 默认目录为 `Sessions` |
 
 ---
 

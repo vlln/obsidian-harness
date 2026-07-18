@@ -23,6 +23,7 @@ created: 2026-07-15T00:00:00Z
 |------|---------|---------|---------|---------|
 | AC-0001-B-1 | 同名 .session 文件已存在 | 1. 创建 .session 文件 | 弹出 Notice 提示文件已存在，不覆盖 | 自动化 |
 | AC-0001-B-2 | sessionId 为有效 UUID 格式 | 1. 创建 .session 文件<br>2. 读取 sessionId | sessionId 为 36 字符 UUID 格式 | 自动化 |
+| AC-0001-B-3 | 未指定 session 文件位置 | 1. Cmd+P → "Create new .session file" | vault 中 `Sessions/` 下生成 `.session` 文件，cwd 为 vault 根目录路径 | 自动化 |
 
 ## 异常场景
 
@@ -63,6 +64,17 @@ created: 2026-07-15T00:00:00Z
 | 编号 | 前置条件 | 操作步骤 | 预期结果 | 验证方式 |
 |------|---------|---------|---------|---------|
 | AC-0002-E-1 | 点击 .session 文件时 agent 进程启动失败 | 1. 点击 .session 文件 | ChatPanel 显示错误状态，提示 agent 连接失败 | 自动化 |
+
+## AC-0006: 统一 Session 落盘
+
+验证所有 session 都通过 `.session` 文件落盘。
+
+| 场景编号 | 前置条件 | 操作 | 期望结果 | 验证方式 |
+|----------|----------|------|----------|----------|
+| AC-0006-N-1 | 插件已启用 | 1. Cmd+P → "Open chat view" | 创建或打开一个 `Sessions/*.session` 文件，ChatPanel 绑定该文件的 sessionId/cwd/agentId | 自动化 |
+| AC-0006-N-2 | Floating chat 已启用 | 1. 打开 floating chat | 创建一个 `Sessions/*.session` 文件，floating ChatPanel 绑定该文件的 sessionId/cwd/agentId | 自动化 |
+| AC-0006-N-3 | 任意 session 已发送消息 | 1. 检查插件数据目录 | transcript 写入 `sessions/{sessionId}/main.jsonl` | 自动化 |
+| AC-0006-B-1 | `Sessions/` 不存在 | 1. 创建任意 session | 自动创建 `Sessions/` 文件夹并写入 `.session` | 自动化 |
 
 ## 失败场景
 
