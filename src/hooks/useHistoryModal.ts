@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from "react";
-import { Notice, Platform } from "obsidian";
+import { Notice, Platform, TFile } from "obsidian";
 import { SessionHistoryModal } from "../ui/SessionHistoryModal";
 import { getLogger } from "../utils/logger";
 import { convertWslPathToWindows } from "../utils/platform";
@@ -84,6 +84,18 @@ export function useHistoryModal(
 		async (sessionId: string) => {
 			try {
 				logger.log(`[ChatPanel] Deleting session: ${sessionId}`);
+				const entries = await plugin.settingsService.getSessionIndex();
+				const entry = entries.find(
+					(item) => item.sessionId === sessionId,
+				);
+				if (entry) {
+					const file = plugin.app.vault.getAbstractFileByPath(
+						entry.entryFile,
+					);
+					if (file instanceof TFile) {
+						await plugin.app.fileManager.trashFile(file);
+					}
+				}
 				await sessionHistory.deleteSession(sessionId);
 				new Notice("Agent client: session deleted");
 			} catch (error) {
@@ -91,24 +103,7 @@ export function useHistoryModal(
 				logger.error("Session delete error:", error);
 			}
 		},
-		[sessionHistory.deleteSession, logger],
-	);
-
-	const handleEditTitle = useCallback(
-		async (sessionId: string, newTitle: string, sessionCwd: string) => {
-			try {
-				await sessionHistory.updateSessionTitle(
-					sessionId,
-					newTitle,
-					sessionCwd,
-				);
-				new Notice("Agent client: title updated");
-			} catch (error) {
-				new Notice("Agent client: failed to update title");
-				logger.error("Title update error:", error);
-			}
-		},
-		[sessionHistory.updateSessionTitle, logger],
+		[plugin, sessionHistory.deleteSession, logger],
 	);
 
 	const handleLoadMore = useCallback(() => {
@@ -141,7 +136,6 @@ export function useHistoryModal(
 				onRestoreSession: handleRestoreSession,
 				onForkSession: handleForkSession,
 				onDeleteSession: handleDeleteSession,
-				onEditTitle: handleEditTitle,
 				onLoadMore: handleLoadMore,
 				onFetchSessions: handleFetchSessions,
 			});
@@ -166,7 +160,6 @@ export function useHistoryModal(
 		handleRestoreSession,
 		handleForkSession,
 		handleDeleteSession,
-		handleEditTitle,
 		handleLoadMore,
 		handleFetchSessions,
 	]);
@@ -190,7 +183,6 @@ export function useHistoryModal(
 				onRestoreSession: handleRestoreSession,
 				onForkSession: handleForkSession,
 				onDeleteSession: handleDeleteSession,
-				onEditTitle: handleEditTitle,
 				onLoadMore: handleLoadMore,
 				onFetchSessions: handleFetchSessions,
 			});
@@ -210,7 +202,6 @@ export function useHistoryModal(
 		handleRestoreSession,
 		handleForkSession,
 		handleDeleteSession,
-		handleEditTitle,
 		handleLoadMore,
 		handleFetchSessions,
 	]);

@@ -6,7 +6,6 @@
  */
 
 import { Modal, App, setIcon } from "obsidian";
-import { EditTitleModal } from "./EditTitleModal";
 import * as React from "react";
 const { useState, useCallback } = React;
 import { createRoot, Root } from "react-dom/client";
@@ -51,7 +50,7 @@ class ConfirmDeleteModal extends Modal {
 		});
 
 		contentEl.createEl("p", {
-			text: "This only removes the session from this plugin. The session data will remain on the agent side.",
+			text: "This removes the .session file and its local transcript.",
 			cls: "agent-client-confirm-delete-warning",
 		});
 
@@ -115,7 +114,7 @@ interface SessionHistoryContentProps {
 	/** Whether session/fork is supported (unstable) */
 	canFork: boolean;
 
-	/** Whether using locally saved sessions (instead of agent session/list) */
+	/** Whether the list is backed by local session entries */
 	isUsingLocalSessions: boolean;
 
 	/** Set of session IDs that have local data (for filtering) */
@@ -133,12 +132,6 @@ interface SessionHistoryContentProps {
 	onForkSession: (sessionId: string, cwd: string) => Promise<void>;
 	/** Callback when a session is deleted */
 	onDeleteSession: (sessionId: string) => void | Promise<void>;
-	/** Callback when a session title is edited */
-	onEditTitle: (
-		sessionId: string,
-		newTitle: string,
-		sessionCwd: string,
-	) => void | Promise<void>;
 	/** Callback to load more sessions (pagination) */
 	onLoadMore: () => void;
 	/** Callback to fetch sessions with filter */
@@ -300,7 +293,6 @@ function SessionItem({
 	onRestoreSession,
 	onForkSession,
 	onDeleteSession,
-	onEditTitle,
 	onClose,
 }: {
 	session: SessionInfo;
@@ -310,7 +302,6 @@ function SessionItem({
 	onRestoreSession: (sessionId: string, cwd: string) => Promise<void>;
 	onForkSession: (sessionId: string, cwd: string) => Promise<void>;
 	onDeleteSession: (sessionId: string) => void | Promise<void>;
-	onEditTitle: (sessionId: string) => void;
 	onClose: () => void;
 }) {
 	const handleRestore = useCallback(() => {
@@ -326,10 +317,6 @@ function SessionItem({
 	const handleDelete = useCallback(() => {
 		void onDeleteSession(session.sessionId);
 	}, [session.sessionId, onDeleteSession]);
-
-	const handleEditTitle = useCallback(() => {
-		onEditTitle(session.sessionId);
-	}, [session.sessionId, onEditTitle]);
 
 	return (
 		<div className="agent-client-session-history-item">
@@ -357,12 +344,6 @@ function SessionItem({
 			</div>
 
 			<div className="agent-client-session-history-item-actions">
-				<IconButton
-					iconName="pencil"
-					label="Edit session title"
-					className="agent-client-session-history-action-icon agent-client-session-history-edit-icon"
-					onClick={handleEditTitle}
-				/>
 				{canRestore && (
 					<IconButton
 						iconName="play"
@@ -395,8 +376,7 @@ function SessionItem({
  *
  * Renders the content of the session history modal including:
  * - Debug form (when debug mode enabled)
- * - Local sessions banner
- * - Filter toggle (for agent session/list)
+ * - Session files banner
  * - Session list with load/resume/fork actions
  * - Pagination
  */
@@ -417,7 +397,6 @@ function SessionHistoryContent({
 	onRestoreSession,
 	onForkSession,
 	onDeleteSession,
-	onEditTitle,
 	onLoadMore,
 	onFetchSessions,
 	onClose,
@@ -460,25 +439,7 @@ function SessionHistoryContent({
 		[app, sessions, onDeleteSession],
 	);
 
-	// Open edit title modal for a session
-	const handleEditWithModal = useCallback(
-		(sessionId: string) => {
-			const targetSession = sessions.find(
-				(s) => s.sessionId === sessionId,
-			);
-			const currentTitle = targetSession?.title ?? "Untitled Session";
-			const sessionCwd = targetSession?.cwd ?? currentCwd;
-
-			const modal = new EditTitleModal(app, currentTitle, (newTitle) => {
-				void onEditTitle(sessionId, newTitle, sessionCwd);
-			});
-			modal.open();
-		},
-		[app, sessions, currentCwd, onEditTitle],
-	);
-
-	// Filter sessions based on hideNonLocalSessions setting
-	// Only applies to agent session/list (not local sessions which are already filtered)
+	// Filter retained for ACP list compatibility; local session entries are already filtered.
 	const filteredSessions = React.useMemo(() => {
 		if (isUsingLocalSessions || !hideNonLocalSessions) {
 			return sessions;
@@ -523,10 +484,10 @@ function SessionHistoryContent({
 				</div>
 			)}
 
-			{/* Local sessions banner */}
+			{/* Session files banner */}
 			{(isUsingLocalSessions || !canPerformAnyOperation) && (
 				<div className="agent-client-session-history-local-banner">
-					<span>These sessions are saved in the plugin.</span>
+					<span>These sessions are backed by .session files.</span>
 				</div>
 			)}
 
@@ -545,7 +506,7 @@ function SessionHistoryContent({
 
 			{canShowList && (
 				<>
-					{/* Filter toggles - only for agent session/list */}
+					{/* Filter toggles */}
 					{canList && !isUsingLocalSessions && (
 						<div className="agent-client-session-history-filter">
 							<label className="agent-client-session-history-filter-label">
@@ -617,7 +578,6 @@ function SessionHistoryContent({
 									onDeleteSession={
 										handleDeleteWithConfirmation
 									}
-									onEditTitle={handleEditWithModal}
 									onClose={onClose}
 								/>
 							))}

@@ -108,9 +108,23 @@ export class AgentClientSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.sendMessageShortcut)
 					.onChange(async (value) => {
 						await this.plugin.settingsService.updateSettings({
-							sendMessageShortcut: value as
-								| "enter"
-								| "cmd-enter",
+							sendMessageShortcut: value as "enter" | "cmd-enter",
+						});
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Session folder")
+			.setDesc(
+				"Vault-relative folder for new .session files. Leave empty to create them at the vault root.",
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("Sessions")
+					.setValue(this.plugin.settings.sessionFolder)
+					.onChange(async (value) => {
+						await this.plugin.settingsService.updateSettings({
+							sessionFolder: value.trim(),
 						});
 					}),
 			);

@@ -10,7 +10,6 @@ import { Notice, Platform } from "obsidian";
 
 import type AgentClientPlugin from "../plugin";
 import type { UseAgentReturn } from "./useAgent";
-import type { UseSessionHistoryReturn } from "./useSessionHistory";
 import type { UseSuggestionsReturn } from "./useSuggestions";
 import type { ChatSession } from "../types/session";
 import type {
@@ -37,9 +36,7 @@ export interface UseChatActionsReturn {
 		attachments?: AttachedFile[],
 	) => Promise<void>;
 	handleStopGeneration: () => Promise<void>;
-	handleNewChat: (requestedAgentId?: string) => Promise<void>;
 	handleExportChat: () => Promise<void>;
-	handleSwitchAgent: (agentId: string) => Promise<void>;
 	handleRestartAgent: () => Promise<void>;
 
 	// Config actions
@@ -71,7 +68,6 @@ export interface UseChatActionsReturn {
 export function useChatActions(
 	plugin: AgentClientPlugin,
 	agent: UseAgentReturn,
-	sessionHistory: UseSessionHistoryReturn,
 	suggestions: UseSuggestionsReturn,
 	session: ChatSession,
 	messages: ChatMessage[],
@@ -186,25 +182,11 @@ export function useChatActions(
 					resourceLinks.length > 0 ? resourceLinks : undefined,
 				isFirstMessage,
 			});
-
-			// Save session metadata locally on first message
-			if (isFirstMessage && session.sessionId) {
-				await sessionHistory.saveSessionLocally(
-					session.sessionId,
-					content,
-				);
-				logger.log(
-					`[ChatPanel] Session saved locally: ${session.sessionId}`,
-				);
-			}
 		},
 		[
 			agent.clearError,
 			agent.sendMessage,
 			messages.length,
-			session.sessionId,
-			sessionHistory.saveSessionLocally,
-			logger,
 			suggestions.mentions.activeNote,
 			suggestions.mentions.isAutoMentionDisabled,
 			shouldConvertToWsl,
@@ -220,56 +202,6 @@ export function useChatActions(
 			setRestoredMessage(lastMessage);
 		}
 	}, [logger, agent.cancelOperation, agent.lastUserMessage]);
-
-	const handleNewChat = useCallback(
-		async (requestedAgentId?: string) => {
-			const isAgentSwitch =
-				requestedAgentId && requestedAgentId !== session.agentId;
-
-			// Skip if already empty AND not switching agents
-			if (messages.length === 0 && !isAgentSwitch) {
-				new Notice("Agent client: already a new session");
-				return;
-			}
-
-			// Cancel ongoing generation before starting new chat
-			if (agent.isSending) {
-				await agent.cancelOperation();
-			}
-
-			logger.log(
-				`[Debug] Creating new session${isAgentSwitch ? ` with agent: ${requestedAgentId}` : ""}...`,
-			);
-
-			// Auto-export current chat before starting new one (if has messages)
-			if (messages.length > 0) {
-				await autoExportIfEnabled("newChat", messages, session);
-			}
-
-			suggestions.mentions.toggleAutoMention(false);
-			agent.clearMessages();
-
-			const newAgentId = isAgentSwitch
-				? requestedAgentId
-				: session.agentId;
-			await agent.restartSession(newAgentId);
-
-			// Invalidate session history cache when creating new session
-			sessionHistory.invalidateCache();
-		},
-		[
-			messages,
-			session,
-			logger,
-			autoExportIfEnabled,
-			agent.isSending,
-			agent.cancelOperation,
-			agent.clearMessages,
-			agent.restartSession,
-			suggestions.mentions.toggleAutoMention,
-			sessionHistory.invalidateCache,
-		],
-	);
 
 	const handleExportChat = useCallback(async () => {
 		if (messages.length === 0) {
@@ -294,15 +226,6 @@ export function useChatActions(
 			logger.error("Export error:", error);
 		}
 	}, [messages, session, plugin, logger]);
-
-	const handleSwitchAgent = useCallback(
-		async (agentId: string) => {
-			if (agentId !== session.agentId) {
-				await handleNewChat(agentId);
-			}
-		},
-		[session.agentId, handleNewChat],
-	);
 
 	const handleRestartAgent = useCallback(async () => {
 		logger.log("[ChatPanel] Restarting agent process...");
@@ -372,9 +295,7 @@ export function useChatActions(
 	return {
 		handleSendMessage,
 		handleStopGeneration,
-		handleNewChat,
 		handleExportChat,
-		handleSwitchAgent,
 		handleRestartAgent,
 		handleSetMode,
 		handleSetConfigOption,

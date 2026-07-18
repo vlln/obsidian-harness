@@ -10,6 +10,7 @@ import { createRoot, Root } from "react-dom/client";
 
 import type AgentClientPlugin from "../plugin";
 import type { ChatInputState } from "../types/chat";
+import type { SessionFileData } from "../types/session";
 
 // Utility imports
 import { getLogger, Logger } from "../utils/logger";
@@ -29,10 +30,14 @@ function ChatComponent({
 	plugin,
 	view,
 	viewId,
+	entryFilePath,
+	config,
 }: {
 	plugin: AgentClientPlugin;
 	view: ChatView;
 	viewId: string;
+	entryFilePath: string;
+	config: SessionFileData;
 }) {
 	// ============================================================
 	// Agent ID State (synced with Obsidian view state)
@@ -79,12 +84,26 @@ function ChatComponent({
 			<ChatPanel
 				variant="sidebar"
 				viewId={viewId}
-				initialAgentId={restoredAgentId}
+				workingDirectory={config.cwd || undefined}
+				initialAgentId={config.agentId || restoredAgentId}
+				initialSessionId={config.sessionId}
 				viewHost={view}
 				onRegisterCallbacks={(callbacks) =>
 					view.setCallbacks(callbacks)
 				}
-				onAgentIdChanged={(agentId) => view.setAgentId(agentId)}
+				onAgentIdChanged={(agentId) => {
+					config.agentId = agentId;
+					view.setAgentId(agentId);
+					void plugin.writeSessionConfig(entryFilePath, config);
+				}}
+				onSessionIdChanged={(sessionId) => {
+					view.acpClient.setHistorySessionId(sessionId);
+					void plugin.handleSessionIdChangedForFile(
+						entryFilePath,
+						config,
+						sessionId,
+					);
+				}}
 				onSessionTitleChanged={handleSessionTitleChanged}
 			/>
 		</ChatContextProvider>
@@ -118,6 +137,8 @@ export class ChatView extends ItemView implements IChatViewContainer {
 
 	// Callbacks from ChatPanel for IChatViewContainer delegation
 	private callbacks: ChatPanelCallbacks | null = null;
+	private entryFilePath: string | null = null;
+	private sessionConfig: SessionFileData | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: AgentClientPlugin) {
 		super(leaf);
@@ -334,7 +355,7 @@ export class ChatView extends ItemView implements IChatViewContainer {
 		return this.containerEl;
 	}
 
-	onOpen() {
+	async onOpen(): Promise<void> {
 		const container = this.containerEl.children[1];
 		container.empty();
 
@@ -342,19 +363,33 @@ export class ChatView extends ItemView implements IChatViewContainer {
 		this.acpClient = this.plugin.getOrCreateAcpClient(this.viewId);
 		this.vaultService = new VaultService(this.plugin);
 
+		try {
+			const materialized = await this.plugin.materializeSessionFile({
+				agentId: this.initialAgentId ?? "",
+			});
+			this.entryFilePath = materialized.file.path;
+			this.sessionConfig = materialized.config;
+		} catch (error) {
+			container.createEl("div", {
+				text: `Failed to create session file: ${error}`,
+				cls: "harness-error",
+			});
+			return;
+		}
+
 		this.root = createRoot(container);
 		this.root.render(
 			<ChatComponent
 				plugin={this.plugin}
 				view={this}
 				viewId={this.viewId}
+				entryFilePath={this.entryFilePath}
+				config={this.sessionConfig}
 			/>,
 		);
 
 		// Register with plugin's view registry
 		this.plugin.viewRegistry.register(this);
-
-		return Promise.resolve();
 	}
 
 	async onClose(): Promise<void> {

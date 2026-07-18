@@ -10,7 +10,7 @@ import type {
 	GeminiAgentSettings,
 	CodexAgentSettings,
 } from "../types/agent";
-import type { ChatSession, SavedSessionInfo } from "../types/session";
+import type { ChatSession } from "../types/session";
 import type { ChatMessage } from "../types/chat";
 import { toAgentConfig } from "./settings-normalizer";
 import { truncateTitle } from "../utils/text";
@@ -309,16 +309,10 @@ export function createInitialSession(
 // Session Title Derivation
 // ============================================================================
 
-/** Derive the session display title (saved title > first user message > "New session"). */
+/** Derive the session display title from the first user message. */
 export function computeSessionTitle(
-	sessionId: string | null,
-	savedSessions: SavedSessionInfo[],
 	messages: ChatMessage[],
 ): string {
-	if (sessionId) {
-		const saved = savedSessions.find((s) => s.sessionId === sessionId);
-		if (saved?.title) return saved.title;
-	}
 	const firstUserMessage = messages.find((m) => m.role === "user");
 	if (firstUserMessage) {
 		const textContent = firstUserMessage.content.find(

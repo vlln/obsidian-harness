@@ -58,7 +58,7 @@ import {
 	CodexAgentSettings,
 	CustomAgentSettings,
 } from "./types/agent";
-import type { SavedSessionInfo, SessionIndexEntry } from "./types/session";
+import type { SessionFileData, SessionIndexEntry } from "./types/session";
 import { initializeLogger, getLogger } from "./utils/logger";
 
 const PLUGIN_RELEASE_REPO = "vlln/obsidian-harness-frontend";
@@ -93,6 +93,8 @@ export interface AgentClientPluginSettings {
 	customAgents: CustomAgentSettings[];
 	/** Default agent ID for new views (renamed from activeAgentId for multi-session) */
 	defaultAgentId: string;
+	/** Vault-relative folder where default .session files are created */
+	sessionFolder: string;
 	autoAllowPermissions: boolean;
 	autoMentionActiveNote: boolean;
 	/** Show OS system notifications on response completion and permission requests */
@@ -137,8 +139,6 @@ export interface AgentClientPluginSettings {
 		showEmojis: boolean;
 		fontSize: number | null;
 	};
-	// Locally saved session metadata (for agents without session/list support)
-	savedSessions: SavedSessionInfo[];
 	// Last used model per agent (agentId → modelId)
 	lastUsedModels: Record<string, string>;
 	// Last used mode per agent (agentId → modeId)
@@ -180,6 +180,7 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 	},
 	customAgents: [],
 	defaultAgentId: "claude-code-acp",
+	sessionFolder: "Sessions",
 	autoAllowPermissions: false,
 	autoMentionActiveNote: true,
 	enableSystemNotifications: true,
@@ -214,7 +215,6 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 		showEmojis: true,
 		fontSize: null,
 	},
-	savedSessions: [],
 	lastUsedModels: {},
 	lastUsedModes: {},
 	lastUsedConfigOptions: {},
@@ -804,6 +804,7 @@ export default class AgentClientPlugin extends Plugin {
 			},
 			customAgents,
 			defaultAgentId,
+			sessionFolder: str(raw.sessionFolder, D.sessionFolder),
 			autoAllowPermissions: bool(
 				raw.autoAllowPermissions,
 				D.autoAllowPermissions,
@@ -904,9 +905,6 @@ export default class AgentClientPlugin extends Plugin {
 				showEmojis: bool(rd.showEmojis, D.displaySettings.showEmojis),
 				fontSize: parseChatFontSize(rd.fontSize),
 			},
-			savedSessions: Array.isArray(raw.savedSessions)
-				? (raw.savedSessions as SavedSessionInfo[])
-				: D.savedSessions,
 			lastUsedModels: strRecord(raw.lastUsedModels),
 			lastUsedModes: strRecord(raw.lastUsedModes),
 			lastUsedConfigOptions: nestedStrRecord(raw.lastUsedConfigOptions),
@@ -1143,56 +1141,74 @@ export default class AgentClientPlugin extends Plugin {
 		return this.getDiscoveredAgents().map((agent) => agent.id);
 	}
 
-	/**
-	 * Create a new .session file in the vault root.
-	 *
-	 * Generates a UUID-based sessionId, writes the .session file with
-	 * metadata, appends to session_index.jsonl, and opens the file
-	 * in a HarnessSessionView tab.
-	 */
-	async createSessionFile(): Promise<void> {
-		const sessionId = crypto.randomUUID();
-
-		// Default cwd to vault root
+	getVaultRootPath(): string {
 		const adapter = this.app.vault.adapter;
-		const vaultPath =
-			adapter instanceof FileSystemAdapter ? adapter.getBasePath() : "";
+		return adapter instanceof FileSystemAdapter
+			? adapter.getBasePath()
+			: "";
+	}
 
-		const content = JSON.stringify(
-			{
-				version: 1,
-				sessionId,
-				agentId: "", // Set on first connection
-				cwd: vaultPath,
-				title: "New Session",
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-				forkedFrom: null,
-			},
-			null,
-			"\t",
+	private async ensureVaultFolder(folderPath: string): Promise<void> {
+		const normalized = normalizePath(folderPath).replace(/^\/+|\/+$/g, "");
+		if (!normalized) return;
+
+		const parts = normalized.split("/");
+		let current = "";
+		for (const part of parts) {
+			current = current ? `${current}/${part}` : part;
+			if (!this.app.vault.getAbstractFileByPath(current)) {
+				await this.app.vault.createFolder(current);
+			}
+		}
+	}
+
+	private getDefaultSessionFolder(): string {
+		return normalizePath(this.settings.sessionFolder || "Sessions").replace(
+			/^\/+|\/+$/g,
+			"",
 		);
+	}
+
+	async materializeSessionFile(options?: {
+		agentId?: string;
+		cwd?: string;
+		title?: string;
+		forkedFrom?: string | null;
+	}): Promise<{ file: TFile; config: SessionFileData }> {
+		const sessionId = crypto.randomUUID();
+		const cwd = options?.cwd ?? this.getVaultRootPath();
+		const createdAt = new Date().toISOString();
+		const config: SessionFileData = {
+			version: 1,
+			sessionId,
+			agentId: options?.agentId ?? "",
+			cwd,
+			title: options?.title ?? "New Session",
+			createdAt,
+			updatedAt: createdAt,
+			forkedFrom: options?.forkedFrom ?? null,
+		};
+
+		const content = JSON.stringify(config, null, "\t");
+
+		const folder = this.getDefaultSessionFolder();
+		await this.ensureVaultFolder(folder);
 
 		const fileName = `session-${sessionId.slice(0, 8)}.session`;
-		const filePath = normalizePath(fileName);
+		const filePath = normalizePath(
+			folder ? `${folder}/${fileName}` : fileName,
+		);
 
 		const existing = this.app.vault.getAbstractFileByPath(filePath);
 		if (existing) {
-			new Notice(`[Harness] File already exists: ${fileName}`);
-			return;
+			throw new Error(`File already exists: ${filePath}`);
 		}
 
-		try {
-			await this.app.vault.create(filePath, content);
-		} catch (error) {
-			new Notice(`[Harness] Failed to create session file: ${error}`);
-			return;
-		}
+		const file = await this.app.vault.create(filePath, content);
 
-		// Append to session_index.jsonl
 		const indexEntry: SessionIndexEntry = {
 			sessionId,
-			cwd: vaultPath,
+			cwd,
 			entryFile: filePath,
 		};
 		try {
@@ -1203,13 +1219,61 @@ export default class AgentClientPlugin extends Plugin {
 			);
 		}
 
-		new Notice(`[Harness] Created ${fileName}`);
+		return { file, config };
+	}
 
-		// Open the file in a HarnessSessionView
-		const file = this.app.vault.getAbstractFileByPath(filePath);
-		if (file instanceof TFile) {
-			await this.app.workspace.getLeaf().openFile(file);
+	async writeSessionConfig(
+		entryFilePath: string,
+		config: SessionFileData,
+	): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(entryFilePath);
+		if (!(file instanceof TFile)) return;
+		config.updatedAt = new Date().toISOString();
+		await this.app.vault.modify(file, JSON.stringify(config, null, "\t"));
+	}
+
+	async handleSessionIdChangedForFile(
+		entryFilePath: string,
+		config: SessionFileData,
+		acpSessionId: string,
+	): Promise<void> {
+		if (config.sessionId === acpSessionId) return;
+		const oldSessionId = config.sessionId;
+		config.sessionId = acpSessionId;
+		await this.writeSessionConfig(entryFilePath, config);
+
+		try {
+			await this.settingsService.removeSessionIndex(oldSessionId);
+			await this.settingsService.appendSessionIndex({
+				sessionId: acpSessionId,
+				cwd: config.cwd,
+				entryFile: entryFilePath,
+			});
+		} catch (error) {
+			getLogger().warn(
+				`[Harness] Failed to update session index: ${error}`,
+			);
 		}
+	}
+
+	/**
+	 * Create a new .session file and open it in a HarnessSessionView tab.
+	 */
+	async createSessionFile(options?: {
+		agentId?: string;
+		cwd?: string;
+	}): Promise<void> {
+		let materialized: { file: TFile; config: SessionFileData };
+		try {
+			materialized = await this.materializeSessionFile(options);
+		} catch (error) {
+			new Notice(`[Harness] Failed to create session file: ${error}`);
+			return;
+		}
+
+		new Notice(`[Harness] Created ${materialized.file.path}`);
+
+		await this.app.workspace.getLeaf().openFile(materialized.file);
 	}
 
 	/**

@@ -542,12 +542,6 @@ export interface SessionResult {
 	configOptions?: SessionConfigOption[];
 }
 
-/**
- * Locally saved session metadata.
- *
- * Used when agent doesn't support session/list but supports load/resume/fork.
- * Saved to plugin settings via plugin.saveData().
- */
 // ============================================================================
 // Session File Data (.session file in vault)
 // ============================================================================
@@ -588,20 +582,6 @@ export interface SessionIndexEntry {
 	entryFile: string;
 }
 
-export interface SavedSessionInfo {
-	/** Unique session identifier */
-	sessionId: string;
-	/** Agent ID that created this session */
-	agentId: string;
-	/** Working directory for the session */
-	cwd: string;
-	/** Human-readable session title (first 50 chars of first user message) */
-	title?: string;
-	/** ISO 8601 timestamp of session creation */
-	createdAt: string;
-	/** ISO 8601 timestamp of last activity */
-	updatedAt: string;
-}
 /**
  * Domain Models for Agent Initialization Results
  *
