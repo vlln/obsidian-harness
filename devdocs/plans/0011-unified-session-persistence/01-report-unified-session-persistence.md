@@ -21,10 +21,11 @@ Implemented a single session persistence path where new chat entry points materi
 - Removed origin hidden saved-session metadata and full-message snapshot storage.
 - Removed title rename UI that depended on hidden session metadata.
 - Changed user-triggered new-session actions to create a new `.session` entry instead of overwriting the current session file.
+- Added E2E coverage for floating chat session file materialization.
 
 ## Verification
 
 - `npm run lint` [PASS]
 - `npm test` [PASS] — 3 files, 75 tests
 - `npm run build` [PASS]
-- `npm run test:e2e` [PASS] — 7 tests
+- `npm run test:e2e` [PASS] — 8 tests

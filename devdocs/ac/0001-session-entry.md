@@ -14,8 +14,8 @@ created: 2026-07-15T00:00:00Z
 
 | 编号 | 前置条件 | 操作步骤 | 预期结果 | 验证方式 |
 |------|---------|---------|---------|---------|
-| AC-0001-N-1 | 插件已启用，vault 已加载 | 1. Cmd+P → "Create new .session file" | vault 根目录下生成 `session-{uuid前8位}.session` 文件，内容为合法 JSON，包含 version、sessionId、agentId、cwd、title、createdAt、updatedAt、forkedFrom | 自动化 |
-| AC-0001-N-2 | 插件已启用 | 1. 创建 .session 文件<br>2. 检查文件内容 | agentId 为当前设置的 defaultAgentId，cwd 为 vault 根目录路径 | 自动化 |
+| AC-0001-N-1 | 插件已启用，vault 已加载 | 1. Cmd+P → "Create new .session file" | vault 中 `Sessions/` 下生成 `session-{uuid前8位}.session` 文件，内容为合法 JSON，包含 version、sessionId、agentId、cwd、title、createdAt、updatedAt、forkedFrom | 自动化 |
+| AC-0001-N-2 | 插件已启用 | 1. 创建 .session 文件<br>2. 检查文件内容 | cwd 为 vault 根目录路径；首次打开并初始化后，agentId 回写为实际使用的 Agent ID | 自动化 |
 
 ## 边界场景
 
@@ -48,7 +48,7 @@ created: 2026-07-15T00:00:00Z
 | 编号 | 前置条件 | 操作步骤 | 预期结果 | 验证方式 |
 |------|---------|---------|---------|---------|
 | AC-0002-N-1 | 有效的 .session 文件存在，agent 已配置 | 1. 在文件浏览器中点击 .session 文件 | 打开新 tab，显示 ChatPanel 对话界面，Header 显示 agent 名称 | 自动化 |
-| AC-0002-N-2 | .session 文件中 agentId 为 pi-acp | 1. 点击 .session 文件 | ChatPanel 以 pi-acp 初始化，cwd 为 .session 中指定的路径 | 自动化 |
+| AC-0002-N-2 | .session 文件中 agentId 为已配置 Agent ID | 1. 点击 .session 文件 | ChatPanel 以该 Agent 初始化，cwd 为 .session 中指定的路径 | 自动化 |
 | AC-0002-N-3 | .session 文件中 cwd 非空 | 1. 点击 .session 文件 | Agent 的工作目录为 .session 中指定的 cwd | 自动化 |
 
 ## 边界场景
