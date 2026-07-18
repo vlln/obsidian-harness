@@ -2,6 +2,7 @@ import * as React from "react";
 const { useRef, useState, useEffect, useCallback } = React;
 
 import type { ChatMessage } from "../types/chat";
+import type { SessionState } from "../types/session";
 import type { AcpClient } from "../acp/acp-client";
 import type AgentClientPlugin from "../plugin";
 import type { IChatViewHost } from "./view-host";
@@ -24,8 +25,8 @@ export interface MessageListProps {
 	messages: ChatMessage[];
 	/** Whether a message is currently being sent */
 	isSending: boolean;
-	/** Whether the session is ready for user input */
-	isSessionReady: boolean;
+	/** Current session lifecycle state */
+	sessionState: SessionState;
 	/** Whether a session is being restored (load/resume/fork) */
 	isRestoringSession: boolean;
 	/** Display name of the active agent */
@@ -60,7 +61,7 @@ export interface MessageListProps {
 export function MessageList({
 	messages,
 	isSending,
-	isSessionReady,
+	sessionState,
 	isRestoringSession,
 	agentLabel,
 	plugin,
@@ -231,7 +232,7 @@ export function MessageList({
 				<div className="agent-client-chat-empty-state">
 					{isRestoringSession
 						? "Restoring session..."
-						: !isSessionReady
+						: sessionState === "initializing"
 							? `Connecting to ${agentLabel}...`
 							: `Start a conversation with ${agentLabel}...`}
 				</div>
