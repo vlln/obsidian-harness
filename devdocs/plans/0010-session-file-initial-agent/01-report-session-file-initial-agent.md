@@ -10,7 +10,7 @@ created: 2026-07-18T00:00:00Z
 
 ## Summary
 
-Fixed command-created `.session` files that selected pi-acp but remained connecting until the user switched tabs.
+Fixed command-created `.session` files that selected a runtime default ACP backend but remained connecting until the user switched tabs.
 
 ## Changes
 
@@ -25,7 +25,7 @@ Fixed command-created `.session` files that selected pi-acp but remained connect
 The first mount had two different notions of agent identity:
 
 - `.session` file metadata: `agentId: ""`
-- runtime session state: resolved default `pi-acp`
+- runtime session state: resolved default ACP backend
 
 The lifecycle helper only saw the first one, so it returned `wait_for_agent`. The resolved agent ID was still persisted into the file, which explains why switching away and back made the next mount succeed.
 
