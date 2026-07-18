@@ -395,51 +395,56 @@ export const MessageBubble = React.memo(function MessageBubble({
 	onApprovePermission,
 }: MessageBubbleProps) {
 	const groups = groupContent(message.content);
+	const hasCopyableText = message.content.some(
+		(c) => (c.type === "text" || c.type === "text_with_context") && c.text,
+	);
 
 	return (
 		<div
-			className={`agent-client-message-renderer ${message.role === "user" ? "agent-client-message-user" : "agent-client-message-assistant"}`}
+			className={`agent-client-message-frame ${message.role === "user" ? "agent-client-message-user-frame" : "agent-client-message-assistant-frame"}`}
 		>
-			{groups.map((group, idx) => {
-				if (group.type === "attachments") {
-					// Render attachments (images + resource_links) in horizontal strip
-					return (
-						<div
-							key={idx}
-							className="agent-client-message-images-strip"
-						>
-							{group.items.map((content, imgIdx) => (
+			<div
+				className={`agent-client-message-renderer ${message.role === "user" ? "agent-client-message-user" : "agent-client-message-assistant"}`}
+			>
+				{groups.map((group, idx) => {
+					if (group.type === "attachments") {
+						// Render attachments (images + resource_links) in horizontal strip
+						return (
+							<div
+								key={idx}
+								className="agent-client-message-images-strip"
+							>
+								{group.items.map((content, imgIdx) => (
+									<ContentBlock
+										key={imgIdx}
+										content={content}
+										plugin={plugin}
+										messageRole={message.role}
+										terminalClient={terminalClient}
+										onApprovePermission={
+											onApprovePermission
+										}
+									/>
+								))}
+							</div>
+						);
+					} else {
+						// Render single non-image content
+						return (
+							<div key={idx}>
 								<ContentBlock
-									key={imgIdx}
-									content={content}
+									content={group.item}
 									plugin={plugin}
 									messageRole={message.role}
 									terminalClient={terminalClient}
 									onApprovePermission={onApprovePermission}
 								/>
-							))}
-						</div>
-					);
-				} else {
-					// Render single non-image content
-					return (
-						<div key={idx}>
-							<ContentBlock
-								content={group.item}
-								plugin={plugin}
-								messageRole={message.role}
-								terminalClient={terminalClient}
-								onApprovePermission={onApprovePermission}
-							/>
-						</div>
-					);
-				}
-			})}
-			{message.content.some(
-				(c) =>
-					(c.type === "text" || c.type === "text_with_context") &&
-					c.text,
-			) && (
+							</div>
+						);
+					}
+				})}
+			</div>
+			{hasCopyableText && (
 				<div className="agent-client-message-actions">
 					<CopyButton contents={message.content} />
 				</div>
