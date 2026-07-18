@@ -186,6 +186,35 @@ describe("Obsidian Harness Plugin", () => {
 		);
 	});
 
+	it("should create a .session file when opening floating chat", async () => {
+		const before = await browser.execute(() => {
+			const vault = (window as any).app?.vault;
+			return vault
+				.getFiles()
+				.filter((f: any) => f.path.endsWith(".session")).length;
+		});
+
+		await browser.execute(() => {
+			const plugin = (window as any).app?.plugins?.plugins?.[
+				"obsidian-harness"
+			];
+			plugin?.openNewFloatingChat(true);
+		});
+
+		await browser.waitUntil(
+			async () => {
+				const count = await browser.execute(() => {
+					const vault = (window as any).app?.vault;
+					return vault
+						.getFiles()
+						.filter((f: any) => f.path.endsWith(".session")).length;
+				});
+				return count > before;
+			},
+			{ timeout: 5000, interval: 100 },
+		);
+	});
+
 	/**
 	 * Regression: command-created .session files start with an empty agentId.
 	 * The first open must still create an ACP session without requiring a tab switch.
