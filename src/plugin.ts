@@ -6,7 +6,6 @@ import {
 	TFile,
 	normalizePath,
 	FileSystemAdapter,
-	MarkdownView,
 } from "obsidian";
 import { existsSync } from "fs";
 import { homedir } from "os";
@@ -60,7 +59,6 @@ import {
 	CustomAgentSettings,
 } from "./types/agent";
 import type { SavedSessionInfo, SessionIndexEntry } from "./types/session";
-import type { SessionFileData, SessionSourceNote } from "./types/session";
 import { initializeLogger, getLogger } from "./utils/logger";
 
 const PLUGIN_RELEASE_REPO = "vlln/obsidian-harness-frontend";
@@ -329,20 +327,6 @@ export default class AgentClientPlugin extends Plugin {
 			},
 		});
 
-		this.addCommand({
-			id: "start-agent-session-from-note",
-			name: "Start agent session from this note",
-			checkCallback: (checking) => {
-				const view =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				const file = view?.file;
-				if (!file || file.extension !== "md") return false;
-				if (checking) return true;
-				void this.createSessionFileFromNote(view, file);
-				return true;
-			},
-		});
-
 		// Register agent-specific commands
 		this.registerAgentCommands();
 		this.registerPermissionCommands();
@@ -448,14 +432,14 @@ export default class AgentClientPlugin extends Plugin {
 			}),
 		);
 
-		// BR-004: Cascade delete session_index and history when .session file is deleted
-		this.registerEvent(
-			this.app.vault.on("delete", (file) => {
-				if (file.path.endsWith(".session")) {
-					void this.cleanupSessionFile(file.path);
-				}
-			}),
-		);
+			// BR-004: Cascade delete session_index and history when .session file is deleted
+			this.registerEvent(
+				this.app.vault.on("delete", (file) => {
+					if (file.path.endsWith(".session")) {
+						void this.cleanupSessionFile(file.path);
+					}
+				}),
+			);
 	}
 
 	onunload() {
@@ -909,17 +893,6 @@ export default class AgentClientPlugin extends Plugin {
 				);
 			},
 		});
-
-		this.addCommand({
-			id: "append-last-agent-response",
-			name: "Append last agent response to current note",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:append-last-response",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
 	}
 
 	/**
@@ -1137,7 +1110,7 @@ export default class AgentClientPlugin extends Plugin {
 				return {
 					enabled: bool(rp.enabled, D.promptInjection.enabled),
 					latex: bool(rp.latex, D.promptInjection.latex),
-					wikiLinks: bool(rp.wikiLinks, D.promptInjection.wikiLinks),
+				wikiLinks: bool(rp.wikiLinks, D.promptInjection.wikiLinks),
 					tables: bool(rp.tables, D.promptInjection.tables),
 				};
 			})(),
@@ -1472,7 +1445,9 @@ export default class AgentClientPlugin extends Plugin {
 		// Default cwd to vault root
 		const adapter = this.app.vault.adapter;
 		const vaultPath =
-			adapter instanceof FileSystemAdapter ? adapter.getBasePath() : "";
+			adapter instanceof FileSystemAdapter
+				? adapter.getBasePath()
+				: "";
 
 		const content = JSON.stringify(
 			{
@@ -1529,110 +1504,6 @@ export default class AgentClientPlugin extends Plugin {
 	}
 
 	/**
-	 * Create a .session entry next to the active Markdown note.
-	 *
-	 * The entry stores source note metadata only. It does not introduce a
-	 * plugin-level Project model; folder placement remains the user's vault
-	 * organization.
-	 */
-	async createSessionFileFromNote(
-		view: MarkdownView,
-		noteFile: TFile,
-	): Promise<void> {
-		const sessionId = crypto.randomUUID();
-		const adapter = this.app.vault.adapter;
-		const vaultPath =
-			adapter instanceof FileSystemAdapter ? adapter.getBasePath() : "";
-		const now = new Date().toISOString();
-		const sourceNote = this.buildSourceNote(view, noteFile);
-		const filePath = this.buildNoteSessionFilePath(noteFile, sessionId);
-		const config: SessionFileData = {
-			version: 1,
-			sessionId,
-			agentId: "",
-			cwd: vaultPath,
-			title: `Agent: ${noteFile.basename}`,
-			createdAt: now,
-			updatedAt: now,
-			forkedFrom: null,
-			sourceNote,
-		};
-
-		try {
-			await this.app.vault.create(
-				filePath,
-				JSON.stringify(config, null, "\t"),
-			);
-		} catch (error) {
-			new Notice(`[Harness] Failed to create note session: ${error}`);
-			return;
-		}
-
-		try {
-			await this.settingsService.appendSessionIndex({
-				sessionId,
-				cwd: vaultPath,
-				entryFile: filePath,
-			});
-		} catch (error) {
-			getLogger().warn(
-				`[Harness] Failed to update session_index.jsonl: ${error}`,
-			);
-		}
-
-		new Notice(`[Harness] Created ${filePath}`);
-
-		const sessionFile = this.app.vault.getAbstractFileByPath(filePath);
-		if (sessionFile instanceof TFile) {
-			await this.app.workspace.getLeaf().openFile(sessionFile);
-		}
-	}
-
-	private buildSourceNote(
-		view: MarkdownView,
-		noteFile: TFile,
-	): SessionSourceNote {
-		const selectedText = view.editor.getSelection();
-		const sourceNote: SessionSourceNote = {
-			path: noteFile.path,
-			name: noteFile.basename,
-		};
-		if (!selectedText.trim()) return sourceNote;
-
-		const cursorFrom = view.editor.getCursor("from");
-		const cursorTo = view.editor.getCursor("to");
-		sourceNote.selection = {
-			fromLine: cursorFrom.line + 1,
-			toLine: cursorTo.line + 1,
-			text: selectedText,
-		};
-		return sourceNote;
-	}
-
-	private buildNoteSessionFilePath(
-		noteFile: TFile,
-		sessionId: string,
-	): string {
-		const parentPath = noteFile.parent?.path ?? "";
-		const baseName = `${noteFile.basename}.agent-${sessionId.slice(0, 8)}`;
-		let candidate = normalizePath(
-			parentPath
-				? `${parentPath}/${baseName}.session`
-				: `${baseName}.session`,
-		);
-		let suffix = 2;
-		while (this.app.vault.getAbstractFileByPath(candidate)) {
-			candidate = normalizePath(
-				parentPath
-					? `${parentPath}/${baseName}-${suffix}.session`
-					: `${baseName}-${suffix}.session`,
-			);
-			suffix += 1;
-		}
-		return candidate;
-	}
-
-	/**
 	 * BR-004: Cascade delete session_index entry and history directory
 	 * when a .session file is deleted from the vault.
 	 */
@@ -1644,7 +1515,9 @@ export default class AgentClientPlugin extends Plugin {
 
 			await this.settingsService.removeSessionIndex(entry.sessionId);
 			await this.settingsService.deleteHistory(entry.sessionId);
-			getLogger().log(`[Harness] Cleaned up session: ${entry.sessionId}`);
+			getLogger().log(
+				`[Harness] Cleaned up session: ${entry.sessionId}`,
+			);
 		} catch (error) {
 			getLogger().warn(
 				`[Harness] Failed to clean up session file ${entryFilePath}: ${error}`,

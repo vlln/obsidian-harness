@@ -43,8 +43,8 @@ Fork 自 RAIT-09/obsidian-agent-client 的代码分为三层：ACP 协议层（`
 | `acp/acp-handler.ts` | `readTextFile` / `writeTextFile` 从 stub 改为真实实现 |
 | `acp/acp-client.ts` | `clientCapabilities.fs` 从 `false` 改为 `true` |
 | `services/session-storage.ts` | Session 存储从插件隐藏目录改为 vault note 文件 |
-| `services/session-helpers.ts` | 添加 note-entry 相关的 session 构建逻辑 |
-| `types/session.ts` | `SavedSessionInfo` 添加 `sourceNote` 等入口文件关联字段 |
+| `services/session-helpers.ts` | 保持 session 构建逻辑围绕 ACP 会话入口 |
+| `types/session.ts` | 保持 session 类型围绕 ACP 会话入口 |
 | `services/vault-service.ts` | 可能扩展以支持 Agent 文件读写 |
 
 ### 重写/大幅改造

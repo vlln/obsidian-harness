@@ -89,11 +89,14 @@ describe("session restore helpers", () => {
 		expect(
 			shouldRestoreInitialSession(
 				"019f70f3-178a-79be-aff7-981f0c1fa6e8",
-				"pi-acp",
+				"configured-acp",
 			),
 		).toBe(true);
 		expect(
-			shouldRestoreInitialSession("01JZABCDEFGHJKLMNPQRSTUVWX", "pi-acp"),
+			shouldRestoreInitialSession(
+				"01JZABCDEFGHJKLMNPQRSTUVWX",
+				"configured-acp",
+			),
 		).toBe(true);
 		expect(
 			shouldRestoreInitialSession(
@@ -101,15 +104,17 @@ describe("session restore helpers", () => {
 				"",
 			),
 		).toBe(false);
-		expect(shouldRestoreInitialSession("", "pi-acp")).toBe(false);
+		expect(shouldRestoreInitialSession("", "configured-acp")).toBe(false);
 	});
 
 	it("persists the runtime agent id only when the .session file has none", () => {
-		expect(shouldPersistResolvedAgentId("", "pi-acp")).toBe(true);
-		expect(shouldPersistResolvedAgentId(undefined, "pi-acp")).toBe(true);
-		expect(shouldPersistResolvedAgentId("claude-code-acp", "pi-acp")).toBe(
-			false,
+		expect(shouldPersistResolvedAgentId("", "runtime-acp")).toBe(true);
+		expect(shouldPersistResolvedAgentId(undefined, "runtime-acp")).toBe(
+			true,
 		);
+		expect(
+			shouldPersistResolvedAgentId("configured-acp", "runtime-acp"),
+		).toBe(false);
 		expect(shouldPersistResolvedAgentId("", "")).toBe(false);
 		expect(shouldPersistResolvedAgentId("", undefined)).toBe(false);
 	});
@@ -136,7 +141,7 @@ describe("session restore helpers", () => {
 		expect(
 			decideInitialSessionLifecycle({
 				initialSessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
-				initialAgentId: "pi-acp",
+				initialAgentId: "configured-acp",
 				selectedAgentId: undefined,
 				restoreStarted: false,
 			}),
@@ -149,20 +154,20 @@ describe("session restore helpers", () => {
 			decideInitialSessionLifecycle({
 				initialSessionId: "local-bootstrap-id",
 				initialAgentId: "",
-				selectedAgentId: "pi-acp",
+				selectedAgentId: "selected-acp",
 				restoreStarted: false,
 			}),
-		).toEqual({ type: "create_new", agentId: "pi-acp" });
+		).toEqual({ type: "create_new", agentId: "selected-acp" });
 
 		expect(
 			decideInitialSessionLifecycle({
 				initialSessionId: "local-bootstrap-id",
 				initialAgentId: "",
 				selectedAgentId: undefined,
-				fallbackAgentId: "pi-acp",
+				fallbackAgentId: "runtime-acp",
 				restoreStarted: false,
 			}),
-		).toEqual({ type: "create_new", agentId: "pi-acp" });
+		).toEqual({ type: "create_new", agentId: "runtime-acp" });
 
 		expect(
 			decideInitialSessionLifecycle({
@@ -176,8 +181,8 @@ describe("session restore helpers", () => {
 		expect(
 			decideInitialSessionLifecycle({
 				initialSessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
-				initialAgentId: "pi-acp",
-				selectedAgentId: "pi-acp",
+				initialAgentId: "configured-acp",
+				selectedAgentId: "selected-acp",
 				restoreStarted: true,
 			}),
 		).toEqual({ type: "idle" });

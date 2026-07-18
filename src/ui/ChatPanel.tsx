@@ -90,12 +90,6 @@ export interface ChatPanelProps {
 	initialAgentId?: string;
 	/** .session file sessionId — restore history from JSONL on mount */
 	initialSessionId?: string;
-	/** Optional first prompt prefill for note-started session entries. */
-	initialInputValue?: string;
-	/** Optional compact label describing the durable entry context. */
-	entryContextLabel?: string;
-	/** Optional note path that receives explicit append actions. */
-	appendTargetNotePath?: string;
 
 	config?: { agent?: string; model?: string };
 	onRegisterCallbacks?: (callbacks: ChatPanelCallbacks) => void;
@@ -154,9 +148,6 @@ export function ChatPanel({
 	workingDirectory,
 	initialAgentId,
 	initialSessionId,
-	initialInputValue,
-	entryContextLabel,
-	appendTargetNotePath,
 
 	config,
 	onSessionIdChanged,
@@ -305,15 +296,6 @@ export function ChatPanel({
 	// Input state (for broadcast commands)
 	const [inputValue, setInputValue] = useState("");
 	const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
-	const initialInputAppliedRef = useRef(false);
-	useEffect(() => {
-		if (initialInputAppliedRef.current) return;
-		if (!initialInputValue) return;
-		initialInputAppliedRef.current = true;
-		setInputValue((current) =>
-			current.trim() ? current : initialInputValue,
-		);
-	}, [initialInputValue]);
 
 	// ============================================================
 	// Refs
@@ -362,7 +344,6 @@ export function ChatPanel({
 		messages,
 		settings,
 		vaultPath,
-		appendTargetNotePath,
 	);
 
 	const {
@@ -370,7 +351,6 @@ export function ChatPanel({
 		handleStopGeneration,
 		handleNewChat,
 		handleExportChat,
-		handleAppendLastResponse,
 		handleSwitchAgent,
 		handleRestartAgent,
 		handleSetMode,
@@ -521,14 +501,6 @@ export function ChatPanel({
 			});
 
 			menu.addItem((item: MenuItem) => {
-				item.setTitle("Append last response to note")
-					.setIcon("file-plus")
-					.onClick(() => {
-						void handleAppendLastResponse();
-					});
-			});
-
-			menu.addItem((item: MenuItem) => {
 				item.setTitle("Restart agent")
 					.setIcon("refresh-cw")
 					.onClick(() => {
@@ -576,7 +548,6 @@ export function ChatPanel({
 			session.agentId,
 			handleNewChatWithPersist,
 			plugin,
-			handleAppendLastResponse,
 			handleRestartAgent,
 			agentCwd,
 			handleNewChatInDirectory,
@@ -609,14 +580,6 @@ export function ChatPanel({
 					.setIcon("save")
 					.onClick(() => {
 						void handleExportChat();
-					});
-			});
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Append last response to note")
-					.setIcon("file-plus")
-					.onClick(() => {
-						void handleAppendLastResponse();
 					});
 			});
 
@@ -689,7 +652,6 @@ export function ChatPanel({
 			handleNewChat,
 			handleOpenHistory,
 			handleExportChat,
-			handleAppendLastResponse,
 			onOpenNewWindow,
 			handleRestartAgent,
 			agentCwd,
@@ -1073,14 +1035,12 @@ export function ChatPanel({
 	const rejectActivePermissionRef = useRef(agent.rejectActivePermission);
 	const handleStopGenerationRef = useRef(handleStopGeneration);
 	const handleExportChatRef = useRef(handleExportChat);
-	const handleAppendLastResponseRef = useRef(handleAppendLastResponse);
 	handleNewChatWithPersistRef.current = handleNewChatWithPersist;
 	handleNewChatRef.current = handleNewChat;
 	approveActivePermissionRef.current = agent.approveActivePermission;
 	rejectActivePermissionRef.current = agent.rejectActivePermission;
 	handleStopGenerationRef.current = handleStopGeneration;
 	handleExportChatRef.current = handleExportChat;
-	handleAppendLastResponseRef.current = handleAppendLastResponse;
 
 	useEffect(() => {
 		const workspace = plugin.app.workspace;
@@ -1159,14 +1119,6 @@ export function ChatPanel({
 				if (targetViewId && targetViewId !== viewId) return;
 				void handleExportChatRef.current();
 			}),
-
-			ws.on(
-				"agent-client:append-last-response",
-				(targetViewId?: string) => {
-					if (targetViewId && targetViewId !== viewId) return;
-					void handleAppendLastResponseRef.current();
-				},
-			),
 		];
 
 		return () => {
@@ -1351,23 +1303,6 @@ export function ChatPanel({
 			</div>
 		) : null;
 
-	const entryContextBanner = entryContextLabel ? (
-		<div
-			className="agent-client-entry-context-banner"
-			title={entryContextLabel}
-		>
-			<span
-				className="agent-client-entry-context-icon"
-				ref={(el) => {
-					if (el) setIcon(el, "file-text");
-				}}
-			/>
-			<span className="agent-client-entry-context-label">
-				{entryContextLabel}
-			</span>
-		</div>
-	) : null;
-
 	const messageListElement = (
 		<MessageList
 			messages={messages}
@@ -1439,7 +1374,6 @@ export function ChatPanel({
 				{cwdBanner}
 				<div className="agent-client-floating-content">
 					<div className="agent-client-floating-messages-container">
-						{entryContextBanner}
 						{messageListElement}
 					</div>
 					{inputAreaElement}
@@ -1457,7 +1391,6 @@ export function ChatPanel({
 		>
 			{headerElement}
 			{cwdBanner}
-			{entryContextBanner}
 			{messageListElement}
 			{inputAreaElement}
 		</div>

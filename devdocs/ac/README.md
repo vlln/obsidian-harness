@@ -7,5 +7,3 @@
 | 编号 | 文档 | 状态 |
 |------|------|------|
 | [0001](0001-session-entry.md) | Session 入口文件 | active |
-| [0003](0003-note-centric-agent-entry.md) | Note-centric Agent entry | active |
-| [0004](0004-append-agent-output.md) | Append Agent output to notes | active |

@@ -13,7 +13,7 @@ created: 2026-07-18T00:00:00Z
 User-reported bug:
 
 1. Cmd+P creates a generic `.session` file.
-2. The file opens and default pi-acp is selected.
+2. The file opens and a default ACP backend is selected.
 3. The view stays in connecting.
 4. Switching away and back makes it connect.
 
