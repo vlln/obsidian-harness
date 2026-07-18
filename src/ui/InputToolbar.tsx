@@ -57,18 +57,24 @@ function buildSelectItems(option: SessionConfigOption): ToolbarDropdownItem[] {
 
 function showConfigOptionMenu({
 	event,
-	option,
+	options,
 	onChange,
 	emptyTitle,
 }: {
 	event: React.MouseEvent<HTMLElement>;
-	option: SessionConfigOption | null | undefined;
+	options: SessionConfigOption[];
 	onChange?: (configId: string, value: string) => void;
 	emptyTitle: string;
 }): void {
 	const menu = new Menu();
 
-	if (!option || option.type !== "select") {
+	const selectOptions = options.filter(
+		(option) =>
+			option.type === "select" &&
+			flattenConfigSelectOptions(option.options).length > 1,
+	);
+
+	if (selectOptions.length === 0) {
 		menu.addItem((menuItem) => {
 			menuItem.setTitle(emptyTitle).setIsLabel(true);
 		});
@@ -79,31 +85,43 @@ function showConfigOptionMenu({
 		return;
 	}
 
-	const items = buildSelectItems(option);
 	menu.addItem((menuItem) => {
-		menuItem.setTitle(option.description ?? option.name).setIsLabel(true);
+		menuItem.setTitle(emptyTitle).setIsLabel(true);
 	});
 
-	let lastGroupName: string | undefined;
-	for (const item of items) {
-		if (
-			item.groupName &&
-			item.groupName !== lastGroupName &&
-			lastGroupName !== undefined
-		) {
+	selectOptions.forEach((option, index) => {
+		if (index > 0) {
 			menu.addSeparator();
 		}
-		lastGroupName = item.groupName;
 
 		menu.addItem((menuItem) => {
 			menuItem
-				.setTitle(item.label)
-				.setChecked(item.value === option.currentValue)
-				.onClick(() => {
-					onChange?.(option.id, item.value);
-				});
+				.setTitle(option.description ?? option.name)
+				.setIsLabel(true);
 		});
-	}
+
+		const items = buildSelectItems(option);
+		let lastGroupName: string | undefined;
+		for (const item of items) {
+			if (
+				item.groupName &&
+				item.groupName !== lastGroupName &&
+				lastGroupName !== undefined
+			) {
+				menu.addSeparator();
+			}
+			lastGroupName = item.groupName;
+
+			menu.addItem((menuItem) => {
+				menuItem
+					.setTitle(item.label)
+					.setChecked(item.value === option.currentValue)
+					.onClick(() => {
+						onChange?.(option.id, item.value);
+					});
+			});
+		}
+	});
 
 	menu.showAtMouseEvent(event.nativeEvent);
 }
@@ -204,6 +222,34 @@ function ToolbarDropdown({
 // Utility Functions
 // ============================================================================
 
+function isModelConfigOption(option: SessionConfigOption): boolean {
+	return (
+		option.type === "select" &&
+		(option.category === "model" ||
+			option.category === "model_config" ||
+			option.category === "thought_level") &&
+		flattenConfigSelectOptions(option.options).length > 1
+	);
+}
+
+function getModelConfigOptions(
+	configOptions: SessionConfigOption[] | undefined,
+): SessionConfigOption[] {
+	return configOptions?.filter(isModelConfigOption) ?? [];
+}
+
+function getModelLabel(configOptions: SessionConfigOption[]): string {
+	const modelOption = configOptions.find(
+		(option) => option.type === "select" && option.category === "model",
+	);
+	if (!modelOption || modelOption.type !== "select") return "Model";
+
+	const current = flattenConfigSelectOptions(modelOption.options).find(
+		(option) => option.value === modelOption.currentValue,
+	);
+	return current?.name ?? modelOption.name;
+}
+
 // ============================================================================
 // InputToolbar
 // ============================================================================
@@ -243,6 +289,14 @@ export function InputToolbar({
 	const usageDisplay = useMemo(
 		() => (usage ? buildUsageDisplay(usage) : null),
 		[usage],
+	);
+	const modelConfigOptions = useMemo(
+		() => getModelConfigOptions(configOptions),
+		[configOptions],
+	);
+	const modelConfigLabel = useMemo(
+		() => getModelLabel(modelConfigOptions),
+		[modelConfigOptions],
 	);
 
 	useEffect(() => {
@@ -352,15 +406,11 @@ export function InputToolbar({
 			setIsPreparingConfig(true);
 			try {
 				const preparedOptions = await onPrepareSessionConfig();
-				const modelOption = preparedOptions?.find(
-					(option) =>
-						option.type === "select" &&
-						option.category === "model" &&
-						flattenConfigSelectOptions(option.options).length > 1,
-				);
+				const preparedModelOptions =
+					getModelConfigOptions(preparedOptions);
 				showConfigOptionMenu({
 					event: e,
-					option: modelOption,
+					options: preparedModelOptions,
 					onChange: onConfigOptionChange,
 					emptyTitle: "Model",
 				});
@@ -421,40 +471,36 @@ export function InputToolbar({
 
 				{/* Config Options (supersedes legacy mode/model selectors) */}
 				{configOptions && configOptions.length > 0 ? (
-					configOptions.map((option) => {
-						// boolean options (ACP 0.28+) are carried as data but
-						// not yet rendered; only select options get a dropdown.
-						if (option.type !== "select") return null;
-						const flatOptions = flattenConfigSelectOptions(
-							option.options,
-						);
-						if (flatOptions.length <= 1) return null;
-						const items = buildSelectItems(option);
-
-						const currentItem = items.find(
-							(it) => it.value === option.currentValue,
-						);
-						const label = currentItem?.label ?? option.name;
-						const title = option.description ?? option.name;
-
-						return (
-							<ToolbarDropdown
-								key={option.id}
-								label={label}
-								title={title}
-								items={items}
-								currentValue={option.currentValue}
-								onChange={(value) => {
-									onConfigOptionChange?.(option.id, value);
-								}}
-								className={
-									option.category
-										? `agent-client-config-selector-${option.category}`
-										: undefined
-								}
+					modelConfigOptions.length > 0 && (
+						<button
+							ref={modelButtonRef}
+							type="button"
+							className="agent-client-toolbar-dropdown agent-client-config-selector-model"
+							title="Model settings"
+							onClick={(event) => {
+								event.preventDefault();
+								event.stopPropagation();
+								showConfigOptionMenu({
+									event,
+									options: modelConfigOptions,
+									onChange: onConfigOptionChange,
+									emptyTitle: "Model",
+								});
+								modelButtonRef.current?.blur();
+							}}
+						>
+							<span className="agent-client-toolbar-dropdown-label-area">
+								<span className="agent-client-toolbar-dropdown-label">
+									{modelConfigLabel}
+								</span>
+							</span>
+							<span
+								ref={modelChevronRef}
+								className="agent-client-toolbar-dropdown-chevron"
+								aria-hidden="true"
 							/>
-						);
-					})
+						</button>
+					)
 				) : (
 					<>
 						{modes &&
