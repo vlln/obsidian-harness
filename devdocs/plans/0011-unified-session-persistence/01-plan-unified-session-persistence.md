@@ -2,18 +2,13 @@
 title: Plan-0011-01: Unified Session Persistence
 description: Make every session materialize as a vault .session file with JSONL transcript storage.
 type: plan
-status: pending
+status: done
 created: 2026-07-18T08:29:54Z
 ---
 
 # Plan-0011-01: Unified Session Persistence
 
 ## Context
-
-The current code still has two persistence tracks:
-
-- `.session` files plus `session_index.jsonl` and `sessions/{sessionId}/main.jsonl`
-- hidden origin-style `savedSessions[]` metadata and `sessions/{sessionId}.json` full message snapshots
 
 The product contract is a single model:
 
