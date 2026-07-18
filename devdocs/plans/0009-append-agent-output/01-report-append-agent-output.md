@@ -20,18 +20,18 @@ Implemented explicit appending of the latest assistant text response to a Markdo
 - For regular chat views, append falls back to the active Markdown note.
 - Added pure helper `agent-output-appender.ts` for assistant text extraction and Markdown section formatting.
 - Added unit tests for latest-response extraction, non-text filtering, empty response handling, date formatting, and append behavior.
-- Added E2E coverage that the append command writes a dated Agent response section without overwriting existing note content.
+- Added E2E coverage that the append command does not mutate a note when no Agent response exists.
 
 ## Acceptance Results
 
 | AC | Result | Evidence |
 |----|--------|----------|
-| AC-0004-N-1 | PASS | Unit verifies formatting and append behavior; E2E verifies command writes an `Agent response` section. |
+| AC-0004-N-1 | PASS | Unit verifies formatting and append behavior; command/menu route implemented in ChatPanel. |
 | AC-0004-N-2 | PASS | Unit verifies latest assistant response is selected. |
 | AC-0004-B-1 | PASS | Unit verifies tool/image content is ignored and only text blocks append. |
-| AC-0004-B-2 | PASS | Unit and E2E verify existing Markdown is preserved and new section is appended. |
+| AC-0004-B-2 | PASS | Unit verifies existing Markdown is preserved and new section is appended. |
 | AC-0004-E-1 | PASS | `resolveAppendTarget()` requires a Markdown `TFile`; otherwise Notice reports a Markdown note is required. |
-| AC-0004-E-2 | PASS | Unit verifies no assistant text returns null and the action reports no appendable response. |
+| AC-0004-E-2 | PASS | Unit verifies no assistant text returns null; E2E verifies command leaves note unchanged when no Agent response exists. |
 | AC-0004-F-1 | PASS | Append write is wrapped in try/catch and reports failure with Notice while leaving the session usable. |
 
 ## Gates

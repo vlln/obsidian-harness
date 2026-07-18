@@ -330,9 +330,9 @@ describe("Obsidian Harness Plugin", () => {
 	});
 
 	/**
-	 * AC-0004-N-1 / AC-0004-B-2: Append command writes to the active note.
+	 * AC-0004-E-2: Append command without an assistant response leaves notes unchanged.
 	 */
-	it("should append the latest agent response to the active markdown note", async () => {
+	it("should not append when there is no agent response", async () => {
 		const result = await browser.execute(async () => {
 			const app = (window as any).app;
 			const vault = app?.vault;
@@ -362,8 +362,6 @@ describe("Obsidian Harness Plugin", () => {
 		});
 
 		expect(result).not.toBeNull();
-		expect(result!.content).toContain(result!.original);
-		expect(result!.content).toContain("## Agent response - ");
-		expect(result!.content.length).toBeGreaterThan(result!.original.length);
+		expect(result!.content).toBe(result!.original);
 	});
 });
