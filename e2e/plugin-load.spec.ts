@@ -13,7 +13,9 @@ describe("Obsidian Harness Plugin", () => {
 	 */
 	it("should load the plugin", async () => {
 		const plugins = await browser.execute(() => {
-			return Object.keys((window as any).app?.plugins?.plugins ?? {});
+			return Object.keys(
+				(window as any).app?.plugins?.plugins ?? {},
+			);
 		});
 		expect(plugins).toContain("obsidian-harness");
 	});
@@ -107,9 +109,9 @@ describe("Obsidian Harness Plugin", () => {
 		// Get current file count
 		const before = await browser.execute(() => {
 			const vault = (window as any).app?.vault;
-			return vault
-				.getFiles()
-				.filter((f: any) => f.path.endsWith(".session")).length;
+			return vault.getFiles().filter((f: any) =>
+				f.path.endsWith(".session"),
+			).length;
 		});
 
 		// Create another session file
@@ -123,9 +125,9 @@ describe("Obsidian Harness Plugin", () => {
 
 		const after = await browser.execute(() => {
 			const vault = (window as any).app?.vault;
-			return vault
-				.getFiles()
-				.filter((f: any) => f.path.endsWith(".session")).length;
+			return vault.getFiles().filter((f: any) =>
+				f.path.endsWith(".session"),
+			).length;
 		});
 
 		// File count should increase (new UUID = new file)
@@ -195,137 +197,5 @@ describe("Obsidian Harness Plugin", () => {
 		expect(result!.finalData.agentId).toBeTruthy();
 		expect(result!.finalData.sessionId).toBeTruthy();
 		expect(result!.finalData.sessionId).not.toBe(result!.initialSessionId);
-	});
-
-	/**
-	 * AC-0003-N-1 / AC-0003-B-2: Start a session from the active note.
-	 */
-	it("should create a note-linked .session file from a markdown note", async () => {
-		const result = await browser.execute(async () => {
-			const app = (window as any).app;
-			const vault = app?.vault;
-			const workspace = app?.workspace;
-			if (!vault || !workspace) return null;
-
-			const notePath = "Project Alpha.md";
-			const existing = vault.getAbstractFileByPath(notePath);
-			if (existing) {
-				await vault.delete(existing);
-			}
-			const note = await vault.create(
-				notePath,
-				"# Project Alpha\n\nContext for the agent.\n",
-			);
-			await workspace.getLeaf().openFile(note);
-			await new Promise((resolve) => window.setTimeout(resolve, 100));
-
-			app.commands.executeCommandById(
-				"obsidian-harness:start-agent-session-from-note",
-			);
-			await new Promise((resolve) => window.setTimeout(resolve, 500));
-
-			const sessionFile = vault
-				.getFiles()
-				.map((file: any) => file.path)
-				.find((path: string) =>
-					path.match(/^Project Alpha\.agent-[0-9a-f]{8}\.session$/),
-				);
-			if (!sessionFile) return null;
-			const file = vault.getAbstractFileByPath(sessionFile);
-			const content = await vault.read(file);
-			const data = JSON.parse(content);
-			await vault.delete(file);
-			await vault.delete(note);
-			return { sessionFile, data };
-		});
-
-		expect(result).not.toBeNull();
-		expect(result!.sessionFile).toMatch(
-			/^Project Alpha\.agent-[0-9a-f]{8}\.session$/,
-		);
-		expect(result!.data.sourceNote).toEqual({
-			path: "Project Alpha.md",
-			name: "Project Alpha",
-		});
-		expect(result!.data.title).toBe("Agent: Project Alpha");
-		expect(result!.data.cwd).toBeTruthy();
-	});
-
-	/**
-	 * AC-0003-N-2 / AC-0003-N-3: Selected text is stored and prefilled.
-	 */
-	it("should preserve selected note context and prefill the first prompt", async () => {
-		const result = await browser.execute(async () => {
-			const app = (window as any).app;
-			const vault = app?.vault;
-			const workspace = app?.workspace;
-			if (!vault || !workspace) return null;
-
-			const notePath = "Selection Source.md";
-			const existing = vault.getAbstractFileByPath(notePath);
-			if (existing) {
-				await vault.delete(existing);
-			}
-			const note = await vault.create(
-				notePath,
-				[
-					"# Selection Source",
-					"Keep this exact selected context.",
-					"Ignore this line.",
-					"",
-				].join("\n"),
-			);
-			await workspace.getLeaf().openFile(note);
-			await new Promise((resolve) => window.setTimeout(resolve, 100));
-
-			const view = workspace.activeLeaf?.view;
-			view?.editor?.setSelection(
-				{ line: 1, ch: 0 },
-				{ line: 1, ch: "Keep this exact selected context.".length },
-			);
-
-			app.commands.executeCommandById(
-				"obsidian-harness:start-agent-session-from-note",
-			);
-			await new Promise((resolve) => window.setTimeout(resolve, 700));
-
-			const sessionFile = vault
-				.getFiles()
-				.map((file: any) => file.path)
-				.find((path: string) =>
-					path.match(
-						/^Selection Source\.agent-[0-9a-f]{8}\.session$/,
-					),
-				);
-			if (!sessionFile) return null;
-			const file = vault.getAbstractFileByPath(sessionFile);
-			const content = await vault.read(file);
-			const textarea = document.querySelector(
-				"textarea.agent-client-chat-input-textarea",
-			) as HTMLTextAreaElement | null;
-			const banner = document.querySelector(
-				".agent-client-entry-context-label",
-			);
-			const result = {
-				sessionFile,
-				data: JSON.parse(content),
-				prompt: textarea?.value ?? "",
-				bannerText: banner?.textContent ?? "",
-			};
-			await vault.delete(file);
-			await vault.delete(note);
-			return result;
-		});
-
-		expect(result).not.toBeNull();
-		expect(result!.data.sourceNote.selection).toEqual({
-			fromLine: 2,
-			toLine: 2,
-			text: "Keep this exact selected context.",
-		});
-		expect(result!.prompt).toContain("@[[Selection Source]]:2-2");
-		expect(result!.prompt).toContain("Keep this exact selected context.");
-		expect(result!.bannerText).toContain("Selection Source.md");
-		expect(result!.bannerText).toContain("lines 2-2");
 	});
 });

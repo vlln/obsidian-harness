@@ -573,24 +573,6 @@ export interface SessionFileData {
 	updatedAt: string;
 	/** Forked from session ID, null if original */
 	forkedFrom: string | null;
-	/** Optional Markdown note that started this session entry. */
-	sourceNote?: SessionSourceNote;
-}
-
-/**
- * Source Markdown note metadata stored in a .session file.
- *
- * The path is vault-relative. Selection text is a snapshot used to prefill the
- * first prompt; the note file remains authoritative.
- */
-export interface SessionSourceNote {
-	path: string;
-	name: string;
-	selection?: {
-		fromLine: number;
-		toLine: number;
-		text: string;
-	};
 }
 
 /**
