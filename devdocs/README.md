@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `SYSTEM_TEST` 0013 agent workbench UI passed on develop |
+| **当前阶段** | `SYSTEM_TEST` 0014 workbench interactions passed on develop |
 | **当前版本** | `v0.1.3` 后 develop 修复线 |
-| **设计评估** | Tool/thought/composer/context usage UI 细节已完成，并通过 lint/test/build/e2e；可进入下一轮 |
+| **设计评估** | Thought duration 与 tool folding 交互已完成，并通过 lint/test/build/e2e；可进入下一轮 |
 
 ## 子目录
 
