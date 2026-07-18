@@ -1,5 +1,5 @@
 import * as React from "react";
-const { useRef, useEffect, useCallback, useMemo } = React;
+const { useRef, useEffect, useCallback, useMemo, useState } = React;
 import { setIcon, Menu } from "obsidian";
 
 import {
@@ -28,6 +28,84 @@ interface ToolbarDropdownProps {
 	currentValue: string | undefined;
 	onChange: (value: string) => void;
 	className?: string;
+}
+
+function buildSelectItems(option: SessionConfigOption): ToolbarDropdownItem[] {
+	if (option.type !== "select") return [];
+	const flatOptions = flattenConfigSelectOptions(option.options);
+	const isGrouped = option.options.length > 0 && "group" in option.options[0];
+
+	if (!isGrouped) {
+		return flatOptions.map((opt) => ({
+			value: opt.value,
+			label: opt.name,
+		}));
+	}
+
+	const items: ToolbarDropdownItem[] = [];
+	for (const group of option.options as SessionConfigSelectGroup[]) {
+		for (const opt of group.options) {
+			items.push({
+				value: opt.value,
+				label: `${group.name} / ${opt.name}`,
+				groupName: group.name,
+			});
+		}
+	}
+	return items;
+}
+
+function showConfigOptionMenu({
+	event,
+	option,
+	onChange,
+	emptyTitle,
+}: {
+	event: React.MouseEvent<HTMLElement>;
+	option: SessionConfigOption | null | undefined;
+	onChange?: (configId: string, value: string) => void;
+	emptyTitle: string;
+}): void {
+	const menu = new Menu();
+
+	if (!option || option.type !== "select") {
+		menu.addItem((menuItem) => {
+			menuItem.setTitle(emptyTitle).setIsLabel(true);
+		});
+		menu.addItem((menuItem) => {
+			menuItem.setTitle("No model options from this backend");
+		});
+		menu.showAtMouseEvent(event.nativeEvent);
+		return;
+	}
+
+	const items = buildSelectItems(option);
+	menu.addItem((menuItem) => {
+		menuItem.setTitle(option.description ?? option.name).setIsLabel(true);
+	});
+
+	let lastGroupName: string | undefined;
+	for (const item of items) {
+		if (
+			item.groupName &&
+			item.groupName !== lastGroupName &&
+			lastGroupName !== undefined
+		) {
+			menu.addSeparator();
+		}
+		lastGroupName = item.groupName;
+
+		menu.addItem((menuItem) => {
+			menuItem
+				.setTitle(item.label)
+				.setChecked(item.value === option.currentValue)
+				.onClick(() => {
+					onChange?.(option.id, item.value);
+				});
+		});
+	}
+
+	menu.showAtMouseEvent(event.nativeEvent);
 }
 
 /**
@@ -139,6 +217,7 @@ export interface InputToolbarProps {
 	onModeChange?: (modeId: string) => void;
 	configOptions?: SessionConfigOption[];
 	onConfigOptionChange?: (configId: string, value: string) => void;
+	onPrepareSessionConfig?: () => Promise<SessionConfigOption[] | undefined>;
 	usage?: SessionUsage;
 	isSessionReady: boolean;
 }
@@ -152,11 +231,15 @@ export function InputToolbar({
 	onModeChange,
 	configOptions,
 	onConfigOptionChange,
+	onPrepareSessionConfig,
 	usage,
 	isSessionReady,
 }: InputToolbarProps) {
 	const addButtonRef = useRef<HTMLButtonElement>(null);
+	const modelButtonRef = useRef<HTMLButtonElement>(null);
+	const modelChevronRef = useRef<HTMLSpanElement>(null);
 	const sendButtonRef = useRef<HTMLButtonElement>(null);
+	const [isPreparingConfig, setIsPreparingConfig] = useState(false);
 	const usageDisplay = useMemo(
 		() => (usage ? buildUsageDisplay(usage) : null),
 		[usage],
@@ -167,6 +250,12 @@ export function InputToolbar({
 			setIcon(addButtonRef.current, "plus");
 		}
 	}, []);
+
+	useEffect(() => {
+		if (modelChevronRef.current) {
+			setIcon(modelChevronRef.current, "chevron-down");
+		}
+	}, [isPreparingConfig]);
 
 	const handleAddResource = useCallback(
 		(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -254,6 +343,35 @@ export function InputToolbar({
 		return modes?.availableModes?.find((m) => m.id === id)?.name ?? "Mode";
 	}, [modes]);
 
+	const handlePrepareModelConfig = useCallback(
+		async (e: React.MouseEvent<HTMLButtonElement>) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (!onPrepareSessionConfig || isPreparingConfig) return;
+
+			setIsPreparingConfig(true);
+			try {
+				const preparedOptions = await onPrepareSessionConfig();
+				const modelOption = preparedOptions?.find(
+					(option) =>
+						option.type === "select" &&
+						option.category === "model" &&
+						flattenConfigSelectOptions(option.options).length > 1,
+				);
+				showConfigOptionMenu({
+					event: e,
+					option: modelOption,
+					onChange: onConfigOptionChange,
+					emptyTitle: "Model",
+				});
+			} finally {
+				setIsPreparingConfig(false);
+				modelButtonRef.current?.blur();
+			}
+		},
+		[isPreparingConfig, onConfigOptionChange, onPrepareSessionConfig],
+	);
+
 	// ----- Render -----
 
 	return (
@@ -311,29 +429,7 @@ export function InputToolbar({
 							option.options,
 						);
 						if (flatOptions.length <= 1) return null;
-
-						const isGrouped =
-							option.options.length > 0 &&
-							"group" in option.options[0];
-
-						let items: ToolbarDropdownItem[];
-						if (isGrouped) {
-							items = [];
-							for (const group of option.options as SessionConfigSelectGroup[]) {
-								for (const opt of group.options) {
-									items.push({
-										value: opt.value,
-										label: `${group.name} / ${opt.name}`,
-										groupName: group.name,
-									});
-								}
-							}
-						} else {
-							items = flatOptions.map((opt) => ({
-								value: opt.value,
-								label: opt.name,
-							}));
-						}
+						const items = buildSelectItems(option);
 
 						const currentItem = items.find(
 							(it) => it.value === option.currentValue,
@@ -378,12 +474,38 @@ export function InputToolbar({
 									onChange={onModeChange}
 								/>
 							)}
+						{!configOptions?.length && onPrepareSessionConfig && (
+							<button
+								ref={modelButtonRef}
+								type="button"
+								className="agent-client-toolbar-dropdown agent-client-config-selector-model agent-client-config-selector-pending"
+								title="Load model options"
+								onClick={(event) => {
+									void handlePrepareModelConfig(event);
+								}}
+								disabled={isPreparingConfig}
+							>
+								<span className="agent-client-toolbar-dropdown-label-area">
+									<span className="agent-client-toolbar-dropdown-label">
+										{isPreparingConfig
+											? "Loading model..."
+											: "Model"}
+									</span>
+								</span>
+								<span
+									ref={modelChevronRef}
+									className="agent-client-toolbar-dropdown-chevron"
+									aria-hidden="true"
+								/>
+							</button>
+						)}
 					</>
 				)}
 
 				{/* Send/Stop Button */}
 				<button
 					ref={sendButtonRef}
+					type="button"
 					onClick={onSendOrStop}
 					disabled={isButtonDisabled}
 					className={`agent-client-chat-send-button ${isSending ? "sending" : ""} ${isButtonDisabled ? "agent-client-disabled" : ""}`}

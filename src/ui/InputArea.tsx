@@ -215,6 +215,8 @@ export interface InputAreaProps {
 	configOptions?: SessionConfigOption[];
 	/** Callback when a config option is changed */
 	onConfigOptionChange?: (configId: string, value: string) => void;
+	/** Prepare backend session and return ACP config options. */
+	onPrepareSessionConfig?: () => Promise<SessionConfigOption[] | undefined>;
 	/** Context window usage (shown as percentage indicator) */
 	usage?: SessionUsage;
 	/** Whether the agent supports image attachments */
@@ -276,6 +278,7 @@ export function InputArea({
 	onModeChange,
 	configOptions,
 	onConfigOptionChange,
+	onPrepareSessionConfig,
 	usage,
 	supportsImages = false,
 	agentId,
@@ -1090,6 +1093,7 @@ export function InputArea({
 					onModeChange={onModeChange}
 					configOptions={configOptions}
 					onConfigOptionChange={onConfigOptionChange}
+					onPrepareSessionConfig={onPrepareSessionConfig}
 					usage={usage}
 					isSessionReady={isSessionReady}
 				/>

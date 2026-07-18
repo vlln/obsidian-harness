@@ -1156,6 +1156,27 @@ export function ChatPanel({
 		/>
 	);
 
+	const handlePrepareSessionConfig = useCallback(async () => {
+		if (session.configOptions?.length) {
+			return session.configOptions;
+		}
+		if (session.sessionId || session.state === "ready") {
+			return session.configOptions;
+		}
+		const prepared = await agent.createSession(
+			session.agentId,
+			session.workingDirectory,
+		);
+		return prepared?.configOptions;
+	}, [
+		agent.createSession,
+		session.agentId,
+		session.configOptions,
+		session.sessionId,
+		session.state,
+		session.workingDirectory,
+	]);
+
 	const inputAreaElement = (
 		<InputArea
 			isSending={isSending}
@@ -1177,6 +1198,7 @@ export function ChatPanel({
 			onConfigOptionChange={(configId, value) =>
 				void handleSetConfigOption(configId, value)
 			}
+			onPrepareSessionConfig={handlePrepareSessionConfig}
 			usage={session.usage}
 			supportsImages={session.promptCapabilities?.image ?? false}
 			agentId={session.agentId}
