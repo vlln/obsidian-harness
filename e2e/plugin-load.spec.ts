@@ -139,6 +139,28 @@ describe("Obsidian Harness Plugin", () => {
 		expect(after).toBe(before + 1);
 	});
 
+	it("should create a .session file in a requested folder", async () => {
+		const data = await browser.execute(async () => {
+			const app = (window as any).app;
+			const plugin = app?.plugins?.plugins?.["obsidian-harness"];
+			const vault = app?.vault;
+			const materialized = await plugin.materializeSessionFile({
+				folder: "Projects/Alpha",
+			});
+			const path = materialized.file.path;
+			await vault.delete(materialized.file);
+			const alpha = vault.getAbstractFileByPath("Projects/Alpha");
+			const projects = vault.getAbstractFileByPath("Projects");
+			if (alpha) await vault.delete(alpha, true);
+			if (projects) await vault.delete(projects, true);
+			return { path };
+		});
+
+		expect(data.path).toMatch(
+			/^Projects\/Alpha\/session-[0-9a-f]{8}\.session$/,
+		);
+	});
+
 	/**
 	 * All chat entry points materialize a .session file.
 	 */

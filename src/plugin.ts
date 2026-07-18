@@ -4,8 +4,10 @@ import {
 	Notice,
 	requestUrl,
 	TFile,
+	TAbstractFile,
 	normalizePath,
 	FileSystemAdapter,
+	Menu,
 } from "obsidian";
 import { existsSync } from "fs";
 import { homedir } from "os";
@@ -51,6 +53,7 @@ import {
 	selectPreferredDefaultAgentId,
 	uniqueNonEmpty,
 } from "./services/session-helpers";
+import { resolveSessionFolderFromFileMenuTarget } from "./services/session-entry-target";
 import {
 	AgentEnvVar,
 	GeminiAgentSettings,
@@ -283,6 +286,12 @@ export default class AgentClientPlugin extends Plugin {
 				void this.createSessionFile();
 			},
 		});
+
+		this.registerEvent(
+			this.app.workspace.on("file-menu", (menu, file) => {
+				this.addNewSessionFileMenuItem(menu, file);
+			}),
+		);
 
 		this.addSettingTab(new AgentClientSettingTab(this.app, this));
 
@@ -1143,9 +1152,21 @@ export default class AgentClientPlugin extends Plugin {
 		);
 	}
 
+	private addNewSessionFileMenuItem(menu: Menu, file: TAbstractFile): void {
+		menu.addItem((item) => {
+			item.setTitle("New session")
+				.setIcon("bot-message-square")
+				.onClick(() => {
+					const folder = resolveSessionFolderFromFileMenuTarget(file);
+					void this.createSessionFile({ folder });
+				});
+		});
+	}
+
 	async materializeSessionFile(options?: {
 		agentId?: string;
 		cwd?: string;
+		folder?: string;
 		title?: string;
 		forkedFrom?: string | null;
 	}): Promise<{ file: TFile; config: SessionFileData }> {
@@ -1168,7 +1189,10 @@ export default class AgentClientPlugin extends Plugin {
 
 		const content = JSON.stringify(config, null, "\t");
 
-		const folder = this.getDefaultSessionFolder();
+		const folder =
+			options?.folder !== undefined
+				? normalizePath(options.folder).replace(/^\/+|\/+$/g, "")
+				: this.getDefaultSessionFolder();
 		await this.ensureVaultFolder(folder);
 
 		const fileName = `session-${entryId.slice(0, 8)}.session`;
@@ -1244,6 +1268,7 @@ export default class AgentClientPlugin extends Plugin {
 	async createSessionFile(options?: {
 		agentId?: string;
 		cwd?: string;
+		folder?: string;
 	}): Promise<void> {
 		let materialized: { file: TFile; config: SessionFileData };
 		try {
