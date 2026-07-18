@@ -490,59 +490,6 @@ export function ChatPanel({
 				});
 			}
 
-			menu.addSeparator();
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Open new view")
-					.setIcon("copy-plus")
-					.onClick(() => {
-						void plugin.openNewChatViewWithAgent(
-							plugin.settings.defaultAgentId,
-						);
-					});
-			});
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Restart agent")
-					.setIcon("refresh-cw")
-					.onClick(() => {
-						void handleRestartAgent();
-					});
-			});
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("New chat in directory...")
-					.setIcon("folder-open")
-					.onClick(() => {
-						const modal = new ChangeDirectoryModal(
-							plugin.app,
-							agentCwd,
-							(directory) => {
-								void handleNewChatInDirectory(directory);
-							},
-						);
-						modal.open();
-					});
-			});
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Open session manager")
-					.setIcon("layout-list")
-					.onClick(() => {
-						void plugin.activateSessionManager();
-					});
-			});
-
-			menu.addSeparator();
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Plugin settings")
-					.setIcon("settings")
-					.onClick(() => {
-						handleOpenSettings();
-					});
-			});
-
 			menu.showAtMouseEvent(e.nativeEvent);
 		},
 		[
@@ -551,11 +498,6 @@ export function ChatPanel({
 			session.sessionId,
 			agent.selectAgent,
 			onAgentIdChanged,
-			plugin,
-			handleRestartAgent,
-			agentCwd,
-			handleNewChatInDirectory,
-			handleOpenSettings,
 		],
 	);
 
@@ -1203,7 +1145,7 @@ export function ChatPanel({
 		<MessageList
 			messages={messages}
 			isSending={isSending}
-			isSessionReady={isSessionReady}
+			sessionState={session.state}
 			isRestoringSession={sessionHistory.loading}
 			agentLabel={activeAgentLabel}
 			plugin={plugin}
