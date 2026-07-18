@@ -79,13 +79,6 @@ export interface PreparePromptInput {
 
 	/** Whether this is the first message in the session */
 	isFirstMessage?: boolean;
-
-	/** Prompt injection settings (undefined = disabled) */
-	promptInjection?: {
-		latex?: boolean;
-		wikiLinks?: boolean;
-		tables?: boolean;
-	};
 }
 
 /**
@@ -155,12 +148,6 @@ export interface SendPromptResult {
 
 const DEFAULT_MAX_NOTE_LENGTH = 10000; // Default maximum characters per note
 const DEFAULT_MAX_SELECTION_LENGTH = 10000; // Default maximum characters for selection
-const LATEX_MATH_INSTRUCTION =
-	"This client uses Obsidian Flavored Markdown. For math, use $...$ for inline and $$...$$ for display (not \\(...\\) or \\[...\\]).";
-const WIKI_LINK_INSTRUCTION =
-	"When referencing notes in this vault, use [[Note Name]] wikilink syntax so they become clickable links.";
-const TABLE_INSTRUCTION =
-	"Always leave a blank line before Markdown tables; without it Obsidian renders them as plain text.";
 
 // ============================================================================
 // Shared Helper Functions
@@ -280,32 +267,6 @@ function buildAutoMentionPrefix(
 	return `@[[${activeNote.name}]]\n`;
 }
 
-/**
- * Build system prompt instruction strings for Obsidian-flavored Markdown.
- * Returns an array of instruction strings to inject.
- * Empty array if not first message or no instructions enabled.
- */
-function buildSystemInstructions(input: PreparePromptInput): string[] {
-	if (!input.isFirstMessage) return [];
-	if (!input.promptInjection) return [];
-
-	const instructions: string[] = [];
-
-	if (input.promptInjection.wikiLinks) {
-		instructions.push(WIKI_LINK_INSTRUCTION);
-	}
-
-	if (input.promptInjection.tables) {
-		instructions.push(TABLE_INSTRUCTION);
-	}
-
-	if (input.promptInjection.latex) {
-		instructions.push(LATEX_MATH_INSTRUCTION);
-	}
-
-	return instructions;
-}
-
 function buildAgentMessageText(
 	message: string,
 	autoMentionPrefix: string,
@@ -321,7 +282,8 @@ function buildAgentMessageText(
 	// ContentBlock path in preparePrompt, which stays spec-compliant
 	// alongside slash commands.
 	const isSlashCommand = message.startsWith("/");
-	const includeContext = !isSlashCommand && contextBlocks && contextBlocks.length > 0;
+	const includeContext =
+		!isSlashCommand && contextBlocks && contextBlocks.length > 0;
 
 	return [
 		...(includeContext ? [contextBlocks.join("\n")] : []),
@@ -489,15 +451,7 @@ async function preparePromptWithEmbeddedContext(
 		input.message,
 	);
 
-	// Build system prompt instructions (first message only)
-	const systemInstructions = buildSystemInstructions(input);
-	const systemBlocks: PromptContent[] = systemInstructions.map((text) => ({
-		type: "text" as const,
-		text,
-	}));
-
 	const agentContent: PromptContent[] = [
-		...systemBlocks,
 		...resourceBlocks,
 		...autoMentionBlocks,
 		...(input.message || autoMentionPrefix
@@ -569,14 +523,6 @@ async function preparePromptWithTextContext(
 			input.maxSelectionLength ?? DEFAULT_MAX_SELECTION_LENGTH,
 		);
 		contextBlocks.push(autoMentionContextBlock);
-	}
-
-	// Build system prompt instructions (first message only)
-	const systemInstructions = buildSystemInstructions(input);
-	for (const instruction of systemInstructions) {
-		contextBlocks.push(
-			`<obsidian_system_instruction>\n${instruction}\n</obsidian_system_instruction>`,
-		);
 	}
 
 	const autoMentionPrefix = buildAutoMentionPrefix(
