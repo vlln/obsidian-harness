@@ -46,7 +46,6 @@ function SessionChatComponent({
 				initialSessionId={config.sessionId}
 				initialInputValue={sourcePrompt}
 				entryContextLabel={sourceLabel}
-				appendTargetNotePath={config.sourceNote?.path}
 				viewHost={view}
 				onSessionTitleChanged={() => view.refreshDisplayText()}
 				onAgentIdChanged={(agentId: string) => {

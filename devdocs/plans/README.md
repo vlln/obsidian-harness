@@ -14,5 +14,4 @@
 | 0006 | [0006-session-lifecycle-hardening](0006-session-lifecycle-hardening/) | `fix/0004-session-restore-agent-id` | done |
 | 0007 | [0007-fork-agent-defaults](0007-fork-agent-defaults/) | `develop` | done |
 | 0008 | [0008-note-centric-entry](0008-note-centric-entry/) | `feat/0008-note-centric-entry` | done |
-| 0009 | [0009-append-agent-output](0009-append-agent-output/) | `feat/0009-append-agent-output` | done |
 | 0010 | [0010-session-file-initial-agent](0010-session-file-initial-agent/) | `fix/0010-session-file-initial-agent` | done |

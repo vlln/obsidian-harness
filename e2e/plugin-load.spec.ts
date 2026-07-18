@@ -328,40 +328,4 @@ describe("Obsidian Harness Plugin", () => {
 		expect(result!.bannerText).toContain("Selection Source.md");
 		expect(result!.bannerText).toContain("lines 2-2");
 	});
-
-	/**
-	 * AC-0004-E-2: Append command without an assistant response leaves notes unchanged.
-	 */
-	it("should not append when there is no agent response", async () => {
-		const result = await browser.execute(async () => {
-			const app = (window as any).app;
-			const vault = app?.vault;
-			const workspace = app?.workspace;
-			if (!vault || !workspace) return null;
-
-			const notePath = "Append Target.md";
-			const original = "# Append Target\n\nExisting content.\n";
-			const existing = vault.getAbstractFileByPath(notePath);
-			if (existing) {
-				await vault.delete(existing);
-			}
-			const note = await vault.create(notePath, original);
-			await workspace.getLeaf().openFile(note);
-			await new Promise((resolve) => window.setTimeout(resolve, 100));
-
-			app.commands.executeCommandById("obsidian-harness:open-chat-view");
-			await new Promise((resolve) => window.setTimeout(resolve, 500));
-			app.commands.executeCommandById(
-				"obsidian-harness:append-last-agent-response",
-			);
-			await new Promise((resolve) => window.setTimeout(resolve, 300));
-
-			const content = await vault.read(note);
-			await vault.delete(note);
-			return { content, original };
-		});
-
-		expect(result).not.toBeNull();
-		expect(result!.content).toBe(result!.original);
-	});
 });

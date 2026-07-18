@@ -909,17 +909,6 @@ export default class AgentClientPlugin extends Plugin {
 				);
 			},
 		});
-
-		this.addCommand({
-			id: "append-last-agent-response",
-			name: "Append last agent response to current note",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:append-last-response",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
 	}
 
 	/**

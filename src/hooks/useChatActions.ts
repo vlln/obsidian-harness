@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { Notice, Platform, TFile } from "obsidian";
+import { Notice, Platform } from "obsidian";
 
 import type AgentClientPlugin from "../plugin";
 import type { UseAgentReturn } from "./useAgent";
@@ -25,11 +25,6 @@ import { ChatExporter } from "../services/chat-exporter";
 import { getLogger } from "../utils/logger";
 import { buildFileUri } from "../utils/paths";
 import { convertWindowsPathToWsl } from "../utils/platform";
-import {
-	appendMarkdownSection,
-	formatAgentResponseSection,
-	getLatestAssistantText,
-} from "../services/agent-output-appender";
 
 // ============================================================================
 // Types
@@ -44,7 +39,6 @@ export interface UseChatActionsReturn {
 	handleStopGeneration: () => Promise<void>;
 	handleNewChat: (requestedAgentId?: string) => Promise<void>;
 	handleExportChat: () => Promise<void>;
-	handleAppendLastResponse: () => Promise<void>;
 	handleSwitchAgent: (agentId: string) => Promise<void>;
 	handleRestartAgent: () => Promise<void>;
 
@@ -83,7 +77,6 @@ export function useChatActions(
 	messages: ChatMessage[],
 	settings: AgentClientPluginSettings,
 	vaultPath: string,
-	appendTargetNotePath?: string,
 ): UseChatActionsReturn {
 	const logger = getLogger();
 
@@ -302,33 +295,6 @@ export function useChatActions(
 		}
 	}, [messages, session, plugin, logger]);
 
-	const handleAppendLastResponse = useCallback(async () => {
-		const response = getLatestAssistantText(messages);
-		if (!response) {
-			new Notice("Agent client: no agent response to append");
-			return;
-		}
-
-		const target = resolveAppendTarget(plugin, appendTargetNotePath);
-		if (!target) {
-			new Notice("Agent client: open a Markdown note to append to");
-			return;
-		}
-
-		try {
-			const current = await plugin.app.vault.read(target);
-			const next = appendMarkdownSection(
-				current,
-				formatAgentResponseSection(response),
-			);
-			await plugin.app.vault.modify(target, next);
-			new Notice(`Agent client: appended response to ${target.path}`);
-		} catch (error) {
-			new Notice("Agent client: failed to append response");
-			logger.error("Append response error:", error);
-		}
-	}, [appendTargetNotePath, logger, messages, plugin]);
-
 	const handleSwitchAgent = useCallback(
 		async (agentId: string) => {
 			if (agentId !== session.agentId) {
@@ -408,7 +374,6 @@ export function useChatActions(
 		handleStopGeneration,
 		handleNewChat,
 		handleExportChat,
-		handleAppendLastResponse,
 		handleSwitchAgent,
 		handleRestartAgent,
 		handleSetMode,
@@ -421,23 +386,4 @@ export function useChatActions(
 		setAgentUpdateNotification,
 		autoExportIfEnabled,
 	};
-}
-
-function resolveAppendTarget(
-	plugin: AgentClientPlugin,
-	preferredPath?: string,
-): TFile | null {
-	if (preferredPath) {
-		const preferred = plugin.app.vault.getAbstractFileByPath(preferredPath);
-		if (preferred instanceof TFile && preferred.extension === "md") {
-			return preferred;
-		}
-	}
-
-	const activeFile = plugin.app.workspace.getActiveFile();
-	if (activeFile instanceof TFile && activeFile.extension === "md") {
-		return activeFile;
-	}
-
-	return null;
 }
