@@ -71,7 +71,7 @@ function showConfigOptionMenu({
 	const selectOptions = options.filter(
 		(option) =>
 			option.type === "select" &&
-			flattenConfigSelectOptions(option.options).length > 1,
+			flattenConfigSelectOptions(option.options).length > 0,
 	);
 
 	if (selectOptions.length === 0) {
@@ -101,6 +101,7 @@ function showConfigOptionMenu({
 		});
 
 		const items = buildSelectItems(option);
+		const hasMultipleItems = items.length > 1;
 		let lastGroupName: string | undefined;
 		for (const item of items) {
 			if (
@@ -116,7 +117,9 @@ function showConfigOptionMenu({
 				menuItem
 					.setTitle(item.label)
 					.setChecked(item.value === option.currentValue)
+					.setDisabled(!hasMultipleItems)
 					.onClick(() => {
+						if (!hasMultipleItems) return;
 						onChange?.(option.id, item.value);
 					});
 			});
@@ -223,12 +226,15 @@ function ToolbarDropdown({
 // ============================================================================
 
 function isModelConfigOption(option: SessionConfigOption): boolean {
+	if (option.type !== "select") return false;
+	const optionCount = flattenConfigSelectOptions(option.options).length;
+	if (option.category === "model") return optionCount > 0;
+
 	return (
-		option.type === "select" &&
 		(option.category === "model" ||
 			option.category === "model_config" ||
 			option.category === "thought_level") &&
-		flattenConfigSelectOptions(option.options).length > 1
+		optionCount > 1
 	);
 }
 
