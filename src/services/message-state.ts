@@ -68,6 +68,11 @@ export function mergeToolCallContent(
 			Object.keys(update.rawInput).length > 0
 				? update.rawInput
 				: existing.rawInput,
+		rawOutput:
+			update.rawOutput !== undefined &&
+			Object.keys(update.rawOutput).length > 0
+				? update.rawOutput
+				: existing.rawOutput,
 		permissionRequest:
 			update.permissionRequest !== undefined
 				? update.permissionRequest
@@ -88,10 +93,18 @@ export function applyUpdateLastMessage(
 	content: MessageContent,
 ): ChatMessage[] {
 	if (prev.length === 0 || prev[prev.length - 1].role !== "assistant") {
+		const initialContent =
+			content.type === "agent_thought"
+				? {
+						...content,
+						startedAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+					}
+				: content;
 		const newMessage: ChatMessage = {
 			id: crypto.randomUUID(),
 			role: "assistant",
-			content: [content],
+			content: [initialContent],
 			timestamp: new Date(),
 		};
 		return [...prev, newMessage];
@@ -111,13 +124,30 @@ export function applyUpdateLastMessage(
 				existingContent.type === "text" ||
 				existingContent.type === "agent_thought"
 			) {
+				const now = new Date().toISOString();
 				updatedMessage.content[existingContentIndex] = {
 					type: content.type,
 					text: existingContent.text + content.text,
+					...(content.type === "agent_thought" &&
+					existingContent.type === "agent_thought"
+						? {
+								startedAt: existingContent.startedAt ?? now,
+								updatedAt: now,
+							}
+						: {}),
 				};
 			}
 		} else {
-			updatedMessage.content.push(content);
+			if (content.type === "agent_thought") {
+				const now = new Date().toISOString();
+				updatedMessage.content.push({
+					...content,
+					startedAt: now,
+					updatedAt: now,
+				});
+			} else {
+				updatedMessage.content.push(content);
+			}
 		}
 	} else {
 		const existingIndex = updatedMessage.content.findIndex(
@@ -314,6 +344,7 @@ export function applySingleUpdate(
 					content: update.content,
 					locations: update.locations,
 					rawInput: update.rawInput,
+					rawOutput: update.rawOutput,
 					permissionRequest: update.permissionRequest,
 				},
 				toolCallIndex,
