@@ -1175,12 +1175,15 @@ export default class AgentClientPlugin extends Plugin {
 		title?: string;
 		forkedFrom?: string | null;
 	}): Promise<{ file: TFile; config: SessionFileData }> {
-		const sessionId = crypto.randomUUID();
+		const entryId = crypto.randomUUID();
 		const cwd = options?.cwd ?? this.getVaultRootPath();
 		const createdAt = new Date().toISOString();
 		const config: SessionFileData = {
 			version: 1,
-			sessionId,
+			entryId,
+			sessionId: "",
+			backendSessionId: "",
+			backendState: "unconnected",
 			agentId: options?.agentId ?? "",
 			cwd,
 			title: options?.title ?? "New Session",
@@ -1194,7 +1197,7 @@ export default class AgentClientPlugin extends Plugin {
 		const folder = this.getDefaultSessionFolder();
 		await this.ensureVaultFolder(folder);
 
-		const fileName = `session-${sessionId.slice(0, 8)}.session`;
+		const fileName = `session-${entryId.slice(0, 8)}.session`;
 		const filePath = normalizePath(
 			folder ? `${folder}/${fileName}` : fileName,
 		);
@@ -1207,7 +1210,7 @@ export default class AgentClientPlugin extends Plugin {
 		const file = await this.app.vault.create(filePath, content);
 
 		const indexEntry: SessionIndexEntry = {
-			sessionId,
+			sessionId: entryId,
 			cwd,
 			entryFile: filePath,
 		};
@@ -1237,13 +1240,18 @@ export default class AgentClientPlugin extends Plugin {
 		config: SessionFileData,
 		acpSessionId: string,
 	): Promise<void> {
-		if (config.sessionId === acpSessionId) return;
-		const oldSessionId = config.sessionId;
+		if (config.backendSessionId === acpSessionId) return;
+		const oldSessionId =
+			config.backendSessionId || config.sessionId || config.entryId;
+		config.backendSessionId = acpSessionId;
+		config.backendState = "connected";
 		config.sessionId = acpSessionId;
 		await this.writeSessionConfig(entryFilePath, config);
 
 		try {
-			await this.settingsService.removeSessionIndex(oldSessionId);
+			if (oldSessionId) {
+				await this.settingsService.removeSessionIndex(oldSessionId);
+			}
 			await this.settingsService.appendSessionIndex({
 				sessionId: acpSessionId,
 				cwd: config.cwd,

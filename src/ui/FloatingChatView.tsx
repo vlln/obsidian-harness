@@ -28,6 +28,11 @@ import { useSettings } from "../hooks/useSettings";
 // Helpers
 // ============================================================
 
+function getRestorableBackendSessionId(config: SessionFileData): string {
+	if (config.backendState === "unconnected") return "";
+	return config.backendSessionId || config.sessionId || "";
+}
+
 function clampSize(
 	width: number,
 	height: number,
@@ -562,7 +567,9 @@ function FloatingChatComponent({
 						viewId={viewId}
 						workingDirectory={sessionEntry.config.cwd || undefined}
 						initialAgentId={sessionEntry.config.agentId}
-						initialSessionId={sessionEntry.config.sessionId}
+						initialSessionId={getRestorableBackendSessionId(
+							sessionEntry.config,
+						)}
 						onRegisterCallbacks={onRegisterCallbacks}
 						onAgentIdChanged={(agentId) => {
 							sessionEntry.config.agentId = agentId;

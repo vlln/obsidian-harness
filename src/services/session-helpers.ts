@@ -86,16 +86,14 @@ export function shouldPersistResolvedAgentId(
 }
 
 /**
- * ACP session IDs are opaque. Some backends use ULIDs, pi-acp uses UUID-like
- * IDs, and clients must not infer local-vs-remote state from string shape.
- * Once a .session file has both a sessionId and agentId, try session/load and
- * fall back to session/new if the backend rejects it.
+ * ACP session IDs are opaque. Restore is valid only after session/new has
+ * produced a backend session id and the .session file has recorded it.
  */
 export function shouldRestoreInitialSession(
-	sessionId: string | null | undefined,
+	backendSessionId: string | null | undefined,
 	agentId: string | null | undefined,
 ): boolean {
-	return Boolean(sessionId && agentId);
+	return Boolean(backendSessionId && agentId);
 }
 
 /**
@@ -104,21 +102,21 @@ export function shouldRestoreInitialSession(
  * consistent across React effects.
  */
 export function decideInitialSessionLifecycle({
-	initialSessionId,
+	initialBackendSessionId,
 	initialAgentId,
 	selectedAgentId,
 	fallbackAgentId,
 	restoreStarted,
 }: {
-	initialSessionId: string | null | undefined;
+	initialBackendSessionId: string | null | undefined;
 	initialAgentId: string | null | undefined;
 	selectedAgentId: string | null | undefined;
 	fallbackAgentId?: string | null | undefined;
 	restoreStarted: boolean;
 }): InitialSessionLifecycleAction {
 	if (restoreStarted) return { type: "idle" };
-	if (initialSessionId && initialAgentId) {
-		return { type: "restore_existing", sessionId: initialSessionId };
+	if (initialBackendSessionId && initialAgentId) {
+		return { type: "restore_existing", sessionId: initialBackendSessionId };
 	}
 	const agentId = selectedAgentId || initialAgentId || fallbackAgentId;
 	if (!agentId) return { type: "wait_for_agent" };
@@ -126,10 +124,12 @@ export function decideInitialSessionLifecycle({
 }
 
 export function shouldPersistResolvedSessionId(
-	initialSessionId: string | null | undefined,
+	initialBackendSessionId: string | null | undefined,
 	resolvedSessionId: string | null | undefined,
 ): boolean {
-	return Boolean(resolvedSessionId && resolvedSessionId !== initialSessionId);
+	return Boolean(
+		resolvedSessionId && resolvedSessionId !== initialBackendSessionId,
+	);
 }
 
 // ============================================================================
@@ -310,9 +310,7 @@ export function createInitialSession(
 // ============================================================================
 
 /** Derive the session display title from the first user message. */
-export function computeSessionTitle(
-	messages: ChatMessage[],
-): string {
+export function computeSessionTitle(messages: ChatMessage[]): string {
 	const firstUserMessage = messages.find((m) => m.role === "user");
 	if (firstUserMessage) {
 		const textContent = firstUserMessage.content.find(

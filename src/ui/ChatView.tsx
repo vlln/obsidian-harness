@@ -26,6 +26,11 @@ import { VaultService } from "../services/vault-service";
 
 export const VIEW_TYPE_CHAT = "agent-client-chat-view";
 
+function getRestorableBackendSessionId(config: SessionFileData): string {
+	if (config.backendState === "unconnected") return "";
+	return config.backendSessionId || config.sessionId || "";
+}
+
 function ChatComponent({
 	plugin,
 	view,
@@ -86,7 +91,7 @@ function ChatComponent({
 				viewId={viewId}
 				workingDirectory={config.cwd || undefined}
 				initialAgentId={config.agentId || restoredAgentId}
-				initialSessionId={config.sessionId}
+				initialSessionId={getRestorableBackendSessionId(config)}
 				viewHost={view}
 				onRegisterCallbacks={(callbacks) =>
 					view.setCallbacks(callbacks)

@@ -62,26 +62,21 @@ describe("Obsidian Harness Plugin", () => {
 	 * AC-0001-N-1: .session file content is valid JSON.
 	 */
 	it("should have valid JSON content in .session file", async () => {
-		const files = await browser.execute(() => {
-			const vault = (window as any).app?.vault;
-			if (!vault) return [];
-			return vault.getFiles().map((f: any) => f.path);
+		const data = await browser.execute(async () => {
+			const app = (window as any).app;
+			const plugin = app?.plugins?.plugins?.["obsidian-harness"];
+			const vault = app?.vault;
+			const materialized = await plugin.materializeSessionFile();
+			const content = await vault.read(materialized.file);
+			await vault.delete(materialized.file);
+			return JSON.parse(content);
 		});
 
-		const sessionFile = files.find((f: string) => f.endsWith(".session"));
-		expect(sessionFile).toBeDefined();
-
-		const content = await browser.execute((filePath: string) => {
-			const vault = (window as any).app?.vault;
-			const file = vault.getAbstractFileByPath(filePath);
-			if (!file) return null;
-			return vault.read(file);
-		}, sessionFile!);
-
-		expect(content).toBeDefined();
-		const data = JSON.parse(content as string);
 		expect(data).toHaveProperty("version", 1);
+		expect(data).toHaveProperty("entryId");
 		expect(data).toHaveProperty("sessionId");
+		expect(data).toHaveProperty("backendSessionId");
+		expect(data).toHaveProperty("backendState");
 		expect(data).toHaveProperty("agentId");
 		expect(data).toHaveProperty("cwd");
 		expect(data).toHaveProperty("title");
@@ -90,27 +85,25 @@ describe("Obsidian Harness Plugin", () => {
 	});
 
 	/**
-	 * AC-0001-B-2: sessionId is UUID format.
+	 * AC-0001-B-2: entryId is UUID format.
 	 */
-	it("should have a valid UUID sessionId", async () => {
-		const files = await browser.execute(() => {
-			const vault = (window as any).app?.vault;
-			if (!vault) return [];
-			return vault.getFiles().map((f: any) => f.path);
+	it("should create an unconnected session entry with a valid UUID entryId", async () => {
+		const data = await browser.execute(async () => {
+			const app = (window as any).app;
+			const plugin = app?.plugins?.plugins?.["obsidian-harness"];
+			const vault = app?.vault;
+			const materialized = await plugin.materializeSessionFile();
+			const content = await vault.read(materialized.file);
+			await vault.delete(materialized.file);
+			return JSON.parse(content);
 		});
 
-		const sessionFile = files.find((f: string) => f.endsWith(".session"));
-		const content = await browser.execute((filePath: string) => {
-			const vault = (window as any).app?.vault;
-			const file = vault.getAbstractFileByPath(filePath);
-			if (!file) return null;
-			return vault.read(file);
-		}, sessionFile!);
-
-		const data = JSON.parse(content as string);
-		expect(data.sessionId).toMatch(
+		expect(data.entryId).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
 		);
+		expect(data.sessionId).toBe("");
+		expect(data.backendSessionId).toBe("");
+		expect(data.backendState).toBe("unconnected");
 	});
 
 	/**
@@ -237,7 +230,7 @@ describe("Obsidian Harness Plugin", () => {
 			);
 
 			let sessionFilePath: string | null = null;
-			let initialSessionId = "";
+			let initialEntryId = "";
 			for (let i = 0; i < 20; i += 1) {
 				await new Promise((resolve) => window.setTimeout(resolve, 100));
 				sessionFilePath =
@@ -251,7 +244,7 @@ describe("Obsidian Harness Plugin", () => {
 				if (!sessionFilePath) continue;
 				const file = vault.getAbstractFileByPath(sessionFilePath);
 				const data = JSON.parse(await vault.read(file));
-				initialSessionId = data.sessionId;
+				initialEntryId = data.entryId;
 				break;
 			}
 
@@ -264,19 +257,24 @@ describe("Obsidian Harness Plugin", () => {
 				if (
 					finalData.agentId &&
 					finalData.sessionId &&
-					finalData.sessionId !== initialSessionId
+					finalData.backendSessionId &&
+					finalData.backendState === "connected"
 				) {
 					break;
 				}
 			}
 
 			await vault.delete(sessionFile);
-			return { initialSessionId, finalData };
+			return { initialEntryId, finalData };
 		});
 
 		expect(result).not.toBeNull();
 		expect(result!.finalData.agentId).toBeTruthy();
+		expect(result!.finalData.entryId).toBe(result!.initialEntryId);
 		expect(result!.finalData.sessionId).toBeTruthy();
-		expect(result!.finalData.sessionId).not.toBe(result!.initialSessionId);
+		expect(result!.finalData.backendSessionId).toBe(
+			result!.finalData.sessionId,
+		);
+		expect(result!.finalData.backendState).toBe("connected");
 	});
 });
