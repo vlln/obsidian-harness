@@ -1104,12 +1104,56 @@ If your plugin does not need CSS, delete this file.
 .agent-client-chat-input-actions {
 	display: flex;
 	align-items: center;
-	justify-content: flex-end;
+	justify-content: space-between;
 	flex-wrap: nowrap;
-	gap: 6px;
+	gap: 12px;
 	padding: 4px 12px 12px 14px;
 	min-width: 0;
 	border-top: 1px solid transparent;
+}
+
+.agent-client-chat-input-actions-left,
+.agent-client-chat-input-actions-right {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.agent-client-chat-input-actions-left {
+	flex: 0 0 auto;
+	gap: 8px;
+}
+
+.agent-client-chat-input-actions-right {
+	flex: 1 1 auto;
+	justify-content: flex-end;
+	gap: 6px;
+}
+
+.agent-client-resource-add-button {
+	width: 28px;
+	height: 28px;
+	padding: 0 !important;
+	margin: 0 !important;
+	border: none !important;
+	border-radius: 50% !important;
+	background-color: var(--background-secondary) !important;
+	color: var(--text-muted);
+	box-shadow: none !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.agent-client-resource-add-button:hover,
+.agent-client-resource-add-button:focus-visible {
+	background-color: var(--background-modifier-hover) !important;
+	color: var(--text-normal);
+}
+
+.agent-client-resource-add-button svg {
+	width: 16px;
+	height: 16px;
 }
 
 /* Toolbar dropdown — opens an Obsidian Menu on click. */
@@ -1117,17 +1161,17 @@ If your plugin does not need CSS, delete this file.
 .agent-client-toolbar-dropdown {
 	display: inline-flex;
 	align-items: center;
-	padding: 0 5px !important;
+	padding: 0 8px !important;
 	margin: 0 !important;
 	border: none !important;
-	border-radius: 4px !important;
+	border-radius: 999px !important;
 	background: transparent !important;
 	background-color: transparent !important;
 	box-shadow: none !important;
 	cursor: pointer;
 	transition: background-color 0.1s ease;
-	height: 22px;
-	max-width: 120px;
+	height: 28px;
+	max-width: 180px;
 	min-width: 0;
 	flex-shrink: 1;
 	overflow: hidden;
@@ -1145,7 +1189,7 @@ If your plugin does not need CSS, delete this file.
 
 .agent-client-toolbar-dropdown-label-area {
 	display: grid;
-	max-width: 100px;
+	max-width: 150px;
 	overflow: hidden;
 }
 
@@ -1155,7 +1199,7 @@ If your plugin does not need CSS, delete this file.
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	text-align: left;
-	font-size: 11px;
+	font-size: 12px;
 }
 
 .agent-client-toolbar-dropdown-sizer {
@@ -1179,6 +1223,39 @@ If your plugin does not need CSS, delete this file.
 	height: 12px;
 }
 
+.agent-client-config-selector-model {
+	max-width: 190px;
+}
+
+.agent-client-config-selector-model .agent-client-toolbar-dropdown-label-area {
+	max-width: 160px;
+}
+
+.agent-client-config-selector-effort,
+.agent-client-config-selector-thinking,
+.agent-client-config-selector-reasoning_effort {
+	max-width: 120px;
+}
+
+@media (max-width: 520px) {
+	.agent-client-chat-input-actions {
+		gap: 8px;
+		padding: 4px 10px 10px 12px;
+	}
+
+	.agent-client-chat-input-actions-right {
+		gap: 4px;
+	}
+
+	.agent-client-toolbar-dropdown {
+		max-width: 124px;
+	}
+
+	.agent-client-config-selector-model {
+		max-width: 150px;
+	}
+}
+
 /* Context Usage Indicator */
 .agent-client-usage-indicator {
 	--agent-client-usage-color: var(--text-faint);
@@ -1186,7 +1263,6 @@ If your plugin does not need CSS, delete this file.
 	align-items: center;
 	gap: 4px;
 	font-size: var(--font-smallest);
-	margin-right: auto;
 	flex-shrink: 0;
 	cursor: default;
 	user-select: none;
@@ -1196,8 +1272,8 @@ If your plugin does not need CSS, delete this file.
 }
 
 .agent-client-usage-ring {
-	width: 18px;
-	height: 18px;
+	width: 20px;
+	height: 20px;
 	transform: rotate(-90deg);
 }
 
