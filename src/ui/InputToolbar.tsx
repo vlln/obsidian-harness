@@ -9,6 +9,7 @@ import {
 	type SessionConfigOption,
 	type SessionConfigSelectGroup,
 } from "../types/session";
+import { buildUsageDisplay } from "../services/usage-display";
 
 // ============================================================================
 // ToolbarDropdown — themed dropdown using Obsidian's Menu
@@ -125,21 +126,6 @@ function ToolbarDropdown({
 // Utility Functions
 // ============================================================================
 
-/** Format token count for display (e.g., 21367 → "21.4K", 200000 → "200K") */
-function formatTokenCount(tokens: number): string {
-	if (tokens < 1000) return String(tokens);
-	const k = tokens / 1000;
-	return k >= 100 ? `${Math.round(k)}K` : `${k.toFixed(1)}K`;
-}
-
-/** Get CSS class for usage percentage color thresholds */
-function getUsageColorClass(percentage: number): string {
-	if (percentage >= 90) return "agent-client-usage-danger";
-	if (percentage >= 80) return "agent-client-usage-warning";
-	if (percentage >= 70) return "agent-client-usage-caution";
-	return "agent-client-usage-normal";
-}
-
 // ============================================================================
 // InputToolbar
 // ============================================================================
@@ -170,6 +156,10 @@ export function InputToolbar({
 	isSessionReady,
 }: InputToolbarProps) {
 	const sendButtonRef = useRef<HTMLButtonElement>(null);
+	const usageDisplay = useMemo(
+		() => (usage ? buildUsageDisplay(usage) : null),
+		[usage],
+	);
 
 	const updateIconColor = useCallback(
 		(svg: SVGElement) => {
@@ -231,17 +221,34 @@ export function InputToolbar({
 
 	return (
 		<div className="agent-client-chat-input-actions">
-			{/* Context Usage Indicator (left-aligned via margin-right: auto) */}
-			{usage && (
+			{usageDisplay && (
 				<span
-					className={`agent-client-usage-indicator ${getUsageColorClass(Math.round((usage.used / usage.size) * 100))}`}
-					aria-label={
-						usage.cost
-							? `${formatTokenCount(usage.used)} / ${formatTokenCount(usage.size)} tokens\n$${usage.cost.amount.toFixed(2)}`
-							: `${formatTokenCount(usage.used)} / ${formatTokenCount(usage.size)} tokens`
-					}
+					className={`agent-client-usage-indicator agent-client-usage-${usageDisplay.tone}`}
+					aria-label={usageDisplay.ariaLabel}
+					title={usageDisplay.title}
 				>
-					{Math.round((usage.used / usage.size) * 100)}%
+					<svg
+						className="agent-client-usage-ring"
+						viewBox="0 0 20 20"
+						aria-hidden="true"
+					>
+						<circle
+							className="agent-client-usage-ring-track"
+							cx="10"
+							cy="10"
+							r="7"
+						/>
+						<circle
+							className="agent-client-usage-ring-progress"
+							cx="10"
+							cy="10"
+							r="7"
+							strokeDasharray={`${(usageDisplay.percentage * 0.4398).toFixed(2)} 43.98`}
+						/>
+					</svg>
+					<span className="agent-client-usage-label">
+						{usageDisplay.percentage}%
+					</span>
 				</span>
 			)}
 
