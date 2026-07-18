@@ -155,10 +155,47 @@ export function InputToolbar({
 	usage,
 	isSessionReady,
 }: InputToolbarProps) {
+	const addButtonRef = useRef<HTMLButtonElement>(null);
 	const sendButtonRef = useRef<HTMLButtonElement>(null);
 	const usageDisplay = useMemo(
 		() => (usage ? buildUsageDisplay(usage) : null),
 		[usage],
+	);
+
+	useEffect(() => {
+		if (addButtonRef.current) {
+			setIcon(addButtonRef.current, "plus");
+		}
+	}, []);
+
+	const handleAddResource = useCallback(
+		(e: React.MouseEvent<HTMLButtonElement>) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			const menu = new Menu();
+			menu.addItem((item) => {
+				item.setTitle("Add").setIsLabel(true);
+			});
+			menu.addItem((item) => {
+				item.setTitle("Files and folders")
+					.setIcon("paperclip")
+					.onClick(() => {});
+			});
+			menu.addItem((item) => {
+				item.setTitle("Current note")
+					.setIcon("file-text")
+					.onClick(() => {});
+			});
+			menu.addItem((item) => {
+				item.setTitle("Vault search")
+					.setIcon("search")
+					.onClick(() => {});
+			});
+			menu.showAtMouseEvent(e.nativeEvent);
+			addButtonRef.current?.blur();
+		},
+		[],
 	);
 
 	const updateIconColor = useCallback(
@@ -221,129 +258,144 @@ export function InputToolbar({
 
 	return (
 		<div className="agent-client-chat-input-actions">
-			{usageDisplay && (
-				<span
-					className={`agent-client-usage-indicator agent-client-usage-${usageDisplay.tone}`}
-					aria-label={usageDisplay.ariaLabel}
-					title={usageDisplay.title}
-				>
-					<svg
-						className="agent-client-usage-ring"
-						viewBox="0 0 20 20"
-						aria-hidden="true"
+			<div className="agent-client-chat-input-actions-left">
+				<button
+					ref={addButtonRef}
+					type="button"
+					className="clickable-icon agent-client-resource-add-button"
+					title="Add context"
+					aria-label="Add context"
+					onClick={handleAddResource}
+				/>
+			</div>
+
+			<div className="agent-client-chat-input-actions-right">
+				{usageDisplay && (
+					<span
+						className={`agent-client-usage-indicator agent-client-usage-${usageDisplay.tone}`}
+						aria-label={usageDisplay.ariaLabel}
+						title={usageDisplay.title}
 					>
-						<circle
-							className="agent-client-usage-ring-track"
-							cx="10"
-							cy="10"
-							r="7"
-						/>
-						<circle
-							className="agent-client-usage-ring-progress"
-							cx="10"
-							cy="10"
-							r="7"
-							strokeDasharray={`${(usageDisplay.percentage * 0.4398).toFixed(2)} 43.98`}
-						/>
-					</svg>
-					<span className="agent-client-usage-label">
-						{usageDisplay.percentage}%
-					</span>
-				</span>
-			)}
-
-			{/* Config Options (supersedes legacy mode/model selectors) */}
-			{configOptions && configOptions.length > 0 ? (
-				configOptions.map((option) => {
-					// boolean options (ACP 0.28+) are carried as data but
-					// not yet rendered; only select options get a dropdown.
-					if (option.type !== "select") return null;
-					const flatOptions = flattenConfigSelectOptions(
-						option.options,
-					);
-					if (flatOptions.length <= 1) return null;
-
-					const isGrouped =
-						option.options.length > 0 &&
-						"group" in option.options[0];
-
-					let items: ToolbarDropdownItem[];
-					if (isGrouped) {
-						items = [];
-						for (const group of option.options as SessionConfigSelectGroup[]) {
-							for (const opt of group.options) {
-								items.push({
-									value: opt.value,
-									label: `${group.name} / ${opt.name}`,
-									groupName: group.name,
-								});
-							}
-						}
-					} else {
-						items = flatOptions.map((opt) => ({
-							value: opt.value,
-							label: opt.name,
-						}));
-					}
-
-					const currentItem = items.find(
-						(it) => it.value === option.currentValue,
-					);
-					const label = currentItem?.label ?? option.name;
-					const title = option.description ?? option.name;
-
-					return (
-						<ToolbarDropdown
-							key={option.id}
-							label={label}
-							title={title}
-							items={items}
-							currentValue={option.currentValue}
-							onChange={(value) => {
-								onConfigOptionChange?.(option.id, value);
-							}}
-							className={
-								option.category
-									? `agent-client-config-selector-${option.category}`
-									: undefined
-							}
-						/>
-					);
-				})
-			) : (
-				<>
-					{modes &&
-						modes.availableModes.length > 1 &&
-						onModeChange && (
-							<ToolbarDropdown
-								label={currentModeLabel}
-								title={
-									modes.availableModes.find(
-										(m) => m.id === modes.currentModeId,
-									)?.description ?? "Select mode"
-								}
-								items={modeItems}
-								currentValue={modes.currentModeId ?? undefined}
-								onChange={onModeChange}
+						<svg
+							className="agent-client-usage-ring"
+							viewBox="0 0 20 20"
+							aria-hidden="true"
+						>
+							<circle
+								className="agent-client-usage-ring-track"
+								cx="10"
+								cy="10"
+								r="7"
 							/>
-						)}
-				</>
-			)}
+							<circle
+								className="agent-client-usage-ring-progress"
+								cx="10"
+								cy="10"
+								r="7"
+								strokeDasharray={`${(usageDisplay.percentage * 0.4398).toFixed(2)} 43.98`}
+							/>
+						</svg>
+						<span className="agent-client-usage-label">
+							{usageDisplay.percentage}%
+						</span>
+					</span>
+				)}
 
-			{/* Send/Stop Button */}
-			<button
-				ref={sendButtonRef}
-				onClick={onSendOrStop}
-				disabled={isButtonDisabled}
-				className={`agent-client-chat-send-button ${isSending ? "sending" : ""} ${isButtonDisabled ? "agent-client-disabled" : ""}`}
-				title={
-					!isSessionReady
-						? "Connecting..."
-						: isSending
-							? "Stop generation"
-							: "Send message"
-				}
-			></button>
+				{/* Config Options (supersedes legacy mode/model selectors) */}
+				{configOptions && configOptions.length > 0 ? (
+					configOptions.map((option) => {
+						// boolean options (ACP 0.28+) are carried as data but
+						// not yet rendered; only select options get a dropdown.
+						if (option.type !== "select") return null;
+						const flatOptions = flattenConfigSelectOptions(
+							option.options,
+						);
+						if (flatOptions.length <= 1) return null;
+
+						const isGrouped =
+							option.options.length > 0 &&
+							"group" in option.options[0];
+
+						let items: ToolbarDropdownItem[];
+						if (isGrouped) {
+							items = [];
+							for (const group of option.options as SessionConfigSelectGroup[]) {
+								for (const opt of group.options) {
+									items.push({
+										value: opt.value,
+										label: `${group.name} / ${opt.name}`,
+										groupName: group.name,
+									});
+								}
+							}
+						} else {
+							items = flatOptions.map((opt) => ({
+								value: opt.value,
+								label: opt.name,
+							}));
+						}
+
+						const currentItem = items.find(
+							(it) => it.value === option.currentValue,
+						);
+						const label = currentItem?.label ?? option.name;
+						const title = option.description ?? option.name;
+
+						return (
+							<ToolbarDropdown
+								key={option.id}
+								label={label}
+								title={title}
+								items={items}
+								currentValue={option.currentValue}
+								onChange={(value) => {
+									onConfigOptionChange?.(option.id, value);
+								}}
+								className={
+									option.category
+										? `agent-client-config-selector-${option.category}`
+										: undefined
+								}
+							/>
+						);
+					})
+				) : (
+					<>
+						{modes &&
+							modes.availableModes.length > 1 &&
+							onModeChange && (
+								<ToolbarDropdown
+									label={currentModeLabel}
+									title={
+										modes.availableModes.find(
+											(m) => m.id === modes.currentModeId,
+										)?.description ?? "Select mode"
+									}
+									items={modeItems}
+									currentValue={
+										modes.currentModeId ?? undefined
+									}
+									onChange={onModeChange}
+								/>
+							)}
+					</>
+				)}
+
+				{/* Send/Stop Button */}
+				<button
+					ref={sendButtonRef}
+					onClick={onSendOrStop}
+					disabled={isButtonDisabled}
+					className={`agent-client-chat-send-button ${isSending ? "sending" : ""} ${isButtonDisabled ? "agent-client-disabled" : ""}`}
+					title={
+						!isSessionReady
+							? "Connecting..."
+							: isSending
+								? "Stop generation"
+								: "Send message"
+					}
+				></button>
+			</div>
 		</div>
 	);
 }
