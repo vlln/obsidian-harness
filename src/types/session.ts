@@ -303,6 +303,7 @@ export interface ToolCall extends SessionUpdateBase {
 	content?: ToolCallContent[];
 	locations?: ToolCallLocation[];
 	rawInput?: { [k: string]: unknown };
+	rawOutput?: { [k: string]: unknown };
 	permissionRequest?: {
 		requestId: string;
 		options: PermissionOption[];
@@ -326,6 +327,7 @@ export interface ToolCallUpdate extends SessionUpdateBase {
 	content?: ToolCallContent[];
 	locations?: ToolCallLocation[];
 	rawInput?: { [k: string]: unknown };
+	rawOutput?: { [k: string]: unknown };
 	permissionRequest?: {
 		requestId: string;
 		options: PermissionOption[];

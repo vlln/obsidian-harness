@@ -8,6 +8,10 @@ import { TerminalBlock } from "./TerminalBlock";
 import { PermissionBanner } from "./PermissionBanner";
 import { LucideIcon } from "./shared/IconButton";
 import { toRelativePath } from "../utils/paths";
+import {
+	formatToolPayload,
+	summarizeToolInput,
+} from "../services/workbench-display";
 import * as Diff from "diff";
 // import { MarkdownRenderer } from "./shared/MarkdownRenderer";
 
@@ -60,48 +64,6 @@ function getStatusIconName(status: string): string {
 	}
 }
 
-function stringifyScalar(value: unknown): string {
-	if (typeof value === "string") return value.trim();
-	if (typeof value === "number" || typeof value === "boolean") {
-		return String(value);
-	}
-	return "";
-}
-
-function buildToolSummary(
-	rawInput: Record<string, unknown> | undefined,
-	locations: { path: string; line?: number | null }[] | undefined,
-	vaultPath: string,
-): string {
-	if (rawInput) {
-		const command = stringifyScalar(rawInput.command);
-		const args = Array.isArray(rawInput.args)
-			? rawInput.args.map(stringifyScalar).filter(Boolean).join(" ")
-			: "";
-		if (command) return `$ ${[command, args].filter(Boolean).join(" ")}`;
-
-		const path =
-			stringifyScalar(rawInput.path) ||
-			stringifyScalar(rawInput.file_path) ||
-			stringifyScalar(rawInput.filePath);
-		if (path) return toRelativePath(path, vaultPath);
-
-		const query =
-			stringifyScalar(rawInput.query) ||
-			stringifyScalar(rawInput.pattern);
-		if (query) return query;
-	}
-
-	if (locations && locations.length > 0) {
-		const loc = locations[0];
-		const suffix = loc.line != null ? `:${loc.line}` : "";
-		const extra = locations.length > 1 ? ` +${locations.length - 1}` : "";
-		return `${toRelativePath(loc.path, vaultPath)}${suffix}${extra}`;
-	}
-
-	return "";
-}
-
 export const ToolCallBlock = React.memo(function ToolCallBlock({
 	content,
 	plugin,
@@ -115,6 +77,7 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 		permissionRequest,
 		locations,
 		rawInput,
+		rawOutput,
 		content: toolContent,
 	} = content;
 
@@ -141,7 +104,15 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 
 	// Get showEmojis setting
 	const showEmojis = plugin.settings.displaySettings.showEmojis;
-	const summary = buildToolSummary(rawInput, locations, vaultPath);
+	const summary = summarizeToolInput({ rawInput, locations, vaultPath });
+	const fullInput = formatToolPayload(rawInput);
+	const fullOutput = formatToolPayload(rawOutput);
+	const hasDetails = Boolean(
+		fullInput || fullOutput || toolContent?.length || permissionRequest,
+	);
+	const [isExpanded, setIsExpanded] = useState(
+		status !== "completed" || permissionRequest?.isActive === true,
+	);
 
 	return (
 		<div
@@ -149,7 +120,15 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 		>
 			{/* Header */}
 			<div className="agent-client-message-tool-call-header">
-				<div className="agent-client-message-tool-call-title">
+				<button
+					type="button"
+					className="agent-client-message-tool-call-title"
+					onClick={() => {
+						if (hasDetails) setIsExpanded((expanded) => !expanded);
+					}}
+					aria-expanded={hasDetails ? isExpanded : undefined}
+					disabled={!hasDetails}
+				>
 					{showEmojis && (
 						<LucideIcon
 							name={getKindIconName(kind)}
@@ -168,7 +147,13 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 						name={getStatusIconName(status)}
 						className={`agent-client-message-tool-call-status-icon agent-client-status-${status}`}
 					/>
-				</div>
+					{hasDetails && (
+						<LucideIcon
+							name={isExpanded ? "chevron-down" : "chevron-right"}
+							className="agent-client-message-tool-call-toggle-icon"
+						/>
+					)}
+				</button>
 				{locations && locations.length > 0 && (
 					<div className="agent-client-message-tool-call-locations">
 						{locations.map((loc, idx) => (
@@ -184,52 +169,76 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 				)}
 			</div>
 
-			<div className="agent-client-message-tool-call-body">
-				{/* Tool call content (diffs, terminal output, etc.) */}
-				{toolContent &&
-					toolContent.map((item, index) => {
-						if (item.type === "terminal") {
-							return (
-								<TerminalBlock
-									key={index}
-									terminalId={item.terminalId}
-									terminalClient={terminalClient || null}
-								/>
-							);
-						}
-						if (item.type === "diff") {
-							return (
-								<DiffRenderer
-									key={index}
-									diff={item}
-									plugin={plugin}
-									autoCollapse={
-										plugin.settings.displaySettings
-											.autoCollapseDiffs
-									}
-									collapseThreshold={
-										plugin.settings.displaySettings
-											.diffCollapseThreshold
-									}
-								/>
-							);
-						}
-						return null;
-					})}
+			{isExpanded && hasDetails && (
+				<div className="agent-client-message-tool-call-body">
+					{fullInput && (
+						<div className="agent-client-tool-json-section">
+							<div className="agent-client-tool-json-label">
+								Input
+							</div>
+							<pre className="agent-client-tool-json-block">
+								{fullInput}
+							</pre>
+						</div>
+					)}
 
-				{/* Permission request section */}
-				{permissionRequest && (
-					<PermissionBanner
-						permissionRequest={{
-							...permissionRequest,
-							selectedOptionId: selectedOptionId,
-						}}
-						showEmojis={showEmojis}
-						onApprovePermission={onApprovePermission}
-						onOptionSelected={setSelectedOptionId}
-					/>
-				)}
-			</div>
+					{/* Tool call content (diffs, terminal output, etc.) */}
+					{toolContent &&
+						toolContent.map((item, index) => {
+							if (item.type === "terminal") {
+								return (
+									<TerminalBlock
+										key={index}
+										terminalId={item.terminalId}
+										terminalClient={terminalClient || null}
+									/>
+								);
+							}
+							if (item.type === "diff") {
+								return (
+									<DiffRenderer
+										key={index}
+										diff={item}
+										plugin={plugin}
+										autoCollapse={
+											plugin.settings.displaySettings
+												.autoCollapseDiffs
+										}
+										collapseThreshold={
+											plugin.settings.displaySettings
+												.diffCollapseThreshold
+										}
+									/>
+								);
+							}
+							return null;
+						})}
+
+					{fullOutput && (
+						<div className="agent-client-tool-json-section">
+							<div className="agent-client-tool-json-label">
+								Output
+							</div>
+							<pre className="agent-client-tool-json-block">
+								{fullOutput}
+							</pre>
+						</div>
+					)}
+
+					{/* Permission request section */}
+					{permissionRequest && (
+						<PermissionBanner
+							permissionRequest={{
+								...permissionRequest,
+								selectedOptionId: selectedOptionId,
+							}}
+							showEmojis={showEmojis}
+							onApprovePermission={onApprovePermission}
+							onOptionSelected={setSelectedOptionId}
+						/>
+					)}
+				</div>
+			)}
 		</div>
 	);
 });

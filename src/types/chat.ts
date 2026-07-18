@@ -174,6 +174,8 @@ export type MessageContent =
 	| {
 			type: "agent_thought";
 			text: string;
+			startedAt?: string;
+			updatedAt?: string;
 	  }
 	| {
 			type: "image";

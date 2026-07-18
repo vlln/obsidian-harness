@@ -8,6 +8,7 @@ import { MarkdownRenderer } from "./shared/MarkdownRenderer";
 import { TerminalBlock } from "./TerminalBlock";
 import { ToolCallBlock } from "./ToolCallBlock";
 import { LucideIcon } from "./shared/IconButton";
+import { formatThoughtDuration } from "../services/workbench-display";
 
 // ---------------------------------------------------------------------------
 // TextWithMentions (internal helper)
@@ -110,13 +111,17 @@ function TextWithMentions({
 // ---------------------------------------------------------------------------
 
 interface CollapsibleThoughtProps {
-	text: string;
+	content: Extract<MessageContent, { type: "agent_thought" }>;
 	plugin: AgentClientPlugin;
 }
 
-function CollapsibleThought({ text, plugin }: CollapsibleThoughtProps) {
+function CollapsibleThought({ content, plugin }: CollapsibleThoughtProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const showEmojis = plugin.settings.displaySettings.showEmojis;
+	const duration = formatThoughtDuration(
+		content.startedAt,
+		content.updatedAt,
+	);
 
 	return (
 		<div
@@ -131,7 +136,7 @@ function CollapsibleThought({ text, plugin }: CollapsibleThoughtProps) {
 					/>
 				)}
 				<span className="agent-client-collapsible-thought-label">
-					Thought
+					Thought for {duration}
 				</span>
 				<LucideIcon
 					name={isExpanded ? "chevron-down" : "chevron-right"}
@@ -140,7 +145,7 @@ function CollapsibleThought({ text, plugin }: CollapsibleThoughtProps) {
 			</div>
 			{isExpanded && (
 				<div className="agent-client-collapsible-thought-content">
-					<MarkdownRenderer text={text} plugin={plugin} />
+					<MarkdownRenderer text={content.text} plugin={plugin} />
 				</div>
 			)}
 		</div>
@@ -190,7 +195,7 @@ function ContentBlock({
 			);
 
 		case "agent_thought":
-			return <CollapsibleThought text={content.text} plugin={plugin} />;
+			return <CollapsibleThought content={content} plugin={plugin} />;
 
 		case "tool_call":
 			return (
