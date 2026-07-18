@@ -159,6 +159,16 @@ describe("session restore helpers", () => {
 				initialSessionId: "local-bootstrap-id",
 				initialAgentId: "",
 				selectedAgentId: undefined,
+				fallbackAgentId: "pi-acp",
+				restoreStarted: false,
+			}),
+		).toEqual({ type: "create_new", agentId: "pi-acp" });
+
+		expect(
+			decideInitialSessionLifecycle({
+				initialSessionId: "local-bootstrap-id",
+				initialAgentId: "",
+				selectedAgentId: undefined,
 				restoreStarted: false,
 			}),
 		).toEqual({ type: "wait_for_agent" });
@@ -184,10 +194,9 @@ describe("session restore helpers", () => {
 	});
 
 	it("deduplicates non-empty agent ids", () => {
-		expect(uniqueNonEmpty(["", " pi-acp ", "codex-acp", "pi-acp"])).toEqual([
-			"pi-acp",
-			"codex-acp",
-		]);
+		expect(uniqueNonEmpty(["", " pi-acp ", "codex-acp", "pi-acp"])).toEqual(
+			["pi-acp", "codex-acp"],
+		);
 	});
 
 	it("prefers discovered backends over the built-in fallback default", () => {

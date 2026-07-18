@@ -133,6 +133,71 @@ describe("Obsidian Harness Plugin", () => {
 	});
 
 	/**
+	 * Regression: command-created .session files start with an empty agentId.
+	 * The first open must still create an ACP session without requiring a tab switch.
+	 */
+	it("should initialize a command-created .session file on first open", async () => {
+		const result = await browser.execute(async () => {
+			const app = (window as any).app;
+			const vault = app?.vault;
+			if (!vault) return null;
+
+			const before = new Set(
+				vault
+					.getFiles()
+					.map((file: any) => file.path)
+					.filter((path: string) => path.endsWith(".session")),
+			);
+
+			app.commands.executeCommandById(
+				"obsidian-harness:create-session-file",
+			);
+
+			let sessionFilePath: string | null = null;
+			let initialSessionId = "";
+			for (let i = 0; i < 20; i += 1) {
+				await new Promise((resolve) => window.setTimeout(resolve, 100));
+				sessionFilePath =
+					vault
+						.getFiles()
+						.map((file: any) => file.path)
+						.find(
+							(path: string) =>
+								path.endsWith(".session") && !before.has(path),
+						) ?? null;
+				if (!sessionFilePath) continue;
+				const file = vault.getAbstractFileByPath(sessionFilePath);
+				const data = JSON.parse(await vault.read(file));
+				initialSessionId = data.sessionId;
+				break;
+			}
+
+			if (!sessionFilePath) return null;
+			const sessionFile = vault.getAbstractFileByPath(sessionFilePath);
+			let finalData = JSON.parse(await vault.read(sessionFile));
+			for (let i = 0; i < 50; i += 1) {
+				await new Promise((resolve) => window.setTimeout(resolve, 100));
+				finalData = JSON.parse(await vault.read(sessionFile));
+				if (
+					finalData.agentId &&
+					finalData.sessionId &&
+					finalData.sessionId !== initialSessionId
+				) {
+					break;
+				}
+			}
+
+			await vault.delete(sessionFile);
+			return { initialSessionId, finalData };
+		});
+
+		expect(result).not.toBeNull();
+		expect(result!.finalData.agentId).toBeTruthy();
+		expect(result!.finalData.sessionId).toBeTruthy();
+		expect(result!.finalData.sessionId).not.toBe(result!.initialSessionId);
+	});
+
+	/**
 	 * AC-0003-N-1 / AC-0003-B-2: Start a session from the active note.
 	 */
 	it("should create a note-linked .session file from a markdown note", async () => {
