@@ -5,6 +5,7 @@ import {
 	FileSystemAdapter,
 	MarkdownRenderer as ObsidianMarkdownRenderer,
 	Platform,
+	setIcon,
 } from "obsidian";
 import { convertWslPathToWindows } from "../../utils/platform";
 import { isAbsolutePath } from "../../utils/paths";
@@ -36,6 +37,31 @@ export function MarkdownRenderer({ text, plugin }: MarkdownRendererProps) {
 			"",
 			component,
 		);
+
+		const codeBlocks = Array.from(el.querySelectorAll("pre"));
+		for (const pre of codeBlocks) {
+			if (!(pre instanceof HTMLElement)) continue;
+			const codeText = pre.textContent ?? "";
+			if (!codeText.trim()) continue;
+
+			pre.classList.add("agent-client-code-block-with-copy");
+			const button = pre.createEl("button", {
+				cls: "clickable-icon agent-client-code-copy-button",
+				attr: { "aria-label": "Copy code" },
+			});
+			setIcon(button, "copy");
+			button.addEventListener("click", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				void navigator.clipboard
+					.writeText(codeText)
+					.then(() => {
+						setIcon(button, "check");
+						window.setTimeout(() => setIcon(button, "copy"), 2000);
+					})
+					.catch(() => {});
+			});
+		}
 
 		// Handle internal link clicks
 		const vaultBasePath =
