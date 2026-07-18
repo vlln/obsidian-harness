@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `SYSTEM_TEST` 0016 new session context menu passed on develop |
+| **当前阶段** | `SYSTEM_TEST` 0024 show current model option passed on develop |
 | **当前版本** | `v0.1.3` 后 develop 修复线 |
-| **设计评估** | File explorer New session 入口已完成，并通过 lint/test/build/e2e；可进入下一轮 |
+| **设计评估** | Session entry、统一落盘、延迟连接、session 恢复、composer UI、ACP model config 菜单已完成；develop 通过 typecheck/lint/unit/build/e2e，可进入下一轮 |
 
 ## 子目录
 
