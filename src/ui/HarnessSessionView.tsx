@@ -8,7 +8,6 @@ import { ChatContextProvider } from "./ChatContext";
 import { ChatPanel } from "./ChatPanel";
 import { VaultService } from "../services/vault-service";
 import type { SessionFileData } from "../types/session";
-import { getLogger } from "../utils/logger";
 
 export const VIEW_TYPE_HARNESS_SESSION = "harness-session-view";
 
@@ -71,6 +70,7 @@ function SessionChatComponent({
 export class HarnessSessionView extends FileView {
 	private root: Root | null = null;
 	private plugin: AgentClientPlugin;
+	private entryFilePath: string | null = null;
 	readonly viewId: string;
 
 	acpClient!: ReturnType<AgentClientPlugin["getOrCreateAcpClient"]>;
@@ -108,6 +108,7 @@ export class HarnessSessionView extends FileView {
 	}
 
 	async onLoadFile(file: TFile): Promise<void> {
+		this.entryFilePath = file.path;
 		const container = this.containerEl.children[1];
 
 		// Unmount previous React root before clearing DOM
@@ -183,40 +184,20 @@ export class HarnessSessionView extends FileView {
 		acpSessionId: string,
 		config: SessionFileData,
 	): Promise<void> {
-		if (config.sessionId === acpSessionId) return;
-		const oldSessionId = config.sessionId;
-		config.sessionId = acpSessionId;
-		config.updatedAt = new Date().toISOString();
-
-		// Update the .session file in vault
-		const file = this.app.workspace.getActiveFile();
-		if (file && file.extension === "session") {
-			await this.app.vault.modify(file, JSON.stringify(config, null, "	"));
-		}
-
-		// Update session_index.jsonl: remove old entry, add new entry
-		try {
-			await this.plugin.settingsService.removeSessionIndex(oldSessionId);
-			await this.plugin.settingsService.appendSessionIndex({
-				sessionId: acpSessionId,
-				cwd: config.cwd,
-				entryFile: file?.path ?? "",
-			});
-		} catch (error) {
-			getLogger().warn(
-				`[Harness] Failed to update session index: ${error}`,
-			);
-		}
+		if (!this.entryFilePath) return;
+		await this.plugin.handleSessionIdChangedForFile(
+			this.entryFilePath,
+			config,
+			acpSessionId,
+		);
 	}
 
 	/**
 	 * Update the .session file with new config (e.g., agentId change).
 	 */
 	async updateSessionConfig(config: SessionFileData): Promise<void> {
-		const file = this.app.workspace.getActiveFile();
-		if (!file || file.extension !== "session") return;
-		config.updatedAt = new Date().toISOString();
-		await this.app.vault.modify(file, JSON.stringify(config, null, "	"));
+		if (!this.entryFilePath) return;
+		await this.plugin.writeSessionConfig(this.entryFilePath, config);
 	}
 
 	async onClose(): Promise<void> {

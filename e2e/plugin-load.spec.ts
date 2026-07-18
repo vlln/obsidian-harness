@@ -13,9 +13,7 @@ describe("Obsidian Harness Plugin", () => {
 	 */
 	it("should load the plugin", async () => {
 		const plugins = await browser.execute(() => {
-			return Object.keys(
-				(window as any).app?.plugins?.plugins ?? {},
-			);
+			return Object.keys((window as any).app?.plugins?.plugins ?? {});
 		});
 		expect(plugins).toContain("obsidian-harness");
 	});
@@ -24,6 +22,17 @@ describe("Obsidian Harness Plugin", () => {
 	 * AC-0001-N-1: Create .session file via command.
 	 */
 	it("should create a .session file via command", async () => {
+		const before = await browser.execute(async () => {
+			const app = (window as any).app;
+			const plugin = app?.plugins?.plugins?.["obsidian-harness"];
+			await plugin?.settingsService?.updateSettings({
+				sessionFolder: "Sessions",
+			});
+			const vault = app?.vault;
+			if (!vault) return [];
+			return vault.getFiles().map((f: any) => f.path);
+		});
+
 		// Execute the create-session-file command
 		await browser.execute(() => {
 			(window as any).app?.commands?.executeCommandById(
@@ -34,16 +43,19 @@ describe("Obsidian Harness Plugin", () => {
 		// Wait for vault to create the file
 		await browser.pause(1000);
 
-		// Check if the .session file exists in the vault
+		// Check if the .session file exists in the default session folder
 		const files = await browser.execute(() => {
 			const vault = (window as any).app?.vault;
 			if (!vault) return [];
 			return vault.getFiles().map((f: any) => f.path);
 		});
 
-		const sessionFile = files.find((f: string) => f.endsWith(".session"));
+		const previous = new Set(before as string[]);
+		const sessionFile = files.find(
+			(f: string) => f.endsWith(".session") && !previous.has(f),
+		);
 		expect(sessionFile).toBeDefined();
-		expect(sessionFile).toMatch(/^session-[0-9a-f]{8}\.session$/);
+		expect(sessionFile).toMatch(/^Sessions\/session-[0-9a-f]{8}\.session$/);
 	});
 
 	/**
@@ -109,9 +121,9 @@ describe("Obsidian Harness Plugin", () => {
 		// Get current file count
 		const before = await browser.execute(() => {
 			const vault = (window as any).app?.vault;
-			return vault.getFiles().filter((f: any) =>
-				f.path.endsWith(".session"),
-			).length;
+			return vault
+				.getFiles()
+				.filter((f: any) => f.path.endsWith(".session")).length;
 		});
 
 		// Create another session file
@@ -125,13 +137,53 @@ describe("Obsidian Harness Plugin", () => {
 
 		const after = await browser.execute(() => {
 			const vault = (window as any).app?.vault;
-			return vault.getFiles().filter((f: any) =>
-				f.path.endsWith(".session"),
-			).length;
+			return vault
+				.getFiles()
+				.filter((f: any) => f.path.endsWith(".session")).length;
 		});
 
 		// File count should increase (new UUID = new file)
 		expect(after).toBe(before + 1);
+	});
+
+	/**
+	 * All chat entry points materialize a .session file.
+	 */
+	it("should create a .session file when opening the chat view", async () => {
+		await browser.execute(async () => {
+			const app = (window as any).app;
+			const leaves =
+				app?.workspace?.getLeavesOfType("agent-client-chat-view") ?? [];
+			for (const leaf of leaves) {
+				await leaf.detach();
+			}
+		});
+
+		const before = await browser.execute(() => {
+			const vault = (window as any).app?.vault;
+			return vault
+				.getFiles()
+				.filter((f: any) => f.path.endsWith(".session")).length;
+		});
+
+		await browser.execute(() => {
+			(window as any).app?.commands?.executeCommandById(
+				"obsidian-harness:open-chat-view",
+			);
+		});
+
+		await browser.waitUntil(
+			async () => {
+				const count = await browser.execute(() => {
+					const vault = (window as any).app?.vault;
+					return vault
+						.getFiles()
+						.filter((f: any) => f.path.endsWith(".session")).length;
+				});
+				return count > before;
+			},
+			{ timeout: 5000, interval: 100 },
+		);
 	});
 
 	/**

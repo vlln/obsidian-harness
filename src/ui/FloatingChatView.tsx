@@ -9,6 +9,7 @@ import type {
 	SessionStatus,
 } from "../services/view-registry";
 import type { ChatInputState } from "../types/chat";
+import type { SessionFileData } from "../types/session";
 
 // Context imports
 import { ChatContextProvider } from "./ChatContext";
@@ -18,6 +19,7 @@ import { ChatPanel, type ChatPanelCallbacks } from "./ChatPanel";
 
 // Service imports
 import { VaultService } from "../services/vault-service";
+import { getLogger } from "../utils/logger";
 
 // Hooks imports
 import { useSettings } from "../hooks/useSettings";
@@ -53,7 +55,10 @@ function fitToViewport(
 	y: number,
 	width: number,
 	height: number,
-): { position: { x: number; y: number }; size: { width: number; height: number } } {
+): {
+	position: { x: number; y: number };
+	size: { width: number; height: number };
+} {
 	const size = clampSize(width, height);
 	const position = clampPosition(x, y, size.width, size.height);
 	return { position, size };
@@ -187,7 +192,8 @@ export class FloatingViewContainer implements IChatViewContainer {
 	hasFocus(): boolean {
 		return (
 			this.isExpandedState &&
-			(this.containerRefEl?.contains(activeDocument.activeElement) ?? false)
+			(this.containerRefEl?.contains(activeDocument.activeElement) ??
+				false)
 		);
 	}
 
@@ -290,6 +296,32 @@ function FloatingChatComponent({
 	// ============================================================
 	const settings = useSettings(plugin);
 	const [isExpanded, setIsExpanded] = useState(initialExpanded);
+	const [sessionEntry, setSessionEntry] = useState<{
+		entryFilePath: string;
+		config: SessionFileData;
+	} | null>(null);
+
+	useEffect(() => {
+		let cancelled = false;
+		plugin
+			.materializeSessionFile()
+			.then((materialized) => {
+				if (cancelled) return;
+				setSessionEntry({
+					entryFilePath: materialized.file.path,
+					config: materialized.config,
+				});
+			})
+			.catch((error) => {
+				if (cancelled) return;
+				getLogger().warn(
+					`[FloatingChatView] Failed to create session file: ${error}`,
+				);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [plugin]);
 
 	// Register setIsExpanded with the class so it can call expand/collapse directly
 	useEffect(() => {
@@ -339,8 +371,12 @@ function FloatingChatComponent({
 	// Keep refs up-to-date for viewport resize handler
 	const positionRef = useRef(position);
 	const sizeRef = useRef(size);
-	useEffect(() => { positionRef.current = position; }, [position]);
-	useEffect(() => { sizeRef.current = size; }, [size]);
+	useEffect(() => {
+		positionRef.current = position;
+	}, [position]);
+	useEffect(() => {
+		sizeRef.current = size;
+	}, [size]);
 
 	// Fit to viewport on expand, and re-fit whenever the viewport resizes
 	useEffect(() => {
@@ -353,10 +389,16 @@ function FloatingChatComponent({
 				sizeRef.current.width,
 				sizeRef.current.height,
 			);
-			if (newSize.width !== sizeRef.current.width || newSize.height !== sizeRef.current.height) {
+			if (
+				newSize.width !== sizeRef.current.width ||
+				newSize.height !== sizeRef.current.height
+			) {
 				setSize(newSize);
 			}
-			if (newPos.x !== positionRef.current.x || newPos.y !== positionRef.current.y) {
+			if (
+				newPos.x !== positionRef.current.x ||
+				newPos.y !== positionRef.current.y
+			) {
 				setPosition(newPos);
 			}
 		};
@@ -514,16 +556,36 @@ function FloatingChatComponent({
 			}}
 		>
 			<ChatContextProvider value={contextValue}>
-				<ChatPanel
-					variant="floating"
-					viewId={viewId}
-					onRegisterCallbacks={onRegisterCallbacks}
-					onMinimize={handleMinimizeWindow}
-					onClose={handleCloseWindow}
-					onOpenNewWindow={handleOpenNewFloatingChat}
-					onFloatingHeaderMouseDown={onMouseDown}
-					containerEl={containerEl}
-				/>
+				{sessionEntry ? (
+					<ChatPanel
+						variant="floating"
+						viewId={viewId}
+						workingDirectory={sessionEntry.config.cwd || undefined}
+						initialAgentId={sessionEntry.config.agentId}
+						initialSessionId={sessionEntry.config.sessionId}
+						onRegisterCallbacks={onRegisterCallbacks}
+						onAgentIdChanged={(agentId) => {
+							sessionEntry.config.agentId = agentId;
+							void plugin.writeSessionConfig(
+								sessionEntry.entryFilePath,
+								sessionEntry.config,
+							);
+						}}
+						onSessionIdChanged={(sessionId) => {
+							acpClient.setHistorySessionId(sessionId);
+							void plugin.handleSessionIdChangedForFile(
+								sessionEntry.entryFilePath,
+								sessionEntry.config,
+								sessionId,
+							);
+						}}
+						onMinimize={handleMinimizeWindow}
+						onClose={handleCloseWindow}
+						onOpenNewWindow={handleOpenNewFloatingChat}
+						onFloatingHeaderMouseDown={onMouseDown}
+						containerEl={containerEl}
+					/>
+				) : null}
 			</ChatContextProvider>
 		</div>
 	);
