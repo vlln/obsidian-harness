@@ -10,7 +10,7 @@ created: 2026-07-17T00:00:00Z
 
 ## Summary
 
-Implemented note-centric Agent entry on branch `feat/0008-note-centric-entry` and merged it into `develop`.
+Implemented note-centric Agent entry on branch `feat/0008-note-centric-entry`.
 
 ## Changes
 
@@ -42,8 +42,6 @@ Implemented note-centric Agent entry on branch `feat/0008-note-centric-entry` an
 | `npm run build` | PASS |
 | `npm run test:e2e` | PASS, 7 tests |
 
-The same gates passed again on `develop` after merge commit `7678120`.
-
 ## Boundary Review
 
 - No plugin-level Project model was added.
@@ -56,5 +54,3 @@ The same gates passed again on `develop` after merge commit `7678120`.
 
 - `af53301 docs(plan): define note-centric entry iteration`
 - `b7a412f feat(session): start agent sessions from notes`
-- `f5b50ee docs(report): record note-centric entry verification`
-- `7678120 merge: note-centric entry 0008`
