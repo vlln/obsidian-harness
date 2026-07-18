@@ -140,6 +140,16 @@ export function useChatActions(
 			setAgentUpdateNotification(null);
 
 			const isFirstMessage = messages.length === 0;
+			const activeSession =
+				agent.session.sessionId || agent.session.state === "ready"
+					? agent.session
+					: await agent.createSession(
+							agent.session.agentId,
+							agent.session.workingDirectory,
+						);
+			if (!activeSession?.sessionId) {
+				return;
+			}
 
 			// Split attachments by kind
 			const images: ImagePromptContent[] = [];
@@ -172,20 +182,26 @@ export function useChatActions(
 				}
 			}
 
-			await agent.sendMessage(content, {
-				activeNote: suggestions.mentions.activeNote,
-				vaultBasePath: vaultPath,
-				isAutoMentionDisabled:
-					suggestions.mentions.isAutoMentionDisabled,
-				images: images.length > 0 ? images : undefined,
-				resourceLinks:
-					resourceLinks.length > 0 ? resourceLinks : undefined,
-				isFirstMessage,
-			});
+			await agent.sendMessage(
+				content,
+				{
+					activeNote: suggestions.mentions.activeNote,
+					vaultBasePath: vaultPath,
+					isAutoMentionDisabled:
+						suggestions.mentions.isAutoMentionDisabled,
+					images: images.length > 0 ? images : undefined,
+					resourceLinks:
+						resourceLinks.length > 0 ? resourceLinks : undefined,
+					isFirstMessage,
+				},
+				activeSession,
+			);
 		},
 		[
 			agent.clearError,
+			agent.createSession,
 			agent.sendMessage,
+			agent.session,
 			messages.length,
 			suggestions.mentions.activeNote,
 			suggestions.mentions.isAutoMentionDisabled,

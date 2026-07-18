@@ -475,12 +475,17 @@ export function ChatPanel({
 				item.setTitle("Switch agent").setIsLabel(true);
 			});
 
-			for (const agent of availableAgents) {
+			for (const availableAgent of availableAgents) {
 				menu.addItem((item: MenuItem) => {
-					item.setTitle(agent.displayName)
-						.setChecked(agent.id === (session.agentId || ""))
+					item.setTitle(availableAgent.displayName)
+						.setChecked(
+							availableAgent.id === (session.agentId || ""),
+						)
+						.setDisabled(Boolean(session.sessionId))
 						.onClick(() => {
-							void handleStartNewSessionEntry(agent.id);
+							if (session.sessionId) return;
+							agent.selectAgent(availableAgent.id);
+							onAgentIdChanged?.(availableAgent.id);
 						});
 				});
 			}
@@ -543,7 +548,9 @@ export function ChatPanel({
 		[
 			availableAgents,
 			session.agentId,
-			handleStartNewSessionEntry,
+			session.sessionId,
+			agent.selectAgent,
+			onAgentIdChanged,
 			plugin,
 			handleRestartAgent,
 			agentCwd,
@@ -719,17 +726,7 @@ export function ChatPanel({
 			);
 			return;
 		}
-		logger.log(
-			`[ChatPanel] Starting new session with agent: ${action.agentId}`,
-		);
-		void agent.createSession(action.agentId);
-	}, [
-		agent.createSession,
-		config?.agent,
-		initialAgentId,
-		initialSessionId,
-		session.agentId,
-	]);
+	}, [config?.agent, initialAgentId, initialSessionId, session.agentId]);
 
 	// Apply configured model (a select config option with category "model")
 	// when session is ready.
@@ -873,10 +870,13 @@ export function ChatPanel({
 	// Persist the runtime-resolved agentId for .session files created with an
 	// empty agentId, so future session/load calls target the same backend.
 	useEffect(() => {
-		if (shouldPersistResolvedAgentId(initialAgentId, session.agentId)) {
+		if (
+			session.sessionId &&
+			shouldPersistResolvedAgentId(initialAgentId, session.agentId)
+		) {
 			onAgentIdChanged?.(session.agentId);
 		}
-	}, [initialAgentId, onAgentIdChanged, session.agentId]);
+	}, [initialAgentId, onAgentIdChanged, session.agentId, session.sessionId]);
 	// BR-002: Notify when ACP sessionId changes (write back to .session file)
 	useEffect(() => {
 		const resolvedSessionId = session.sessionId;
@@ -1116,7 +1116,6 @@ export function ChatPanel({
 					attachedFilesRef.current.length > 0;
 				return (
 					hasContent &&
-					isSessionReadyRef.current &&
 					!sessionHistoryLoadingRef.current &&
 					!isSendingRef.current
 				);
@@ -1128,10 +1127,7 @@ export function ChatPanel({
 				if (!currentInput.trim() && currentFiles.length === 0) {
 					return false;
 				}
-				if (
-					!isSessionReadyRef.current ||
-					sessionHistoryLoadingRef.current
-				) {
+				if (sessionHistoryLoadingRef.current) {
 					return false;
 				}
 				if (isSendingRef.current) {
@@ -1172,10 +1168,7 @@ export function ChatPanel({
 				variant="sidebar"
 				agentLabel={activeAgentLabel}
 				isUpdateAvailable={isUpdateAvailable}
-				onNewChat={() => void handleStartNewSessionEntry()}
-				onExportChat={() => void handleExportChat()}
 				onShowMenu={handleShowSidebarMenu}
-				onOpenHistory={handleOpenHistory}
 			/>
 		) : (
 			<ChatHeader

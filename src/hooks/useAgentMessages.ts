@@ -63,6 +63,7 @@ export interface UseAgentMessagesReturn {
 	sendMessage: (
 		content: string,
 		options: SendMessageOptions,
+		sessionOverride?: ChatSession,
 	) => Promise<void>;
 	clearMessages: () => void;
 	setInitialMessages: (
@@ -277,8 +278,13 @@ export function useAgentMessages(
 	}, [settingsAccess]);
 
 	const sendMessage = useCallback(
-		async (content: string, options: SendMessageOptions): Promise<void> => {
-			if (!session.sessionId) {
+		async (
+			content: string,
+			options: SendMessageOptions,
+			sessionOverride?: ChatSession,
+		): Promise<void> => {
+			const activeSession = sessionOverride ?? session;
+			if (!activeSession.sessionId) {
 				setErrorInfo({
 					title: "Cannot Send Message",
 					message: "No active session. Please wait for connection.",
@@ -296,7 +302,7 @@ export function useAgentMessages(
 				}
 			}
 
-			const currentSessionId = session.sessionId;
+			const currentSessionId = activeSession.sessionId;
 			const generation = ++generationRef.current;
 			const settings = settingsAccess.getSnapshot();
 
@@ -310,7 +316,8 @@ export function useAgentMessages(
 					isAutoMentionDisabled: options.isAutoMentionDisabled,
 					convertToWsl: shouldConvertToWsl,
 					supportsEmbeddedContext:
-						session.promptCapabilities?.embeddedContext ?? false,
+						activeSession.promptCapabilities?.embeddedContext ??
+						false,
 					maxNoteLength: settings.displaySettings.maxNoteLength,
 					maxSelectionLength:
 						settings.displaySettings.maxSelectionLength,
@@ -375,7 +382,7 @@ export function useAgentMessages(
 							sessionId: currentSessionId,
 							agentContent: prepared.agentContent,
 							displayContent: prepared.displayContent,
-							authMethods: session.authMethods,
+							authMethods: activeSession.authMethods,
 						},
 						agentClient,
 					);

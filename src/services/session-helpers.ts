@@ -70,8 +70,7 @@ export function selectPreferredDefaultAgentId({
 export type InitialSessionLifecycleAction =
 	| { type: "idle" }
 	| { type: "wait_for_agent" }
-	| { type: "restore_existing"; sessionId: string }
-	| { type: "create_new"; agentId: string };
+	| { type: "restore_existing"; sessionId: string };
 
 /**
  * New .session files are created before the user/backend choice is resolved.
@@ -119,8 +118,7 @@ export function decideInitialSessionLifecycle({
 		return { type: "restore_existing", sessionId: initialBackendSessionId };
 	}
 	const agentId = selectedAgentId || initialAgentId || fallbackAgentId;
-	if (!agentId) return { type: "wait_for_agent" };
-	return { type: "create_new", agentId };
+	return agentId ? { type: "idle" } : { type: "wait_for_agent" };
 }
 
 export function shouldPersistResolvedSessionId(

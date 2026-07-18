@@ -827,7 +827,6 @@ export function InputArea({
 	const isButtonDisabled =
 		!isSending &&
 		((inputValue.trim() === "" && attachedFiles.length === 0) ||
-			!isSessionReady ||
 			isRestoringSession);
 
 	/**
