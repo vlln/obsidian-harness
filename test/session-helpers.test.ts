@@ -151,7 +151,7 @@ describe("session restore helpers", () => {
 				selectedAgentId: "selected-acp",
 				restoreStarted: false,
 			}),
-		).toEqual({ type: "create_new", agentId: "selected-acp" });
+		).toEqual({ type: "idle" });
 
 		expect(
 			decideInitialSessionLifecycle({
@@ -161,7 +161,7 @@ describe("session restore helpers", () => {
 				fallbackAgentId: "runtime-acp",
 				restoreStarted: false,
 			}),
-		).toEqual({ type: "create_new", agentId: "runtime-acp" });
+		).toEqual({ type: "idle" });
 
 		expect(
 			decideInitialSessionLifecycle({

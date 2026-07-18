@@ -231,10 +231,10 @@ describe("Obsidian Harness Plugin", () => {
 	});
 
 	/**
-	 * Regression: command-created .session files start with an empty agentId.
-	 * The first open must still create an ACP session without requiring a tab switch.
+	 * Command-created .session files remain file-backed but unconnected on open.
+	 * The backend session starts when the first message is sent.
 	 */
-	it("should initialize a command-created .session file on first open", async () => {
+	it("should keep a command-created .session file unconnected on first open", async () => {
 		const result = await browser.execute(async () => {
 			const app = (window as any).app;
 			const vault = app?.vault;
@@ -272,31 +272,17 @@ describe("Obsidian Harness Plugin", () => {
 
 			if (!sessionFilePath) return null;
 			const sessionFile = vault.getAbstractFileByPath(sessionFilePath);
-			let finalData = JSON.parse(await vault.read(sessionFile));
-			for (let i = 0; i < 50; i += 1) {
-				await new Promise((resolve) => window.setTimeout(resolve, 100));
-				finalData = JSON.parse(await vault.read(sessionFile));
-				if (
-					finalData.agentId &&
-					finalData.sessionId &&
-					finalData.backendSessionId &&
-					finalData.backendState === "connected"
-				) {
-					break;
-				}
-			}
+			await new Promise((resolve) => window.setTimeout(resolve, 500));
+			const finalData = JSON.parse(await vault.read(sessionFile));
 
 			await vault.delete(sessionFile);
 			return { initialEntryId, finalData };
 		});
 
 		expect(result).not.toBeNull();
-		expect(result!.finalData.agentId).toBeTruthy();
 		expect(result!.finalData.entryId).toBe(result!.initialEntryId);
-		expect(result!.finalData.sessionId).toBeTruthy();
-		expect(result!.finalData.backendSessionId).toBe(
-			result!.finalData.sessionId,
-		);
-		expect(result!.finalData.backendState).toBe("connected");
+		expect(result!.finalData.sessionId).toBe("");
+		expect(result!.finalData.backendSessionId).toBe("");
+		expect(result!.finalData.backendState).toBe("unconnected");
 	});
 });

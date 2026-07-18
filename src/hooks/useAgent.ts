@@ -53,13 +53,11 @@ export interface UseAgentReturn {
 	createSession: (
 		overrideAgentId?: string,
 		overrideCwd?: string,
-	) => Promise<void>;
+	) => Promise<ChatSession | null>;
+	selectAgent: (agentId: string) => void;
 
-		/** Restore an existing session via ACP session/load */
-		restoreSession: (
-			sessionId: string,
-			cwd: string,
-		) => Promise<void>;
+	/** Restore an existing session via ACP session/load */
+	restoreSession: (sessionId: string, cwd: string) => Promise<void>;
 
 	restartSession: (
 		newAgentId?: string,
@@ -83,6 +81,7 @@ export interface UseAgentReturn {
 	sendMessage: (
 		content: string,
 		options: SendMessageOptions,
+		sessionOverride?: ChatSession,
 	) => Promise<void>;
 	clearMessages: () => void;
 	setInitialMessages: (
@@ -192,12 +191,12 @@ export function useAgent(
 			lastUserMessage: agentMessages.lastUserMessage,
 			restoreSession: agentSession.restoreSession,
 
-
 			// Combined error
 			errorInfo,
 
 			// Session lifecycle
 			createSession: agentSession.createSession,
+			selectAgent: agentSession.selectAgent,
 			restartSession: agentSession.restartSession,
 			closeSession: agentSession.closeSession,
 			forceRestartAgent: agentSession.forceRestartAgent,
@@ -234,8 +233,9 @@ export function useAgent(
 			agentMessages.lastUserMessage,
 			errorInfo,
 			agentSession.createSession,
+			agentSession.selectAgent,
 			agentSession.restartSession,
-				agentSession.restoreSession,
+			agentSession.restoreSession,
 
 			agentSession.closeSession,
 			agentSession.forceRestartAgent,
@@ -246,7 +246,7 @@ export function useAgent(
 			agentSession.setConfigOption,
 			agentMessages.sendMessage,
 			agentMessages.clearMessages,
-				agentMessages.flushPendingUpdates,
+			agentMessages.flushPendingUpdates,
 
 			agentMessages.setInitialMessages,
 			agentMessages.setMessagesFromLocal,

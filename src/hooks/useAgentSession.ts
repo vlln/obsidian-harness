@@ -47,7 +47,8 @@ export interface UseAgentSessionReturn {
 	createSession: (
 		overrideAgentId?: string,
 		overrideCwd?: string,
-	) => Promise<void>;
+	) => Promise<ChatSession | null>;
+	selectAgent: (agentId: string) => void;
 
 	/** Restore an existing session via ACP session/load. Agent replays history. */
 	restoreSession: (sessionId: string, cwd: string) => Promise<void>;
@@ -170,7 +171,10 @@ export function useAgentSession(
 	// ============================================================
 
 	const createSession = useCallback(
-		async (overrideAgentId?: string, overrideCwd?: string) => {
+		async (
+			overrideAgentId?: string,
+			overrideCwd?: string,
+		): Promise<ChatSession | null> => {
 			const effectiveCwd = overrideCwd || workingDirectory;
 			const settings = settingsAccess.getSnapshot();
 			const agentId = overrideAgentId || getDefaultAgentId(settings);
@@ -206,7 +210,7 @@ export function useAgentSession(
 						suggestion:
 							"Please check your agent configuration in settings.",
 					});
-					return;
+					return null;
 				}
 
 				const agentConfig = buildAgentConfigWithApiKey(
@@ -266,24 +270,30 @@ export function useAgentSession(
 					finalModes = restored.modes;
 				}
 
-				setSession((prev) => ({
-					...prev,
+				const finalSession: ChatSession = {
+					...sessionRef.current,
 					sessionId: sessionResult.sessionId,
 					state: "ready",
+					agentId,
+					agentDisplayName: currentAgent.displayName,
 					authMethods: initResult?.authMethods ?? [],
 					modes: finalModes,
 					configOptions: finalConfigOptions,
 					promptCapabilities: initResult
 						? initResult.promptCapabilities
-						: prev.promptCapabilities,
+						: sessionRef.current.promptCapabilities,
 					agentCapabilities: initResult
 						? initResult.agentCapabilities
-						: prev.agentCapabilities,
+						: sessionRef.current.agentCapabilities,
 					agentInfo: initResult
 						? initResult.agentInfo
-						: prev.agentInfo,
+						: sessionRef.current.agentInfo,
+					workingDirectory: effectiveCwd,
 					lastActivityAt: new Date(),
-				}));
+				};
+				sessionRef.current = finalSession;
+				setSession(finalSession);
+				return finalSession;
 			} catch (error) {
 				setSession((prev) => ({ ...prev, state: "error" }));
 				setErrorInfo({
@@ -292,9 +302,40 @@ export function useAgentSession(
 					suggestion:
 						"Please check the agent configuration and try again.",
 				});
+				return null;
 			}
 		},
 		[agentClient, settingsAccess, workingDirectory, setErrorInfo],
+	);
+
+	const selectAgent = useCallback(
+		(agentId: string) => {
+			const settings = settingsAccess.getSnapshot();
+			const currentAgent = getCurrentAgent(settings, agentId);
+			setSession((prev) => {
+				if (prev.sessionId || prev.state === "initializing") {
+					return prev;
+				}
+				const next = {
+					...prev,
+					agentId,
+					agentDisplayName: currentAgent.displayName,
+					authMethods: [],
+					availableCommands: undefined,
+					modes: undefined,
+					configOptions: undefined,
+					usage: undefined,
+					promptCapabilities: undefined,
+					agentCapabilities: undefined,
+					agentInfo: undefined,
+					lastActivityAt: new Date(),
+				};
+				sessionRef.current = next;
+				return next;
+			});
+			setErrorInfo(null);
+		},
+		[settingsAccess, setErrorInfo],
 	);
 
 	const restoreSession = useCallback(
@@ -597,6 +638,7 @@ export function useAgentSession(
 		session,
 		isReady,
 		createSession,
+		selectAgent,
 		restoreSession,
 
 		restartSession,
