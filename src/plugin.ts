@@ -285,32 +285,6 @@ export default class AgentClientPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "focus-next-chat-view",
-			name: "Focus next chat view",
-			callback: () => {
-				this.focusChatView("next");
-			},
-		});
-
-		this.addCommand({
-			id: "focus-previous-chat-view",
-			name: "Focus previous chat view",
-			callback: () => {
-				this.focusChatView("previous");
-			},
-		});
-
-		this.addCommand({
-			id: "open-new-chat-view",
-			name: "Open new chat view",
-			callback: () => {
-				void this.openNewChatViewWithAgent(
-					this.settings.defaultAgentId,
-				);
-			},
-		});
-
-		this.addCommand({
 			id: "open-session-manager",
 			name: "Open session manager",
 			callback: () => {
@@ -324,70 +298,6 @@ export default class AgentClientPlugin extends Plugin {
 			name: "Create new .session file",
 			callback: () => {
 				void this.createSessionFile();
-			},
-		});
-
-		// Register agent-specific commands
-		this.registerAgentCommands();
-		this.registerPermissionCommands();
-		this.registerBroadcastCommands();
-
-		// Floating chat window commands
-		this.addCommand({
-			id: "open-floating-chat-view",
-			name: "Open floating chat view",
-			checkCallback: (checking) => {
-				if (!this.settings.enableFloatingChat) return false;
-				if (checking) return true;
-				const instances = this.getFloatingChatInstances();
-				if (instances.length === 0) {
-					this.openNewFloatingChat(true);
-				} else if (instances.length === 1) {
-					this.expandFloatingChat(instances[0]);
-				} else {
-					const focused = this.viewRegistry.getFocused();
-					if (focused && focused.viewType === "floating") {
-						focused.expand();
-					} else {
-						this.expandFloatingChat(
-							instances[instances.length - 1],
-						);
-					}
-				}
-			},
-		});
-
-		this.addCommand({
-			id: "open-new-floating-chat-view",
-			name: "Open new floating chat view",
-			checkCallback: (checking) => {
-				if (!this.settings.enableFloatingChat) return false;
-				if (checking) return true;
-				this.openNewFloatingChat(true);
-			},
-		});
-
-		this.addCommand({
-			id: "minimize-floating-chat-view",
-			name: "Minimize floating chat view",
-			checkCallback: (checking) => {
-				if (!this.settings.enableFloatingChat) return false;
-				const focused = this.viewRegistry.getFocused();
-				if (!(focused && focused.viewType === "floating")) return false;
-				if (checking) return true;
-				focused.collapse();
-			},
-		});
-
-		this.addCommand({
-			id: "close-floating-chat-view",
-			name: "Close floating chat view",
-			checkCallback: (checking) => {
-				if (!this.settings.enableFloatingChat) return false;
-				const focused = this.viewRegistry.getFocused();
-				if (!(focused && focused.viewType === "floating")) return false;
-				if (checking) return true;
-				this.closeFloatingChat(focused.viewId);
 			},
 		});
 
@@ -432,14 +342,14 @@ export default class AgentClientPlugin extends Plugin {
 			}),
 		);
 
-			// BR-004: Cascade delete session_index and history when .session file is deleted
-			this.registerEvent(
-				this.app.vault.on("delete", (file) => {
-					if (file.path.endsWith(".session")) {
-						void this.cleanupSessionFile(file.path);
-					}
-				}),
-			);
+		// BR-004: Cascade delete session_index and history when .session file is deleted
+		this.registerEvent(
+			this.app.vault.on("delete", (file) => {
+				if (file.path.endsWith(".session")) {
+					void this.cleanupSessionFile(file.path);
+				}
+			}),
+		);
 	}
 
 	onunload() {
@@ -600,18 +510,6 @@ export default class AgentClientPlugin extends Plugin {
 					textarea.focus();
 				}
 			}, 50);
-		}
-	}
-
-	/**
-	 * Focus the next or previous ChatView in the list.
-	 * Uses ChatViewRegistry which includes both sidebar and floating views.
-	 */
-	private focusChatView(direction: "next" | "previous"): void {
-		if (direction === "next") {
-			this.viewRegistry.focusNext();
-		} else {
-			this.viewRegistry.focusPrevious();
 		}
 	}
 
@@ -806,193 +704,6 @@ export default class AgentClientPlugin extends Plugin {
 		}
 	}
 
-	/**
-	 * Register commands for each configured agent
-	 */
-	private registerAgentCommands(): void {
-		const agents = this.getAvailableAgents();
-
-		for (const agent of agents) {
-			this.addCommand({
-				id: `switch-agent-to-${agent.id}`,
-				name: `Switch agent to ${agent.displayName}`,
-				callback: () => {
-					this.app.workspace.trigger(
-						"agent-client:new-chat-requested",
-						this.lastActiveChatViewId,
-						agent.id,
-					);
-				},
-			});
-		}
-	}
-
-	private registerPermissionCommands(): void {
-		this.addCommand({
-			id: "approve-active-permission",
-			name: "Approve active permission",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:approve-active-permission",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "reject-active-permission",
-			name: "Reject active permission",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:reject-active-permission",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "toggle-auto-mention",
-			name: "Toggle auto-mention",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:toggle-auto-mention",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "new-chat",
-			name: "New chat",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:new-chat-requested",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "cancel-current-message",
-			name: "Cancel current message",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:cancel-message",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "export-chat",
-			name: "Export chat",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:export-chat",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-	}
-
-	/**
-	 * Register broadcast commands for multi-view operations
-	 */
-	private registerBroadcastCommands(): void {
-		// Broadcast prompt: Copy prompt from active view to all other views
-		this.addCommand({
-			id: "broadcast-prompt",
-			name: "Broadcast prompt",
-			callback: () => {
-				this.broadcastPrompt();
-			},
-		});
-
-		// Broadcast send: Send message in all views that can send
-		this.addCommand({
-			id: "broadcast-send",
-			name: "Broadcast send",
-			callback: () => {
-				void this.broadcastSend();
-			},
-		});
-
-		// Broadcast cancel: Cancel operation in all views
-		this.addCommand({
-			id: "broadcast-cancel",
-			name: "Broadcast cancel",
-			callback: () => {
-				void this.broadcastCancel();
-			},
-		});
-	}
-
-	/**
-	 * Copy prompt from active view to all other views
-	 */
-	private broadcastPrompt(): void {
-		const allViews = this.viewRegistry.getAll();
-		if (allViews.length === 0) {
-			new Notice("Agent client: no chat views open");
-			return;
-		}
-
-		const inputState = this.viewRegistry.toFocused((v) =>
-			v.getInputState(),
-		);
-		if (
-			!inputState ||
-			(inputState.text.trim() === "" && inputState.files.length === 0)
-		) {
-			new Notice("Agent client: no prompt to broadcast");
-			return;
-		}
-
-		const focusedId = this.viewRegistry.getFocusedId();
-		const targetViews = allViews.filter((v) => v.viewId !== focusedId);
-		if (targetViews.length === 0) {
-			new Notice("Agent client: no other chat views to broadcast to");
-			return;
-		}
-
-		for (const view of targetViews) {
-			view.setInputState(inputState);
-		}
-	}
-
-	/**
-	 * Send message in all views that can send
-	 */
-	private async broadcastSend(): Promise<void> {
-		const allViews = this.viewRegistry.getAll();
-		if (allViews.length === 0) {
-			new Notice("Agent client: no chat views open");
-			return;
-		}
-
-		const sendableViews = allViews.filter((v) => v.canSend());
-		if (sendableViews.length === 0) {
-			new Notice("Agent client: no views ready to send");
-			return;
-		}
-
-		await Promise.allSettled(sendableViews.map((v) => v.sendMessage()));
-	}
-
-	/**
-	 * Cancel operation in all views
-	 */
-	private async broadcastCancel(): Promise<void> {
-		const allViews = this.viewRegistry.getAll();
-		if (allViews.length === 0) {
-			new Notice("Agent client: no chat views open");
-			return;
-		}
-
-		await Promise.allSettled(allViews.map((v) => v.cancelOperation()));
-		new Notice("Agent client: cancel broadcast to all views");
-	}
-
 	async loadSettings() {
 		const raw = ((await this.loadData()) ?? {}) as Record<string, unknown>;
 		const D = DEFAULT_SETTINGS;
@@ -1110,7 +821,7 @@ export default class AgentClientPlugin extends Plugin {
 				return {
 					enabled: bool(rp.enabled, D.promptInjection.enabled),
 					latex: bool(rp.latex, D.promptInjection.latex),
-				wikiLinks: bool(rp.wikiLinks, D.promptInjection.wikiLinks),
+					wikiLinks: bool(rp.wikiLinks, D.promptInjection.wikiLinks),
 					tables: bool(rp.tables, D.promptInjection.tables),
 				};
 			})(),
@@ -1445,9 +1156,7 @@ export default class AgentClientPlugin extends Plugin {
 		// Default cwd to vault root
 		const adapter = this.app.vault.adapter;
 		const vaultPath =
-			adapter instanceof FileSystemAdapter
-				? adapter.getBasePath()
-				: "";
+			adapter instanceof FileSystemAdapter ? adapter.getBasePath() : "";
 
 		const content = JSON.stringify(
 			{
@@ -1515,9 +1224,7 @@ export default class AgentClientPlugin extends Plugin {
 
 			await this.settingsService.removeSessionIndex(entry.sessionId);
 			await this.settingsService.deleteHistory(entry.sessionId);
-			getLogger().log(
-				`[Harness] Cleaned up session: ${entry.sessionId}`,
-			);
+			getLogger().log(`[Harness] Cleaned up session: ${entry.sessionId}`);
 		} catch (error) {
 			getLogger().warn(
 				`[Harness] Failed to clean up session file ${entryFilePath}: ${error}`,
