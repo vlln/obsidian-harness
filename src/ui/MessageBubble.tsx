@@ -126,11 +126,13 @@ function CollapsibleThought({ text, plugin }: CollapsibleThoughtProps) {
 			<div className="agent-client-collapsible-thought-header">
 				{showEmojis && (
 					<LucideIcon
-						name="lightbulb"
+						name="sparkles"
 						className="agent-client-collapsible-thought-label-icon"
 					/>
 				)}
-				Thinking
+				<span className="agent-client-collapsible-thought-label">
+					Thought
+				</span>
 				<LucideIcon
 					name={isExpanded ? "chevron-down" : "chevron-right"}
 					className="agent-client-collapsible-thought-icon"

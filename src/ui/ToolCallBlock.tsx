@@ -22,6 +22,86 @@ interface ToolCallBlockProps {
 	) => Promise<void>;
 }
 
+function getKindIconName(kind?: string): string {
+	switch (kind) {
+		case "read":
+			return "book-open";
+		case "edit":
+			return "pencil";
+		case "delete":
+			return "trash";
+		case "move":
+			return "folder-open";
+		case "search":
+			return "search";
+		case "execute":
+			return "square-terminal";
+		case "think":
+			return "message-circle-more";
+		case "fetch":
+			return "globe";
+		case "switch_mode":
+			return "arrow-left-right";
+		default:
+			return "hammer";
+	}
+}
+
+function getStatusIconName(status: string): string {
+	switch (status) {
+		case "completed":
+			return "check";
+		case "failed":
+			return "x";
+		case "in_progress":
+			return "loader";
+		default:
+			return "ellipsis";
+	}
+}
+
+function stringifyScalar(value: unknown): string {
+	if (typeof value === "string") return value.trim();
+	if (typeof value === "number" || typeof value === "boolean") {
+		return String(value);
+	}
+	return "";
+}
+
+function buildToolSummary(
+	rawInput: Record<string, unknown> | undefined,
+	locations: { path: string; line?: number | null }[] | undefined,
+	vaultPath: string,
+): string {
+	if (rawInput) {
+		const command = stringifyScalar(rawInput.command);
+		const args = Array.isArray(rawInput.args)
+			? rawInput.args.map(stringifyScalar).filter(Boolean).join(" ")
+			: "";
+		if (command) return `$ ${[command, args].filter(Boolean).join(" ")}`;
+
+		const path =
+			stringifyScalar(rawInput.path) ||
+			stringifyScalar(rawInput.file_path) ||
+			stringifyScalar(rawInput.filePath);
+		if (path) return toRelativePath(path, vaultPath);
+
+		const query =
+			stringifyScalar(rawInput.query) ||
+			stringifyScalar(rawInput.pattern);
+		if (query) return query;
+	}
+
+	if (locations && locations.length > 0) {
+		const loc = locations[0];
+		const suffix = loc.line != null ? `:${loc.line}` : "";
+		const extra = locations.length > 1 ? ` +${locations.length - 1}` : "";
+		return `${toRelativePath(loc.path, vaultPath)}${suffix}${extra}`;
+	}
+
+	return "";
+}
+
 export const ToolCallBlock = React.memo(function ToolCallBlock({
 	content,
 	plugin,
@@ -61,35 +141,12 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 
 	// Get showEmojis setting
 	const showEmojis = plugin.settings.displaySettings.showEmojis;
-
-	// Get Lucide icon name based on tool kind
-	const getKindIconName = (kind?: string): string => {
-		switch (kind) {
-			case "read":
-				return "book-open";
-			case "edit":
-				return "pencil";
-			case "delete":
-				return "trash";
-			case "move":
-				return "folder-open";
-			case "search":
-				return "search";
-			case "execute":
-				return "square-terminal";
-			case "think":
-				return "message-circle-more";
-			case "fetch":
-				return "globe";
-			case "switch_mode":
-				return "arrow-left-right";
-			default:
-				return "hammer";
-		}
-	};
+	const summary = buildToolSummary(rawInput, locations, vaultPath);
 
 	return (
-		<div className="agent-client-message-tool-call">
+		<div
+			className={`agent-client-message-tool-call agent-client-message-tool-call-${status}`}
+		>
 			{/* Header */}
 			<div className="agent-client-message-tool-call-header">
 				<div className="agent-client-message-tool-call-title">
@@ -102,25 +159,16 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 					<span className="agent-client-message-tool-call-title-text">
 						{title}
 					</span>
-					{status !== "completed" && (
-						<LucideIcon
-							name={status === "failed" ? "x" : "ellipsis"}
-							className={`agent-client-message-tool-call-status-icon agent-client-status-${status}`}
-						/>
+					{summary && (
+						<span className="agent-client-message-tool-call-summary">
+							{summary}
+						</span>
 					)}
+					<LucideIcon
+						name={getStatusIconName(status)}
+						className={`agent-client-message-tool-call-status-icon agent-client-status-${status}`}
+					/>
 				</div>
-				{kind === "execute" &&
-					rawInput &&
-					typeof rawInput.command === "string" && (
-						<div className="agent-client-message-tool-call-command">
-							<code>
-								{rawInput.command}
-								{Array.isArray(rawInput.args) &&
-									rawInput.args.length > 0 &&
-									` ${(rawInput.args as string[]).join(" ")}`}
-							</code>
-						</div>
-					)}
 				{locations && locations.length > 0 && (
 					<div className="agent-client-message-tool-call-locations">
 						{locations.map((loc, idx) => (
@@ -136,50 +184,52 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 				)}
 			</div>
 
-			{/* Tool call content (diffs, terminal output, etc.) */}
-			{toolContent &&
-				toolContent.map((item, index) => {
-					if (item.type === "terminal") {
-						return (
-							<TerminalBlock
-								key={index}
-								terminalId={item.terminalId}
-								terminalClient={terminalClient || null}
-							/>
-						);
-					}
-					if (item.type === "diff") {
-						return (
-							<DiffRenderer
-								key={index}
-								diff={item}
-								plugin={plugin}
-								autoCollapse={
-									plugin.settings.displaySettings
-										.autoCollapseDiffs
-								}
-								collapseThreshold={
-									plugin.settings.displaySettings
-										.diffCollapseThreshold
-								}
-							/>
-						);
-					}
-					return null;
-				})}
+			<div className="agent-client-message-tool-call-body">
+				{/* Tool call content (diffs, terminal output, etc.) */}
+				{toolContent &&
+					toolContent.map((item, index) => {
+						if (item.type === "terminal") {
+							return (
+								<TerminalBlock
+									key={index}
+									terminalId={item.terminalId}
+									terminalClient={terminalClient || null}
+								/>
+							);
+						}
+						if (item.type === "diff") {
+							return (
+								<DiffRenderer
+									key={index}
+									diff={item}
+									plugin={plugin}
+									autoCollapse={
+										plugin.settings.displaySettings
+											.autoCollapseDiffs
+									}
+									collapseThreshold={
+										plugin.settings.displaySettings
+											.diffCollapseThreshold
+									}
+								/>
+							);
+						}
+						return null;
+					})}
 
-			{/* Permission request section */}
-			{permissionRequest && (
-				<PermissionBanner
-					permissionRequest={{
-						...permissionRequest,
-						selectedOptionId: selectedOptionId,
-					}}
-					showEmojis={showEmojis}
-					onApprovePermission={onApprovePermission}
-					onOptionSelected={setSelectedOptionId}
-				/>
-			)}
+				{/* Permission request section */}
+				{permissionRequest && (
+					<PermissionBanner
+						permissionRequest={{
+							...permissionRequest,
+							selectedOptionId: selectedOptionId,
+						}}
+						showEmojis={showEmojis}
+						onApprovePermission={onApprovePermission}
+						onOptionSelected={setSelectedOptionId}
+					/>
+				)}
+			</div>
 		</div>
 	);
 });
