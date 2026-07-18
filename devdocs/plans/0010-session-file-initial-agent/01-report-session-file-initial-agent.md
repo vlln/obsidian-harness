@@ -49,3 +49,15 @@ The lifecycle helper only saw the first one, so it returned `wait_for_agent`. Th
 ## Commit
 
 - `e868e08 fix(session): initialize command-created session files`
+- `9300b62 merge: session file initial agent fix 0010`
+
+## Develop Verification
+
+After merging into `develop`, the full gate set was rerun:
+
+| Gate | Result |
+|------|--------|
+| `npm run lint` | PASS |
+| `npm test` | PASS, 4 files / 81 tests |
+| `npm run build` | PASS |
+| `npm run test:e2e` | PASS, 9 tests |
