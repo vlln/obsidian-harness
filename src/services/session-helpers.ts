@@ -55,7 +55,11 @@ export function selectPreferredDefaultAgentId({
 	const current = currentDefaultId?.trim() ?? "";
 
 	if (current && discovered.includes(current)) return current;
-	if (current && current !== fallbackAgentId && configured.includes(current)) {
+	if (
+		current &&
+		current !== fallbackAgentId &&
+		configured.includes(current)
+	) {
 		return current;
 	}
 	if (discovered.length > 0) return discovered[0];
@@ -103,18 +107,20 @@ export function decideInitialSessionLifecycle({
 	initialSessionId,
 	initialAgentId,
 	selectedAgentId,
+	fallbackAgentId,
 	restoreStarted,
 }: {
 	initialSessionId: string | null | undefined;
 	initialAgentId: string | null | undefined;
 	selectedAgentId: string | null | undefined;
+	fallbackAgentId?: string | null | undefined;
 	restoreStarted: boolean;
 }): InitialSessionLifecycleAction {
 	if (restoreStarted) return { type: "idle" };
 	if (initialSessionId && initialAgentId) {
 		return { type: "restore_existing", sessionId: initialSessionId };
 	}
-	const agentId = selectedAgentId || initialAgentId;
+	const agentId = selectedAgentId || initialAgentId || fallbackAgentId;
 	if (!agentId) return { type: "wait_for_agent" };
 	return { type: "create_new", agentId };
 }

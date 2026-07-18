@@ -268,6 +268,7 @@ export function ChatPanel({
 			initialSessionId,
 			initialAgentId,
 			selectedAgentId: config?.agent,
+			fallbackAgentId: session.agentId,
 			restoreStarted: sessionRestoredRef.current,
 		});
 		if (action.type !== "restore_existing") return;
@@ -290,6 +291,7 @@ export function ChatPanel({
 		initialSessionId,
 		initialAgentId,
 		config?.agent,
+		session.agentId,
 		agentCwd,
 		agent.restoreSession,
 		agent.createSession,
@@ -750,6 +752,7 @@ export function ChatPanel({
 			initialSessionId,
 			initialAgentId,
 			selectedAgentId: config?.agent,
+			fallbackAgentId: session.agentId,
 			restoreStarted: sessionRestoredRef.current,
 		});
 		if (action.type === "wait_for_agent") {
@@ -766,7 +769,13 @@ export function ChatPanel({
 			`[ChatPanel] Starting new session with agent: ${action.agentId}`,
 		);
 		void agent.createSession(action.agentId);
-	}, [agent.createSession, config?.agent, initialAgentId, initialSessionId]);
+	}, [
+		agent.createSession,
+		config?.agent,
+		initialAgentId,
+		initialSessionId,
+		session.agentId,
+	]);
 
 	// Apply configured model (a select config option with category "model")
 	// when session is ready.
