@@ -87,8 +87,8 @@ export interface UseAgentMessagesReturn {
 
 	/** Enqueue a message-level update (used by useAgent for unified handler) */
 	enqueueUpdate: (update: SessionUpdate) => void;
-		/** Force flush pending updates (used after session/load replay) */
-		flushPendingUpdates: () => void;
+	/** Force flush pending updates (used after session/load replay) */
+	flushPendingUpdates: () => void;
 }
 
 // ============================================================================
@@ -289,7 +289,11 @@ export function useAgentMessages(
 			// Wait for any in-flight send to settle (e.g. after cancel/stop)
 			// before starting a new one to avoid interleaved state updates.
 			if (sendPromiseRef.current) {
-				try { await sendPromiseRef.current; } catch { /* ignore */ }
+				try {
+					await sendPromiseRef.current;
+				} catch {
+					/* ignore */
+				}
 			}
 
 			const currentSessionId = session.sessionId;
@@ -311,13 +315,6 @@ export function useAgentMessages(
 					maxSelectionLength:
 						settings.displaySettings.maxSelectionLength,
 					isFirstMessage: options.isFirstMessage,
-					promptInjection: settings.promptInjection.enabled
-						? {
-								latex: settings.promptInjection.latex,
-								wikiLinks: settings.promptInjection.wikiLinks,
-								tables: settings.promptInjection.tables,
-							}
-						: undefined,
 				},
 				vaultAccess,
 				vaultAccess, // IMentionService (same object)
@@ -510,6 +507,5 @@ export function useAgentMessages(
 		rejectActivePermission,
 		enqueueUpdate,
 		flushPendingUpdates,
-
 	};
 }

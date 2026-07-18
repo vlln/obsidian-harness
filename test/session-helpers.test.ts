@@ -43,12 +43,6 @@ function createMinimalSettings(): AgentClientPluginSettings {
 		autoAllowPermissions: false,
 		autoMentionActiveNote: true,
 		enableSystemNotifications: true,
-		promptInjection: {
-			enabled: true,
-			latex: true,
-			wikiLinks: true,
-			tables: true,
-		},
 		debugMode: false,
 		nodePath: "",
 		exportSettings: {
