@@ -553,8 +553,14 @@ export interface SessionResult {
 export interface SessionFileData {
 	/** Format version for backward compatibility */
 	version: number;
-	/** Unique session identifier (UUID) */
+	/** Stable vault entry identifier */
+	entryId?: string;
+	/** Backend ACP session identifier. Empty until session/new succeeds. */
 	sessionId: string;
+	/** Explicit backend ACP session identifier for new files. */
+	backendSessionId?: string;
+	/** Backend lifecycle state for this entry. */
+	backendState?: "unconnected" | "connected";
 	/** Agent ID (claude-code-acp, pi-acp, custom agent ID, etc.) */
 	agentId: string;
 	/** Working directory for the agent */

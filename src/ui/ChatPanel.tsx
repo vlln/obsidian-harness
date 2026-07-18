@@ -87,7 +87,7 @@ export interface ChatPanelProps {
 	viewId: string;
 	workingDirectory?: string;
 	initialAgentId?: string;
-	/** .session file sessionId — restore history from JSONL on mount */
+	/** Backend ACP sessionId recorded in the .session file */
 	initialSessionId?: string;
 
 	config?: { agent?: string; model?: string };
@@ -252,7 +252,7 @@ export function ChatPanel({
 	const sessionRestoredRef = useRef(false);
 	useEffect(() => {
 		const action = decideInitialSessionLifecycle({
-			initialSessionId,
+			initialBackendSessionId: initialSessionId,
 			initialAgentId,
 			selectedAgentId: config?.agent,
 			fallbackAgentId: session.agentId,
@@ -269,10 +269,7 @@ export function ChatPanel({
 				agent.flushPendingUpdates();
 			})
 			.catch((err) => {
-				logger.warn(
-					`[ChatPanel] Session restore failed, falling back to new session: ${err}`,
-				);
-				void agent.createSession(initialAgentId);
+				logger.warn(`[ChatPanel] Session restore failed: ${err}`);
 			});
 	}, [
 		initialSessionId,
@@ -281,7 +278,6 @@ export function ChatPanel({
 		session.agentId,
 		agentCwd,
 		agent.restoreSession,
-		agent.createSession,
 	]);
 
 	// ============================================================
@@ -707,7 +703,7 @@ export function ChatPanel({
 	// Initialize session on first open (local UUID) or when agent is selected
 	useEffect(() => {
 		const action = decideInitialSessionLifecycle({
-			initialSessionId,
+			initialBackendSessionId: initialSessionId,
 			initialAgentId,
 			selectedAgentId: config?.agent,
 			fallbackAgentId: session.agentId,

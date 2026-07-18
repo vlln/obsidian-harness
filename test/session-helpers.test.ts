@@ -140,7 +140,7 @@ describe("session restore helpers", () => {
 	it("decides the initial lifecycle action for session files", () => {
 		expect(
 			decideInitialSessionLifecycle({
-				initialSessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
+				initialBackendSessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
 				initialAgentId: "configured-acp",
 				selectedAgentId: undefined,
 				restoreStarted: false,
@@ -152,7 +152,7 @@ describe("session restore helpers", () => {
 
 		expect(
 			decideInitialSessionLifecycle({
-				initialSessionId: "local-bootstrap-id",
+				initialBackendSessionId: "",
 				initialAgentId: "",
 				selectedAgentId: "selected-acp",
 				restoreStarted: false,
@@ -161,7 +161,7 @@ describe("session restore helpers", () => {
 
 		expect(
 			decideInitialSessionLifecycle({
-				initialSessionId: "local-bootstrap-id",
+				initialBackendSessionId: "",
 				initialAgentId: "",
 				selectedAgentId: undefined,
 				fallbackAgentId: "runtime-acp",
@@ -171,7 +171,7 @@ describe("session restore helpers", () => {
 
 		expect(
 			decideInitialSessionLifecycle({
-				initialSessionId: "local-bootstrap-id",
+				initialBackendSessionId: "",
 				initialAgentId: "",
 				selectedAgentId: undefined,
 				restoreStarted: false,
@@ -180,7 +180,7 @@ describe("session restore helpers", () => {
 
 		expect(
 			decideInitialSessionLifecycle({
-				initialSessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
+				initialBackendSessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
 				initialAgentId: "configured-acp",
 				selectedAgentId: "selected-acp",
 				restoreStarted: true,

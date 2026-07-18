@@ -11,6 +11,11 @@ import type { SessionFileData } from "../types/session";
 
 export const VIEW_TYPE_HARNESS_SESSION = "harness-session-view";
 
+function getRestorableBackendSessionId(config: SessionFileData): string {
+	if (config.backendState === "unconnected") return "";
+	return config.backendSessionId || config.sessionId || "";
+}
+
 function SessionChatComponent({
 	plugin,
 	view,
@@ -39,7 +44,7 @@ function SessionChatComponent({
 				viewId={viewId}
 				workingDirectory={config.cwd || undefined}
 				initialAgentId={config.agentId}
-				initialSessionId={config.sessionId}
+				initialSessionId={getRestorableBackendSessionId(config)}
 				viewHost={view}
 				onSessionTitleChanged={() => view.refreshDisplayText()}
 				onAgentIdChanged={(agentId: string) => {
@@ -135,7 +140,7 @@ export class HarnessSessionView extends FileView {
 		}
 
 		// Validate required fields
-		if (!config.sessionId || !config.cwd) {
+		if (!(config.entryId || config.sessionId) || !config.cwd) {
 			container.createEl("div", {
 				text: "Invalid session file: missing required fields",
 				cls: "harness-error",
