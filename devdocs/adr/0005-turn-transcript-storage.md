@@ -2,7 +2,7 @@
 title: ADR-0005: Turn Transcript 存储
 description: 采用 ACP 语义 turn snapshot、稳定本地身份、活动 turn 检查点和内容寻址 blob，解耦离线历史与 ACP continuation。
 type: adr
-status: proposed
+status: accepted
 created: 2026-07-20T09:49:32Z
 ---
 

@@ -8,4 +8,4 @@
 |------|------|------|
 | [0001](0001-session-entry.md) | Session 入口文件 | active |
 | [0002](0002-session-lifecycle.md) | Session 生命周期管理 | active |
-| [0003](0003-acp-turn-transcript.md) | ACP Turn Transcript | proposed |
+| [0003](0003-acp-turn-transcript.md) | ACP Turn Transcript | active |

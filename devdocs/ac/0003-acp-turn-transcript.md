@@ -2,7 +2,7 @@
 title: AC-0003: ACP Turn Transcript
 description: ACP 语义 turn 的离线阅读、持久化、崩溃恢复、续聊状态、schema 门禁与存储失败验收标准。
 type: ac
-status: proposed
+status: active
 created: 2026-07-20T09:49:32Z
 ---
 
