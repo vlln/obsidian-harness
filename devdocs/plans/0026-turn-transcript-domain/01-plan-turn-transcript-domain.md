@@ -2,7 +2,7 @@
 title: Plan-0026-01: Turn Transcript Domain
 description: Implement versioned TurnRecord types, deterministic ACP update aggregation, interruption semantics, and ChatMessage projection.
 type: plan
-status: pending
+status: done
 created: 2026-07-20T11:17:04Z
 ---
 
