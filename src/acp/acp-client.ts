@@ -31,6 +31,10 @@ import {
 	isEmptyResponseError,
 	isUserAbortedError,
 } from "../utils/error-utils";
+import {
+	TranscriptRecorder,
+	type TranscriptPersistenceState,
+} from "../services/transcript-recorder";
 
 /**
  * Runtime configuration for launching an AI agent process.
@@ -82,8 +86,8 @@ export class AcpClient {
 	private currentAgentId: string | null = null;
 	private currentSessionId: string | null = null;
 
-	/** Fixed sessionId for history writes (from .session file, survives newSession) */
-	private historySessionId: string | null = null;
+	private transcriptHistoryId: string | null = null;
+	private transcriptRecorder: TranscriptRecorder | null = null;
 
 	// Callbacks (none — all events flow through onSessionUpdate via AcpHandler)
 
@@ -119,14 +123,8 @@ export class AcpClient {
 			this.logger,
 		);
 
-		// Wire up JSONL history persistence
-		this.handler.setHistoryWriter((update) => {
-			const sid = this.historySessionId || this.currentSessionId;
-			if (!sid) return;
-			void this.plugin.settingsService.appendHistoryEvent(
-				sid,
-				update,
-			);
+		this.handler.onSessionUpdate((update) => {
+			this.transcriptRecorder?.apply(update);
 		});
 	}
 
@@ -429,21 +427,24 @@ export class AcpClient {
 		try {
 			this.logger.log("[AcpClient] Starting ACP initialization...");
 
-			const initResult = await this.connection.agent.request("initialize", {
-				protocolVersion: acp.PROTOCOL_VERSION,
-				clientCapabilities: {
-					fs: {
-						readTextFile: false,
-						writeTextFile: false,
+			const initResult = await this.connection.agent.request(
+				"initialize",
+				{
+					protocolVersion: acp.PROTOCOL_VERSION,
+					clientCapabilities: {
+						fs: {
+							readTextFile: false,
+							writeTextFile: false,
+						},
+						terminal: true,
 					},
-					terminal: true,
+					clientInfo: {
+						name: "obsidian-agent-client",
+						title: "Agent Client for Obsidian",
+						version: this.plugin.manifest.version,
+					},
 				},
-				clientInfo: {
-					name: "obsidian-agent-client",
-					title: "Agent Client for Obsidian",
-					version: this.plugin.manifest.version,
-				},
-			});
+			);
 
 			this.logger.log(
 				`[AcpClient] ✅ Connected to agent (protocol v${initResult.protocolVersion})`,
@@ -491,14 +492,31 @@ export class AcpClient {
 	 */
 
 	/**
-	 * Set the permanent sessionId for history writes.
-	 * Called from HarnessSessionView via BR-002 to pin the .session file sessionId.
-	 * Once set, history writes always use this id regardless of newSession calls.
+	 * Bind this client to the stable local transcript identity.
 	 */
-	setHistorySessionId(sessionId: string): void {
-		if (!this.historySessionId) {
-			this.historySessionId = sessionId;
-		}
+	setTranscriptHistoryId(historyId: string): void {
+		if (this.transcriptHistoryId === historyId) return;
+		if (this.transcriptRecorder) void this.transcriptRecorder.interrupt();
+		this.transcriptHistoryId = historyId;
+		this.transcriptRecorder = new TranscriptRecorder(
+			this.plugin.settingsService,
+			historyId,
+		);
+	}
+
+	getTranscriptPersistenceState(): TranscriptPersistenceState {
+		return (
+			this.transcriptRecorder?.getPersistenceState() ?? { state: "idle" }
+		);
+	}
+
+	onTranscriptPersistenceStateChange(
+		listener: (state: TranscriptPersistenceState) => void,
+	): () => void {
+		return (
+			this.transcriptRecorder?.onPersistenceStateChange(listener) ??
+			(() => {})
+		);
 	}
 
 	updateAutoAllow(autoAllow: boolean): void {
@@ -527,17 +545,6 @@ export class AcpClient {
 				response,
 			);
 			this.currentSessionId = result.sessionId;
-
-			// Write JSONL metadata
-			void this.plugin.settingsService.writeHistoryMetadata(
-				result.sessionId,
-				{
-					agentId: this.currentAgentId ?? "unknown",
-					cwd: workingDirectory,
-					title: "New Session",
-					createdAt: new Date().toISOString(),
-				},
-			);
 
 			return result;
 		} catch (error) {
@@ -573,6 +580,7 @@ export class AcpClient {
 
 		this.handler.resetUpdateCount();
 		this.recentStderr = "";
+		this.transcriptRecorder?.start(content);
 
 		try {
 			// Convert domain PromptContent to ACP ContentBlock
@@ -584,10 +592,13 @@ export class AcpClient {
 				`[AcpClient] Sending prompt with ${content.length} content blocks`,
 			);
 
-			const promptResult = await connection.agent.request("session/prompt", {
-				sessionId: sessionId,
-				prompt: acpContent,
-			});
+			const promptResult = await connection.agent.request(
+				"session/prompt",
+				{
+					sessionId: sessionId,
+					prompt: acpContent,
+				},
+			);
 
 			this.logger.log(
 				`[AcpClient] Agent completed with: ${promptResult.stopReason}`,
@@ -618,7 +629,16 @@ export class AcpClient {
 					);
 				}
 			}
+
+			await this.transcriptRecorder?.complete({
+				status: this.turnStatusFromStopReason(promptResult.stopReason),
+				stopReason: promptResult.stopReason,
+			});
 		} catch (error: unknown) {
+			await this.transcriptRecorder?.complete({
+				status: isUserAbortedError(error) ? "cancelled" : "error",
+				stopReason: isUserAbortedError(error) ? "cancelled" : "error",
+			});
 			if (isEmptyResponseError(error) || isUserAbortedError(error)) {
 				return;
 			}
@@ -690,8 +710,9 @@ export class AcpClient {
 	/**
 	 * Disconnect from the agent and clean up resources.
 	 */
-	disconnect(): Promise<void> {
+	async disconnect(): Promise<void> {
 		this.logger.log("[AcpClient] Disconnecting...");
+		await this.transcriptRecorder?.interrupt();
 
 		// Cancel all pending operations
 		this.cancelAllOperations();
@@ -709,7 +730,15 @@ export class AcpClient {
 		this.currentSessionId = null;
 
 		this.logger.log("[AcpClient] Disconnected");
-		return Promise.resolve();
+	}
+
+	private turnStatusFromStopReason(
+		stopReason: string,
+	): "completed" | "cancelled" | "error" {
+		const normalized = stopReason.toLowerCase();
+		if (normalized.includes("cancel")) return "cancelled";
+		if (normalized.includes("error")) return "error";
+		return "completed";
 	}
 
 	/**

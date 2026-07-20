@@ -10,7 +10,7 @@ import type {
 } from "../types/session";
 import type { ChatMessage } from "../types/chat";
 import { extractErrorMessage } from "../utils/error-utils";
-import { applySingleUpdate } from "../services/message-state";
+import { projectTranscript } from "../services/transcript-projection";
 
 // ============================================================================
 // Session Capability Helpers (from session-capability-utils.ts)
@@ -169,17 +169,12 @@ export interface UseSessionHistoryReturn {
 	invalidateCache: () => void;
 }
 
-async function loadMessagesFromJsonl(
+async function loadMessagesFromTranscript(
 	settingsAccess: ISettingsAccess,
-	sessionId: string,
+	historyId: string,
 ): Promise<ChatMessage[]> {
-	const updates = await settingsAccess.readHistory(sessionId);
-	const toolCallIndex = new Map<string, number>();
-	let messages: ChatMessage[] = [];
-	for (const update of updates) {
-		messages = applySingleUpdate(messages, update, toolCallIndex);
-	}
-	return messages;
+	const transcript = await settingsAccess.readTranscript(historyId);
+	return projectTranscript(transcript.turns);
 }
 
 function titleFromEntryFile(entryFile: string): string {
@@ -247,7 +242,7 @@ export function useSessionHistory(
 				const indexEntries = await settingsAccess.getSessionIndex(cwd);
 				const sessionInfos: SessionInfo[] = indexEntries.map(
 					(entry) => ({
-						sessionId: entry.sessionId,
+						sessionId: entry.entryId,
 						cwd: entry.cwd,
 						title: titleFromEntryFile(entry.entryFile),
 					}),
@@ -255,7 +250,7 @@ export function useSessionHistory(
 
 				setSessions(sessionInfos);
 				setLocalSessionIds(
-					new Set(indexEntries.map((entry) => entry.sessionId)),
+					new Set(indexEntries.map((entry) => entry.entryId)),
 				);
 				setNextCursor(undefined);
 				setError(null);
@@ -316,7 +311,7 @@ export function useSessionHistory(
 					);
 
 					// Resume doesn't return history, so restore from local storage
-					const localMessages = await loadMessagesFromJsonl(
+					const localMessages = await loadMessagesFromTranscript(
 						settingsAccess,
 						sessionId,
 					);
@@ -367,7 +362,7 @@ export function useSessionHistory(
 					result.configOptions,
 				);
 
-				const localMessages = await loadMessagesFromJsonl(
+				const localMessages = await loadMessagesFromTranscript(
 					settingsAccess,
 					sessionId,
 				);
@@ -403,11 +398,11 @@ export function useSessionHistory(
 			try {
 				const entries = await settingsAccess.getSessionIndex();
 				const entry = entries.find(
-					(item) => item.sessionId === sessionId,
+					(item) => item.entryId === sessionId,
 				);
 				if (entry) {
-					await settingsAccess.removeSessionIndex(sessionId);
-					await settingsAccess.deleteHistory(sessionId);
+					await settingsAccess.removeSessionIndex(entry.entryId);
+					await settingsAccess.deleteTranscript(entry.historyId);
 				}
 
 				// Remove from local state

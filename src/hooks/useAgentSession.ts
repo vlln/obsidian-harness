@@ -364,15 +364,27 @@ export function useAgentSession(
 				);
 
 				// Initialize agent if not already connected
+				let initResult: Awaited<
+					ReturnType<AcpClient["initialize"]>
+				> | null = null;
 				if (
 					!agentClient.isInitialized() ||
 					agentClient.getCurrentAgentId() !== agentId
 				) {
-					await agentClient.initialize(agentConfig);
+					initResult = await agentClient.initialize(agentConfig);
 				}
 
-				// Load existing session — agent replays history via session/update
-				const result = await agentClient.loadSession(sessionId, cwd);
+				const capabilities =
+					initResult?.agentCapabilities ?? s.agentCapabilities;
+				const result = capabilities?.sessionCapabilities?.resume
+					? await agentClient.resumeSession(sessionId, cwd)
+					: capabilities?.loadSession
+						? await agentClient.loadSession(sessionId, cwd)
+						: (() => {
+								throw new Error(
+									"Session restoration is not supported",
+								);
+							})();
 
 				setSession((prev) => ({
 					...prev,

@@ -8,9 +8,15 @@
 
 import type { AgentClientPluginSettings } from "../plugin";
 import type AgentClientPlugin from "../plugin";
-import type { SessionUpdate, SessionIndexEntry } from "../types/session";
+import type { SessionIndexEntry } from "../types/session";
+import type {
+	ActiveTurnRecord,
+	TranscriptManifest,
+	TranscriptReadResult,
+	TurnRecord,
+} from "../types/transcript";
 import { updateDebugMode } from "../utils/logger";
-import { SessionStorage } from "./session-storage";
+import { SessionStorage, type TranscriptMetadata } from "./session-storage";
 
 // ============================================================================
 // Port Types (from settings-access.port.ts)
@@ -59,30 +65,20 @@ export interface ISettingsAccess {
 	subscribe(listener: () => void): () => void;
 
 	// ============================================================
-	// JSONL History Methods (append-only, AC-0003)
+	// Transcript v2 Methods
 	// ============================================================
 
-	writeHistoryMetadata(
-		sessionId: string,
-		metadata: {
-			agentId: string;
-			cwd: string;
-			title: string;
-			createdAt: string;
-		},
+	initializeTranscript(
+		historyId: string,
+		metadata: TranscriptMetadata,
+	): Promise<TranscriptManifest>;
+	writeCheckpoint(
+		historyId: string,
+		checkpoint: ActiveTurnRecord,
 	): Promise<void>;
-
-	appendHistoryEvent(
-		sessionId: string,
-		event: SessionUpdate,
-	): Promise<void>;
-
-	readHistory(
-		sessionId: string,
-		limit?: number,
-	): Promise<SessionUpdate[]>;
-
-	deleteHistory(sessionId: string): Promise<void>;
+	commitTurn(historyId: string, turn: TurnRecord): Promise<void>;
+	readTranscript(historyId: string): Promise<TranscriptReadResult>;
+	deleteTranscript(historyId: string): Promise<void>;
 
 	// ============================================================
 	// Session Index Methods (session_index.jsonl)
@@ -90,7 +86,7 @@ export interface ISettingsAccess {
 
 	appendSessionIndex(entry: SessionIndexEntry): Promise<void>;
 	getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]>;
-	removeSessionIndex(sessionId: string): Promise<void>;
+	removeSessionIndex(entryId: string): Promise<void>;
 }
 
 /** Listener callback invoked when settings change */
@@ -198,37 +194,33 @@ export class SettingsService implements ISettingsAccess {
 	}
 
 	// ============================================================
-	// JSONL History Methods
+	// Transcript v2 Methods
 	// ============================================================
 
-	async writeHistoryMetadata(
-		sessionId: string,
-		metadata: {
-			agentId: string;
-			cwd: string;
-			title: string;
-			createdAt: string;
-		},
+	async initializeTranscript(
+		historyId: string,
+		metadata: TranscriptMetadata,
+	): Promise<TranscriptManifest> {
+		return this.sessionStorage.initializeTranscript(historyId, metadata);
+	}
+
+	async writeCheckpoint(
+		historyId: string,
+		checkpoint: ActiveTurnRecord,
 	): Promise<void> {
-		return this.sessionStorage.writeHistoryMetadata(sessionId, metadata);
+		return this.sessionStorage.writeCheckpoint(historyId, checkpoint);
 	}
 
-	async appendHistoryEvent(
-		sessionId: string,
-		event: SessionUpdate,
-	): Promise<void> {
-		return this.sessionStorage.appendHistoryEvent(sessionId, event);
+	async commitTurn(historyId: string, turn: TurnRecord): Promise<void> {
+		return this.sessionStorage.commitTurn(historyId, turn);
 	}
 
-	async readHistory(
-		sessionId: string,
-		limit?: number,
-	): Promise<SessionUpdate[]> {
-		return this.sessionStorage.readHistory(sessionId, limit);
+	async readTranscript(historyId: string): Promise<TranscriptReadResult> {
+		return this.sessionStorage.readTranscript(historyId);
 	}
 
-	async deleteHistory(sessionId: string): Promise<void> {
-		return this.sessionStorage.deleteHistory(sessionId);
+	async deleteTranscript(historyId: string): Promise<void> {
+		return this.sessionStorage.deleteTranscript(historyId);
 	}
 
 	// ============================================================
@@ -243,8 +235,8 @@ export class SettingsService implements ISettingsAccess {
 		return this.sessionStorage.getSessionIndex(cwd);
 	}
 
-	async removeSessionIndex(sessionId: string): Promise<void> {
-		return this.sessionStorage.removeSessionIndex(sessionId);
+	async removeSessionIndex(entryId: string): Promise<void> {
+		return this.sessionStorage.removeSessionIndex(entryId);
 	}
 }
 

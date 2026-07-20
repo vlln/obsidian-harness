@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE` develop 系统测试通过，等待版本发布决策 |
-| **当前版本** | `v0.1.3` 后 develop release candidate |
-| **设计评估** | 当前迭代已通过系统测试；ACP turn transcript 作为下一轮增量设计，不混入本次 release candidate |
+| **当前阶段** | `RELEASE` ACP turn transcript 待发布 |
+| **当前版本** | `v0.2.0` 已发布 |
+| **设计评估** | 29 条 AC、16 条系统 E2E、3 个视觉状态和专项边界检查全部通过；develop 已具备发布条件 |
 
 ## 子目录
 

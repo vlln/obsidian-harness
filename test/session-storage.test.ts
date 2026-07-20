@@ -1,371 +1,136 @@
-/**
- * Session storage unit tests.
- *
- * Tests the session_index.jsonl parsing and SessionFileData validation logic.
- * The adapter-dependent I/O methods are tested via E2E tests in Obsidian.
- */
+import { describe, expect, it } from "vitest";
 
-import { describe, it, expect } from "vitest";
+import {
+	parseSessionFileData,
+	UnsupportedSessionEntryVersionError,
+} from "../src/services/session-entry";
+import {
+	deriveContinuationState,
+	executeContinuation,
+} from "../src/services/session-continuation";
+import { vi } from "vitest";
+import type { SessionFileData } from "../src/types/session";
 
-// ============================================================================
-// SessionFileData Validation
-// ============================================================================
-
-interface SessionFileData {
-	version: number;
-	entryId?: string;
-	sessionId: string;
-	backendSessionId?: string;
-	backendState?: "unconnected" | "connected";
-	agentId: string;
-	cwd: string;
-	title: string;
-	createdAt: string;
-	updatedAt: string;
-	forkedFrom: string | null;
-}
-
-function validateSessionFileData(raw: unknown): SessionFileData | null {
-	if (typeof raw !== "object" || raw === null) return null;
-	const obj = raw as Record<string, unknown>;
-	if (
-		typeof obj.version !== "number" ||
-		typeof obj.sessionId !== "string" ||
-		(typeof obj.entryId !== "undefined" &&
-			typeof obj.entryId !== "string") ||
-		(typeof obj.backendSessionId !== "undefined" &&
-			typeof obj.backendSessionId !== "string") ||
-		(typeof obj.backendState !== "undefined" &&
-			obj.backendState !== "unconnected" &&
-			obj.backendState !== "connected") ||
-		typeof obj.agentId !== "string" ||
-		typeof obj.cwd !== "string" ||
-		typeof obj.title !== "string" ||
-		typeof obj.createdAt !== "string" ||
-		typeof obj.updatedAt !== "string"
-	) {
-		return null;
-	}
-	if (!obj.entryId && !obj.sessionId) return null;
+function entry(overrides: Partial<SessionFileData> = {}): SessionFileData {
 	return {
-		version: obj.version,
-		entryId: typeof obj.entryId === "string" ? obj.entryId : undefined,
-		sessionId: obj.sessionId,
-		backendSessionId:
-			typeof obj.backendSessionId === "string"
-				? obj.backendSessionId
-				: undefined,
-		backendState:
-			obj.backendState === "unconnected" ||
-			obj.backendState === "connected"
-				? obj.backendState
-				: undefined,
-		agentId: obj.agentId,
-		cwd: obj.cwd,
-		title: obj.title,
-		createdAt: obj.createdAt,
-		updatedAt: obj.updatedAt,
-		forkedFrom: typeof obj.forkedFrom === "string" ? obj.forkedFrom : null,
+		version: 2,
+		entryId: "entry-1",
+		historyId: "history-1",
+		agentId: "pi-acp",
+		cwd: "/project",
+		title: "Session",
+		createdAt: "2026-07-20T00:00:00.000Z",
+		updatedAt: "2026-07-20T00:00:00.000Z",
+		forkedFrom: null,
+		...overrides,
 	};
 }
 
-function parseJson(content: string): unknown {
-	return JSON.parse(content) as unknown;
-}
-
-describe("SessionFileData validation", () => {
-	it("accepts valid session data", () => {
-		const valid = {
-			version: 1,
-			entryId: "111e8400-e29b-41d4-a716-446655440000",
-			sessionId: "550e8400-e29b-41d4-a716-446655440000",
-			backendSessionId: "550e8400-e29b-41d4-a716-446655440000",
-			backendState: "connected",
-			agentId: "pi-acp",
-			cwd: "/home/user/project",
-			title: "My Session",
-			createdAt: "2026-07-16T00:00:00Z",
-			updatedAt: "2026-07-16T00:00:00Z",
-			forkedFrom: null,
-		};
-		expect(validateSessionFileData(valid)).toEqual(valid);
-	});
-
-	it("accepts a new unconnected session entry", () => {
-		const valid = {
-			version: 1,
-			entryId: "111e8400-e29b-41d4-a716-446655440000",
-			sessionId: "",
-			backendSessionId: "",
-			backendState: "unconnected",
-			agentId: "",
-			cwd: "/home/user/vault",
-			title: "New Session",
-			createdAt: "2026-07-16T00:00:00Z",
-			updatedAt: "2026-07-16T00:00:00Z",
-			forkedFrom: null,
-		};
-		expect(validateSessionFileData(valid)).toEqual(valid);
-	});
-
-	it("accepts session data with forkedFrom", () => {
-		const valid = {
-			version: 1,
-			sessionId: "uuid-1",
-			agentId: "claude-code-acp",
-			cwd: "/tmp",
-			title: "Forked",
-			createdAt: "2026-07-16T00:00:00Z",
-			updatedAt: "2026-07-16T00:00:00Z",
-			forkedFrom: "uuid-original",
-		};
-		expect(validateSessionFileData(valid)).toEqual(valid);
-	});
-
-	it("rejects null", () => {
-		expect(validateSessionFileData(null)).toBeNull();
-	});
-
-	it("rejects empty object", () => {
-		expect(validateSessionFileData({})).toBeNull();
-	});
-
-	it("rejects missing entry and session identity", () => {
-		expect(
-			validateSessionFileData({
-				version: 1,
-				sessionId: "",
-				agentId: "pi-acp",
-				cwd: "/tmp",
-				title: "x",
-				createdAt: "2026-07-16T00:00:00Z",
-				updatedAt: "2026-07-16T00:00:00Z",
-			}),
-		).toBeNull();
-	});
-
-	it("rejects missing agentId", () => {
-		expect(
-			validateSessionFileData({
-				version: 1,
-				sessionId: "uuid",
-				cwd: "/tmp",
-				title: "x",
-				createdAt: "2026-07-16T00:00:00Z",
-				updatedAt: "2026-07-16T00:00:00Z",
-			}),
-		).toBeNull();
-	});
-
-	it("rejects invalid version type", () => {
-		expect(
-			validateSessionFileData({
-				version: "1",
-				sessionId: "uuid",
-				agentId: "pi-acp",
-				cwd: "/tmp",
-				title: "x",
-				createdAt: "2026-07-16T00:00:00Z",
-				updatedAt: "2026-07-16T00:00:00Z",
-			}),
-		).toBeNull();
-	});
-
-	it("defaults forkedFrom to null when not a string", () => {
-		const result = validateSessionFileData({
-			version: 1,
-			sessionId: "uuid",
-			agentId: "pi-acp",
-			cwd: "/tmp",
-			title: "x",
-			createdAt: "2026-07-16T00:00:00Z",
-			updatedAt: "2026-07-16T00:00:00Z",
-			forkedFrom: 123,
+describe("session entry v2", () => {
+	it("accepts stable local identities and an optional opaque ACP binding", () => {
+		const value = entry({
+			acpBinding: { agentId: "pi-acp", sessionId: "opaque" },
 		});
-		expect(result?.forkedFrom).toBeNull();
+		expect(parseSessionFileData(JSON.stringify(value))).toEqual(value);
 	});
 
-	// AC-0001-B-2: sessionId is 36 character UUID
-	it("AC-0001-B-2: sessionId is 36 character UUID", () => {
-		const uuid = "550e8400-e29b-41d4-a716-446655440000";
-		expect(uuid).toHaveLength(36);
-		expect(uuid).toMatch(
-			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-		);
+	it("rejects v1 explicitly without migration", () => {
+		expect(() =>
+			parseSessionFileData(JSON.stringify({ version: 1 })),
+		).toThrow(UnsupportedSessionEntryVersionError);
+		expect(() =>
+			parseSessionFileData(JSON.stringify({ version: 1 })),
+		).toThrow("Unsupported session version 1; requires version 2");
 	});
 
-	// AC-0002-B-1: empty file content
-	it("AC-0002-B-1: rejects empty string", () => {
-		expect(() => parseJson("")).toThrow();
+	it.each(["entryId", "historyId", "cwd", "title"])(
+		"rejects a missing %s",
+		(field) => {
+			const value = entry() as unknown as Record<string, unknown>;
+			delete value[field];
+			expect(() => parseSessionFileData(JSON.stringify(value))).toThrow(
+				`Session entry field ${field} must be a string`,
+			);
+		},
+	);
+
+	it("rejects an invalid fork source", () => {
+		expect(() =>
+			parseSessionFileData(
+				JSON.stringify(entry({ forkedFrom: 42 as unknown as string })),
+			),
+		).toThrow("Session entry field forkedFrom must be a string or null");
 	});
 
-	// AC-0002-B-2: malformed JSON
-	it("AC-0002-B-2: rejects malformed JSON", () => {
-		expect(() => parseJson("{invalid")).toThrow();
+	it("rejects legacy backend state fields as an unsupported v1 entry", () => {
+		expect(() =>
+			parseSessionFileData(
+				JSON.stringify({
+					version: 1,
+					backendState: "imported",
+					sessionId: "old",
+				}),
+			),
+		).toThrow(UnsupportedSessionEntryVersionError);
 	});
 });
 
-// ============================================================================
-// Session Index JSONL Parsing
-// ============================================================================
+describe("continuation state", () => {
+	it("is read-only when local history has no ACP binding", () => {
+		expect(
+			deriveContinuationState({
+				entry: entry(),
+				agentConfigured: true,
+				cwdAvailable: true,
+			}),
+		).toMatchObject({ type: "read_only" });
+	});
 
-interface SessionIndexEntry {
-	sessionId: string;
-	cwd: string;
-	entryFile: string;
-}
+	it("is available only when binding, Agent and cwd are available", () => {
+		expect(
+			deriveContinuationState({
+				entry: entry({
+					acpBinding: { agentId: "pi-acp", sessionId: "opaque" },
+				}),
+				agentConfigured: true,
+				cwdAvailable: true,
+			}),
+		).toEqual({ type: "available" });
+	});
 
-function parseSessionIndexLines(content: string): SessionIndexEntry[] {
-	const lines = content.trim().split("\n");
-	const entries: SessionIndexEntry[] = [];
-
-	for (const line of lines) {
-		if (line.trim() === "") continue;
-		try {
-			const parsed = JSON.parse(line) as SessionIndexEntry;
-			if (parsed.sessionId && parsed.cwd && parsed.entryFile) {
-				entries.push(parsed);
-			}
-		} catch {
-			continue;
-		}
-	}
-
-	return entries;
-}
-
-describe("Session index JSONL parsing", () => {
-	it("parses a single valid line", () => {
-		const content = JSON.stringify({
-			sessionId: "uuid-1",
-			cwd: "/home/user/project",
-			entryFile: "session-550e8400.session",
+	it("reports missing Agent and cwd as backend availability failures", () => {
+		const bound = entry({
+			acpBinding: { agentId: "pi-acp", sessionId: "opaque" },
 		});
-		const entries = parseSessionIndexLines(content);
-		expect(entries).toHaveLength(1);
-		expect(entries[0]).toEqual({
-			sessionId: "uuid-1",
-			cwd: "/home/user/project",
-			entryFile: "session-550e8400.session",
+		const missingAgent = deriveContinuationState({
+			entry: bound,
+			agentConfigured: false,
+			cwdAvailable: true,
 		});
+		expect(missingAgent.type).toBe("backend_unavailable");
+		if (missingAgent.type !== "backend_unavailable")
+			throw new Error("Expected unavailable");
+		expect(missingAgent.reason).toContain("Agent");
+		const missingCwd = deriveContinuationState({
+			entry: bound,
+			agentConfigured: true,
+			cwdAvailable: false,
+		});
+		expect(missingCwd.type).toBe("backend_unavailable");
+		if (missingCwd.type !== "backend_unavailable")
+			throw new Error("Expected unavailable");
+		expect(missingCwd.reason).toContain("Working directory");
 	});
 
-	it("parses multiple valid lines", () => {
-		const entries = parseSessionIndexLines(
-			[
-				JSON.stringify({
-					sessionId: "a",
-					cwd: "/x",
-					entryFile: "a.session",
-				}),
-				JSON.stringify({
-					sessionId: "b",
-					cwd: "/y",
-					entryFile: "b.session",
-				}),
-			].join("\n"),
-		);
-		expect(entries).toHaveLength(2);
-	});
-
-	it("skips malformed lines", () => {
-		const entries = parseSessionIndexLines(
-			[
-				JSON.stringify({
-					sessionId: "a",
-					cwd: "/x",
-					entryFile: "a.session",
-				}),
-				"{broken json",
-				JSON.stringify({
-					sessionId: "c",
-					cwd: "/z",
-					entryFile: "c.session",
-				}),
-			].join("\n"),
-		);
-		expect(entries).toHaveLength(2);
-		expect(entries[0].sessionId).toBe("a");
-		expect(entries[1].sessionId).toBe("c");
-	});
-
-	it("skips lines missing required fields", () => {
-		const entries = parseSessionIndexLines(
-			[
-				JSON.stringify({
-					sessionId: "a",
-					cwd: "/x",
-					entryFile: "a.session",
-				}),
-				JSON.stringify({ sessionId: "b" }), // missing cwd and entryFile
-				JSON.stringify({ cwd: "/z" }), // missing sessionId and entryFile
-			].join("\n"),
-		);
-		expect(entries).toHaveLength(1);
-	});
-
-	it("handles empty content", () => {
-		expect(parseSessionIndexLines("")).toEqual([]);
-		expect(parseSessionIndexLines("\n\n")).toEqual([]);
-	});
-
-	it("filters by cwd", () => {
-		const content = [
-			JSON.stringify({
-				sessionId: "a",
-				cwd: "/x",
-				entryFile: "a.session",
+	it("AC-0011-B-1/E-1: restore failure never falls back to a new session", async () => {
+		const restoreSession = vi
+			.fn()
+			.mockRejectedValue(new Error("not found"));
+		await expect(
+			executeContinuation({ sessionId: "opaque" }, "/project", {
+				restoreSession,
 			}),
-			JSON.stringify({
-				sessionId: "b",
-				cwd: "/y",
-				entryFile: "b.session",
-			}),
-			JSON.stringify({
-				sessionId: "c",
-				cwd: "/x",
-				entryFile: "c.session",
-			}),
-		].join("\n");
-		const all = parseSessionIndexLines(content);
-		const filtered = all.filter((e) => e.cwd === "/x");
-		expect(filtered).toHaveLength(2);
-		expect(filtered.map((e) => e.sessionId)).toEqual(["a", "c"]);
-	});
-});
-
-// ============================================================================
-// JSONL Format Round-trip
-// ============================================================================
-
-describe("JSONL format round-trip", () => {
-	it("session index entry round-trips through JSON stringify/parse", () => {
-		const entry: SessionIndexEntry = {
-			sessionId: "550e8400-e29b-41d4-a716-446655440000",
-			cwd: "/home/user/vault",
-			entryFile: "session-550e8400.session",
-		};
-		const line = JSON.stringify(entry) + "\n";
-		const parsed = JSON.parse(line.trim()) as SessionIndexEntry;
-		expect(parsed).toEqual(entry);
-	});
-
-	it("session file data round-trips through JSON stringify/parse", () => {
-		const data: SessionFileData = {
-			version: 1,
-			entryId: "111e8400-e29b-41d4-a716-446655440000",
-			sessionId: "550e8400-e29b-41d4-a716-446655440000",
-			backendSessionId: "550e8400-e29b-41d4-a716-446655440000",
-			backendState: "connected",
-			agentId: "pi-acp",
-			cwd: "/home/user/vault",
-			title: "New Session",
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString(),
-			forkedFrom: null,
-		};
-		const json = JSON.stringify(data, null, "\t");
-		const parsed = JSON.parse(json) as SessionFileData;
-		expect(parsed).toEqual(data);
+		).rejects.toThrow("not found");
+		expect(restoreSession).toHaveBeenCalledOnce();
 	});
 });

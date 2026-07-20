@@ -28,11 +28,6 @@ import { useSettings } from "../hooks/useSettings";
 // Helpers
 // ============================================================
 
-function getRestorableBackendSessionId(config: SessionFileData): string {
-	if (config.backendState === "unconnected") return "";
-	return config.backendSessionId || config.sessionId || "";
-}
-
 function clampSize(
 	width: number,
 	height: number,
@@ -566,10 +561,14 @@ function FloatingChatComponent({
 						variant="floating"
 						viewId={viewId}
 						workingDirectory={sessionEntry.config.cwd || undefined}
-						initialAgentId={sessionEntry.config.agentId}
-						initialSessionId={getRestorableBackendSessionId(
-							sessionEntry.config,
-						)}
+						initialAgentId={
+							sessionEntry.config.acpBinding?.agentId ||
+							sessionEntry.config.agentId
+						}
+						initialSessionId={
+							sessionEntry.config.acpBinding?.sessionId
+						}
+						sessionEntry={sessionEntry.config}
 						onRegisterCallbacks={onRegisterCallbacks}
 						onAgentIdChanged={(agentId) => {
 							sessionEntry.config.agentId = agentId;
@@ -579,7 +578,6 @@ function FloatingChatComponent({
 							);
 						}}
 						onSessionIdChanged={(sessionId) => {
-							acpClient.setHistorySessionId(sessionId);
 							void plugin.handleSessionIdChangedForFile(
 								sessionEntry.entryFilePath,
 								sessionEntry.config,
