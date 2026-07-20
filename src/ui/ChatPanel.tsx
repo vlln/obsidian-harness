@@ -9,16 +9,19 @@ import {
 	type MenuItem,
 } from "obsidian";
 
-import type { AttachedFile, ChatInputState, ChatMessage } from "../types/chat";
-import { applySingleUpdate, rebuildToolCallIndex } from "../services/message-state";
-import type { SessionUpdate } from "../types/session";
+import type { AttachedFile, ChatInputState } from "../types/chat";
 
 import { isSameDirectory } from "../utils/platform";
-import { computeSessionTitle } from "../services/session-helpers";
+import {
+	buildGeminiDeprecationNotice,
+	computeSessionTitle,
+	decideInitialSessionLifecycle,
+	shouldPersistResolvedAgentId,
+	shouldPersistResolvedSessionId,
+} from "../services/session-helpers";
 import { useHistoryModal } from "../hooks/useHistoryModal";
 import { useChatActions } from "../hooks/useChatActions";
 import { ChangeDirectoryModal } from "./ChangeDirectoryModal";
-import { addRenameSessionMenuItem } from "./EditTitleModal";
 
 // Service imports
 import { getLogger } from "../utils/logger";
@@ -44,7 +47,6 @@ import {
 } from "../types/session";
 import { checkAgentUpdate } from "../services/update-checker";
 import type { SessionStatus } from "../services/view-registry";
-import { buildGeminiDeprecationNotice } from "../services/session-helpers";
 
 /** Stable empty array for useSuggestions when no commands available */
 const EMPTY_COMMANDS: SlashCommand[] = [];
@@ -85,7 +87,7 @@ export interface ChatPanelProps {
 	viewId: string;
 	workingDirectory?: string;
 	initialAgentId?: string;
-	/** .session file sessionId — restore history from JSONL on mount */
+	/** Backend ACP sessionId recorded in the .session file */
 	initialSessionId?: string;
 
 	config?: { agent?: string; model?: string };
@@ -127,9 +129,6 @@ interface AppWithSettings {
 // ============================================================================
 // ChatPanel Component
 // ============================================================================
-
-/** Debounce (ms) for re-saving when trailing chunks arrive after a turn ends (#320). */
-const TRAILING_SAVE_DEBOUNCE_MS = 800;
 
 /**
  * Core chat panel component that encapsulates all chat logic.
@@ -212,7 +211,6 @@ export function ChatPanel({
 		isSending,
 		errorInfo,
 	} = agent;
-	// Load session history from JSONL when opening a .session file	useEffect(() => {		if (!initialSessionId) return;			plugin.settingsService.readHistory(initialSessionId).then((events) => {			if (events.length === 0) return;				const toolCallIndex = new Map<string, number>();			let msgs: ChatMessage[] = [];			for (const event of events) {				msgs = applySingleUpdate(msgs, event as SessionUpdate, toolCallIndex);			}			rebuildToolCallIndex(msgs, toolCallIndex);				agent.setMessagesFromLocal(msgs);			logger.log(`[ChatPanel] Restored ${msgs.length} messages from history`);		}).catch((err) => {			logger.warn(`[ChatPanel] Failed to load history: ${err}`);		});	}, [initialSessionId, plugin, agent.setMessagesFromLocal]);
 	const suggestions = useSuggestions(
 		vaultService,
 		plugin,
@@ -250,6 +248,37 @@ export function ChatPanel({
 		onIgnoreUpdates: agent.setIgnoreUpdates,
 		onClearMessages: agent.clearMessages,
 	});
+	// Restore session via ACP session/load when opening a .session file
+	const sessionRestoredRef = useRef(false);
+	useEffect(() => {
+		const action = decideInitialSessionLifecycle({
+			initialBackendSessionId: initialSessionId,
+			initialAgentId,
+			selectedAgentId: config?.agent,
+			fallbackAgentId: session.agentId,
+			restoreStarted: sessionRestoredRef.current,
+		});
+		if (action.type !== "restore_existing") return;
+
+		sessionRestoredRef.current = true;
+		logger.log(`[ChatPanel] Restoring session: ${action.sessionId}`);
+		agent
+			.restoreSession(action.sessionId, agentCwd)
+			.then(() => {
+				// Flush replay updates that were batched during loadSession await
+				agent.flushPendingUpdates();
+			})
+			.catch((err) => {
+				logger.warn(`[ChatPanel] Session restore failed: ${err}`);
+			});
+	}, [
+		initialSessionId,
+		initialAgentId,
+		config?.agent,
+		session.agentId,
+		agentCwd,
+		agent.restoreSession,
+	]);
 
 	// ============================================================
 	// Local State
@@ -301,7 +330,6 @@ export function ChatPanel({
 	const actions = useChatActions(
 		plugin,
 		agent,
-		sessionHistory,
 		suggestions,
 		session,
 		messages,
@@ -312,9 +340,7 @@ export function ChatPanel({
 	const {
 		handleSendMessage,
 		handleStopGeneration,
-		handleNewChat,
 		handleExportChat,
-		handleSwitchAgent,
 		handleRestartAgent,
 		handleSetMode,
 		handleSetConfigOption,
@@ -377,18 +403,28 @@ export function ChatPanel({
 		setAgentCwd,
 	);
 
-	// ============================================================
-	// Sidebar-specific: handleNewChat wrapper that persists agent ID
-	// ============================================================
-	const handleNewChatWithPersist = useCallback(
+	const handleStartNewSessionEntry = useCallback(
 		async (requestedAgentId?: string) => {
-			await handleNewChat(requestedAgentId);
-			// Persist agent ID for this view (survives Obsidian restart)
-			if (requestedAgentId) {
-				onAgentIdChanged?.(requestedAgentId);
+			if (agent.isSending) {
+				await agent.cancelOperation();
 			}
+			if (messages.length > 0) {
+				await autoExportIfEnabled("newChat", messages, session);
+			}
+			await plugin.createSessionFile({
+				agentId: requestedAgentId ?? session.agentId,
+				cwd: agentCwd,
+			});
 		},
-		[handleNewChat, onAgentIdChanged],
+		[
+			agent.isSending,
+			agent.cancelOperation,
+			messages,
+			session,
+			autoExportIfEnabled,
+			plugin,
+			agentCwd,
+		],
 	);
 
 	// ============================================================
@@ -402,23 +438,32 @@ export function ChatPanel({
 
 	const handleNewChatInDirectory = useCallback(
 		async (directory: string) => {
-			// Auto-export current chat before switching
+			if (agent.isSending) {
+				await agent.cancelOperation();
+			}
 			if (messages.length > 0) {
 				await autoExportIfEnabled("newChat", messages, session);
 			}
-			agent.clearMessages();
-			setAgentCwd(directory);
-			await agent.restartSession(undefined, directory);
+			await plugin.createSessionFile({
+				agentId: session.agentId,
+				cwd: directory,
+			});
 			sessionHistory.invalidateCache();
 		},
 		[
 			messages,
 			session,
+			agent.isSending,
+			agent.cancelOperation,
 			autoExportIfEnabled,
-			agent.clearMessages,
-			agent.restartSession,
+			plugin,
 			sessionHistory.invalidateCache,
 		],
+	);
+
+	const sessionTitle = useMemo(
+		() => computeSessionTitle(messages),
+		[messages],
 	);
 
 	const handleShowSidebarMenu = useCallback(
@@ -430,91 +475,29 @@ export function ChatPanel({
 				item.setTitle("Switch agent").setIsLabel(true);
 			});
 
-			for (const agent of availableAgents) {
+			for (const availableAgent of availableAgents) {
 				menu.addItem((item: MenuItem) => {
-					item.setTitle(agent.displayName)
-						.setChecked(agent.id === (session.agentId || ""))
+					item.setTitle(availableAgent.displayName)
+						.setChecked(
+							availableAgent.id === (session.agentId || ""),
+						)
+						.setDisabled(Boolean(session.sessionId))
 						.onClick(() => {
-							void handleNewChatWithPersist(agent.id);
+							if (session.sessionId) return;
+							agent.selectAgent(availableAgent.id);
+							onAgentIdChanged?.(availableAgent.id);
 						});
 				});
 			}
-
-			menu.addSeparator();
-
-			// -- Actions section --
-			addRenameSessionMenuItem(
-				menu,
-				plugin,
-				session.sessionId,
-				plugin.settingsService
-					.getSavedSessions()
-					.find((s) => s.sessionId === session.sessionId)?.title ??
-					"New session",
-			);
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Open new view")
-					.setIcon("copy-plus")
-					.onClick(() => {
-						void plugin.openNewChatViewWithAgent(
-							plugin.settings.defaultAgentId,
-						);
-					});
-			});
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Restart agent")
-					.setIcon("refresh-cw")
-					.onClick(() => {
-						void handleRestartAgent();
-					});
-			});
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("New chat in directory...")
-					.setIcon("folder-open")
-					.onClick(() => {
-						const modal = new ChangeDirectoryModal(
-							plugin.app,
-							agentCwd,
-							(directory) => {
-								void handleNewChatInDirectory(directory);
-							},
-						);
-						modal.open();
-					});
-			});
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Open session manager")
-					.setIcon("layout-list")
-					.onClick(() => {
-						void plugin.activateSessionManager();
-					});
-			});
-
-			menu.addSeparator();
-
-			menu.addItem((item: MenuItem) => {
-				item.setTitle("Plugin settings")
-					.setIcon("settings")
-					.onClick(() => {
-						handleOpenSettings();
-					});
-			});
 
 			menu.showAtMouseEvent(e.nativeEvent);
 		},
 		[
 			availableAgents,
 			session.agentId,
-			handleNewChatWithPersist,
-			plugin,
-			handleRestartAgent,
-			agentCwd,
-			handleNewChatInDirectory,
-			handleOpenSettings,
+			session.sessionId,
+			agent.selectAgent,
+			onAgentIdChanged,
 		],
 	);
 
@@ -526,7 +509,11 @@ export function ChatPanel({
 				item.setTitle("New chat")
 					.setIcon("plus")
 					.onClick(() => {
-						void handleNewChat();
+						if (onOpenNewWindow) {
+							onOpenNewWindow();
+						} else {
+							void handleStartNewSessionEntry();
+						}
 					});
 			});
 
@@ -547,16 +534,6 @@ export function ChatPanel({
 			});
 
 			menu.addSeparator();
-
-			addRenameSessionMenuItem(
-				menu,
-				plugin,
-				session.sessionId,
-				plugin.settingsService
-					.getSavedSessions()
-					.find((s) => s.sessionId === session.sessionId)?.title ??
-					"New session",
-			);
 
 			if (onOpenNewWindow) {
 				menu.addItem((item: MenuItem) => {
@@ -612,9 +589,10 @@ export function ChatPanel({
 			menu.showAtMouseEvent(e.nativeEvent);
 		},
 		[
-			handleNewChat,
+			handleStartNewSessionEntry,
 			handleOpenHistory,
 			handleExportChat,
+			plugin,
 			onOpenNewWindow,
 			handleRestartAgent,
 			agentCwd,
@@ -671,31 +649,26 @@ export function ChatPanel({
 	// ============================================================
 	// Effects - Session Lifecycle
 	// ============================================================
-	// Initialize session: try to resume existing, fall back to create new
+	// Initialize session on first open (local UUID) or when agent is selected
 	useEffect(() => {
-		const agentId = config?.agent || initialAgentId;
-		const doCreate = () => {
-			logger.log("[Debug] Creating new session via useSession...");
-			void agent.createSession(agentId);
-		};
-
-		if (initialSessionId) {
-			logger.log(`[ChatPanel] Attempting to load session: ${initialSessionId}`);
-			acpClient.loadSession(initialSessionId, agentCwd).then((result) => {
-				logger.log(`[ChatPanel] Session loaded: ${result.sessionId}`);
-				agent.updateSessionFromLoad(
-					result.sessionId,
-					result.modes,
-					result.configOptions,
-				);
-			}).catch((_err) => {
-				logger.log("[ChatPanel] Session load failed, creating new session");
-				doCreate();
-			});
-		} else {
-			doCreate();
+		const action = decideInitialSessionLifecycle({
+			initialBackendSessionId: initialSessionId,
+			initialAgentId,
+			selectedAgentId: config?.agent,
+			fallbackAgentId: session.agentId,
+			restoreStarted: sessionRestoredRef.current,
+		});
+		if (action.type === "wait_for_agent") {
+			logger.log("[ChatPanel] No agent selected yet, waiting...");
+			return;
 		}
-	}, [agent.createSession, agent.updateSessionFromLoad, config?.agent, initialAgentId, initialSessionId, acpClient, agentCwd]);
+		if (action.type === "restore_existing" || action.type === "idle") {
+			logger.log(
+				"[ChatPanel] Existing session, waiting for restoreSession...",
+			);
+			return;
+		}
+	}, [config?.agent, initialAgentId, initialSessionId, session.agentId]);
 
 	// Apply configured model (a select config option with category "model")
 	// when session is ready.
@@ -736,39 +709,16 @@ export function ChatPanel({
 	const sessionRef = useRef(session);
 	const autoExportRef = useRef(autoExportIfEnabled);
 	const closeSessionRef = useRef(agent.closeSession);
-	const saveSessionMessagesRef = useRef(sessionHistory.saveSessionMessages);
-	// True once the user has actually run a turn in THIS session. The
-	// trailing-chunk re-save and close-time flush are armed only after a real
-	// turn, so messages that were merely loaded/replayed are never re-saved
-	// (which would bump updatedAt and corrupt "last used" ordering). (#320 review)
-	const sentThisSessionRef = useRef(false);
-	// Reference identity of the messages array last persisted to disk. Used to
-	// de-duplicate the turn-end save, the trailing-chunk re-save, and the
-	// close-time flush.
-	const lastSavedMessagesRef = useRef<ChatMessage[] | null>(null);
 	messagesRef.current = messages;
 	sessionRef.current = session;
 	autoExportRef.current = autoExportIfEnabled;
 	closeSessionRef.current = agent.closeSession;
-	saveSessionMessagesRef.current = sessionHistory.saveSessionMessages;
 
 	// Cleanup on unmount only - auto-export and close session
 	useEffect(() => {
 		return () => {
 			logger.log("[ChatPanel] Cleanup: auto-export and close session");
-			// Flush trailing-chunk content the debounced save may not have
-			// persisted yet (view closed within the debounce window). Only when a
-			// real turn ran this session and there is unsaved content. (#320 review)
 			const latest = messagesRef.current;
-			const sid = sessionRef.current.sessionId;
-			if (
-				sentThisSessionRef.current &&
-				sid &&
-				latest.length > 0 &&
-				lastSavedMessagesRef.current !== latest
-			) {
-				saveSessionMessagesRef.current(sid, latest);
-			}
 			void (async () => {
 				await autoExportRef.current(
 					"closeChat",
@@ -809,41 +759,17 @@ export function ChatPanel({
 			});
 	}, [isSessionReady, session.agentInfo, logger]);
 
-	// ============================================================
-	// Effects - Save Session Messages on Turn End
-	// ============================================================
-	const prevIsSendingRef = useRef<boolean>(false);
-
-	// Re-loading/switching sessions disarms the trailing-chunk save & flush, so
-	// freshly loaded/replayed messages are never re-saved (which would bump
-	// updatedAt and corrupt "last used" ordering). (#320 review)
+	const prevIsSendingForNotificationRef = useRef(false);
 	useEffect(() => {
-		sentThisSessionRef.current = false;
-	}, [session.sessionId]);
-
-	useEffect(() => {
-		const wasSending = prevIsSendingRef.current;
-		prevIsSendingRef.current = isSending;
-
-		// Save when turn ends (isSending: true -> false) and has messages
+		const wasSending = prevIsSendingForNotificationRef.current;
+		prevIsSendingForNotificationRef.current = isSending;
 		if (
 			wasSending &&
 			!isSending &&
-			session.sessionId &&
+			settings.enableSystemNotifications &&
 			messages.length > 0
 		) {
-			sentThisSessionRef.current = true;
-			lastSavedMessagesRef.current = messages;
-			sessionHistory.saveSessionMessages(session.sessionId, messages);
-			logger.log(
-				`[ChatPanel] Session messages saved: ${session.sessionId}`,
-			);
-
-			// System notification on response completion
-			if (
-				settings.enableSystemNotifications &&
-				!activeDocument.hasFocus()
-			) {
+			if (!activeDocument.hasFocus()) {
 				new Notification("Agent Client", {
 					body: `${activeAgentLabel} has completed the response.`,
 				});
@@ -851,33 +777,9 @@ export function ChatPanel({
 		}
 	}, [
 		isSending,
-		session.sessionId,
 		messages,
-		sessionHistory.saveSessionMessages,
 		settings.enableSystemNotifications,
 		activeAgentLabel,
-		logger,
-	]);
-
-	// Some agents (e.g. OpenCode) emit trailing message chunks *after* end_turn,
-	// so the turn-end save above runs before they arrive and the persisted copy
-	// is truncated. Re-save when messages change while idle, debounced so rapid
-	// trailing updates coalesce into a single write (avoids racing the file). (#320)
-	useEffect(() => {
-		const sessionId = session.sessionId;
-		if (isSending || !sessionId || messages.length === 0) return;
-		if (!sentThisSessionRef.current) return;
-		if (lastSavedMessagesRef.current === messages) return;
-		const timer = window.setTimeout(() => {
-			lastSavedMessagesRef.current = messages;
-			sessionHistory.saveSessionMessages(sessionId, messages);
-		}, TRAILING_SAVE_DEBOUNCE_MS);
-		return () => window.clearTimeout(timer);
-	}, [
-		isSending,
-		session.sessionId,
-		messages,
-		sessionHistory.saveSessionMessages,
 	]);
 
 	// ============================================================
@@ -903,20 +805,30 @@ export function ChatPanel({
 	// ============================================================
 	// Effects - Notify Sidebar Container of Session Title Changes
 	// ============================================================
-	const sessionTitle = useMemo(
-		() =>
-			computeSessionTitle(
-				session.sessionId,
-				settings.savedSessions ?? [],
-				messages,
-			),
-		[session.sessionId, settings.savedSessions, messages],
-	);
 	// Fires on initial mount + every sessionTitle change so the tab reflects the current title.
 	useEffect(() => {
 		onSessionTitleChanged?.();
 	}, [onSessionTitleChanged, sessionTitle]);
-	// BR-002: Notify when ACP sessionId changes (write back to .session file)	useEffect(() => {		if (session.sessionId && session.sessionId !== initialSessionId) {			onSessionIdChanged?.(session.sessionId);		}	}, [session.sessionId, initialSessionId, onSessionIdChanged]);
+	// Persist the runtime-resolved agentId for .session files created with an
+	// empty agentId, so future session/load calls target the same backend.
+	useEffect(() => {
+		if (
+			session.sessionId &&
+			shouldPersistResolvedAgentId(initialAgentId, session.agentId)
+		) {
+			onAgentIdChanged?.(session.agentId);
+		}
+	}, [initialAgentId, onAgentIdChanged, session.agentId, session.sessionId]);
+	// BR-002: Notify when ACP sessionId changes (write back to .session file)
+	useEffect(() => {
+		const resolvedSessionId = session.sessionId;
+		if (
+			resolvedSessionId &&
+			shouldPersistResolvedSessionId(initialSessionId, resolvedSessionId)
+		) {
+			onSessionIdChanged?.(resolvedSessionId);
+		}
+	}, [session.sessionId, initialSessionId, onSessionIdChanged]);
 	// ============================================================
 	// Effects - System Notification on Permission Request
 	// ============================================================
@@ -971,14 +883,12 @@ export function ChatPanel({
 	// ============================================================
 
 	// Refs for workspace event handlers (avoids re-registering on every render)
-	const handleNewChatWithPersistRef = useRef(handleNewChatWithPersist);
-	const handleNewChatRef = useRef(handleNewChat);
+	const handleStartNewSessionEntryRef = useRef(handleStartNewSessionEntry);
 	const approveActivePermissionRef = useRef(agent.approveActivePermission);
 	const rejectActivePermissionRef = useRef(agent.rejectActivePermission);
 	const handleStopGenerationRef = useRef(handleStopGeneration);
 	const handleExportChatRef = useRef(handleExportChat);
-	handleNewChatWithPersistRef.current = handleNewChatWithPersist;
-	handleNewChatRef.current = handleNewChat;
+	handleStartNewSessionEntryRef.current = handleStartNewSessionEntry;
 	approveActivePermissionRef.current = agent.approveActivePermission;
 	rejectActivePermissionRef.current = agent.rejectActivePermission;
 	handleStopGenerationRef.current = handleStopGeneration;
@@ -1008,11 +918,7 @@ export function ChatPanel({
 				"agent-client:new-chat-requested",
 				(targetViewId?: string, agentId?: string) => {
 					if (targetViewId && targetViewId !== viewId) return;
-					if (variant === "sidebar") {
-						void handleNewChatWithPersistRef.current(agentId);
-					} else {
-						void handleNewChatRef.current(agentId);
-					}
+					void handleStartNewSessionEntryRef.current(agentId);
 				},
 			),
 
@@ -1026,7 +932,7 @@ export function ChatPanel({
 							await approveActivePermissionRef.current();
 						if (!success) {
 							new Notice(
-								"[Agent Client] No active permission request",
+								"Agent client: no active permission request",
 							);
 						}
 					})();
@@ -1043,7 +949,7 @@ export function ChatPanel({
 							await rejectActivePermissionRef.current();
 						if (!success) {
 							new Notice(
-								"[Agent Client] No active permission request",
+								"Agent client: no active permission request",
 							);
 						}
 					})();
@@ -1136,12 +1042,7 @@ export function ChatPanel({
 				if (state === "ready") return "ready";
 				return "busy";
 			},
-			getSessionTitle: () =>
-				computeSessionTitle(
-					sessionIdRef.current,
-					plugin.settingsService.getSnapshot().savedSessions ?? [],
-					messagesRef.current,
-				),
+			getSessionTitle: () => computeSessionTitle(messagesRef.current),
 			getSessionId: () => sessionIdRef.current,
 			getInputState: () => ({
 				text: inputValueRef.current,
@@ -1157,7 +1058,6 @@ export function ChatPanel({
 					attachedFilesRef.current.length > 0;
 				return (
 					hasContent &&
-					isSessionReadyRef.current &&
 					!sessionHistoryLoadingRef.current &&
 					!isSendingRef.current
 				);
@@ -1169,10 +1069,7 @@ export function ChatPanel({
 				if (!currentInput.trim() && currentFiles.length === 0) {
 					return false;
 				}
-				if (
-					!isSessionReadyRef.current ||
-					sessionHistoryLoadingRef.current
-				) {
+				if (sessionHistoryLoadingRef.current) {
 					return false;
 				}
 				if (isSendingRef.current) {
@@ -1213,10 +1110,7 @@ export function ChatPanel({
 				variant="sidebar"
 				agentLabel={activeAgentLabel}
 				isUpdateAvailable={isUpdateAvailable}
-				onNewChat={() => void handleNewChatWithPersist()}
-				onExportChat={() => void handleExportChat()}
 				onShowMenu={handleShowSidebarMenu}
-				onOpenHistory={handleOpenHistory}
 			/>
 		) : (
 			<ChatHeader
@@ -1225,7 +1119,9 @@ export function ChatPanel({
 				availableAgents={availableAgents}
 				currentAgentId={session.agentId}
 				isUpdateAvailable={isUpdateAvailable}
-				onAgentChange={(agentId) => void handleSwitchAgent(agentId)}
+				onAgentChange={(agentId) =>
+					void handleStartNewSessionEntry(agentId)
+				}
 				onShowMenu={handleShowFloatingMenu}
 				onMinimize={onMinimize}
 				onClose={onClose}
@@ -1249,7 +1145,7 @@ export function ChatPanel({
 		<MessageList
 			messages={messages}
 			isSending={isSending}
-			isSessionReady={isSessionReady}
+			sessionState={session.state}
 			isRestoringSession={sessionHistory.loading}
 			agentLabel={activeAgentLabel}
 			plugin={plugin}
@@ -1259,6 +1155,27 @@ export function ChatPanel({
 			hasActivePermission={agent.hasActivePermission}
 		/>
 	);
+
+	const handlePrepareSessionConfig = useCallback(async () => {
+		if (session.configOptions?.length) {
+			return session.configOptions;
+		}
+		if (session.sessionId || session.state === "ready") {
+			return session.configOptions;
+		}
+		const prepared = await agent.createSession(
+			session.agentId,
+			session.workingDirectory,
+		);
+		return prepared?.configOptions;
+	}, [
+		agent.createSession,
+		session.agentId,
+		session.configOptions,
+		session.sessionId,
+		session.state,
+		session.workingDirectory,
+	]);
 
 	const inputAreaElement = (
 		<InputArea
@@ -1281,6 +1198,7 @@ export function ChatPanel({
 			onConfigOptionChange={(configId, value) =>
 				void handleSetConfigOption(configId, value)
 			}
+			onPrepareSessionConfig={handlePrepareSessionConfig}
 			usage={session.usage}
 			supportsImages={session.promptCapabilities?.image ?? false}
 			agentId={session.agentId}

@@ -8,6 +8,10 @@ import { TerminalBlock } from "./TerminalBlock";
 import { PermissionBanner } from "./PermissionBanner";
 import { LucideIcon } from "./shared/IconButton";
 import { toRelativePath } from "../utils/paths";
+import {
+	formatToolPayload,
+	summarizeToolInput,
+} from "../services/workbench-display";
 import * as Diff from "diff";
 // import { MarkdownRenderer } from "./shared/MarkdownRenderer";
 
@@ -20,6 +24,44 @@ interface ToolCallBlockProps {
 		requestId: string,
 		optionId: string,
 	) => Promise<void>;
+}
+
+function getKindIconName(kind?: string): string {
+	switch (kind) {
+		case "read":
+			return "book-open";
+		case "edit":
+			return "pencil";
+		case "delete":
+			return "trash";
+		case "move":
+			return "folder-open";
+		case "search":
+			return "search";
+		case "execute":
+			return "square-terminal";
+		case "think":
+			return "message-circle-more";
+		case "fetch":
+			return "globe";
+		case "switch_mode":
+			return "arrow-left-right";
+		default:
+			return "hammer";
+	}
+}
+
+function getStatusIconName(status: string): string {
+	switch (status) {
+		case "completed":
+			return "check";
+		case "failed":
+			return "x";
+		case "in_progress":
+			return "loader";
+		default:
+			return "ellipsis";
+	}
 }
 
 export const ToolCallBlock = React.memo(function ToolCallBlock({
@@ -35,6 +77,7 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 		permissionRequest,
 		locations,
 		rawInput,
+		rawOutput,
 		content: toolContent,
 	} = content;
 
@@ -61,38 +104,31 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 
 	// Get showEmojis setting
 	const showEmojis = plugin.settings.displaySettings.showEmojis;
-
-	// Get Lucide icon name based on tool kind
-	const getKindIconName = (kind?: string): string => {
-		switch (kind) {
-			case "read":
-				return "book-open";
-			case "edit":
-				return "pencil";
-			case "delete":
-				return "trash";
-			case "move":
-				return "folder-open";
-			case "search":
-				return "search";
-			case "execute":
-				return "square-terminal";
-			case "think":
-				return "message-circle-more";
-			case "fetch":
-				return "globe";
-			case "switch_mode":
-				return "arrow-left-right";
-			default:
-				return "hammer";
-		}
-	};
+	const summary = summarizeToolInput({ rawInput, locations, vaultPath });
+	const fullInput = formatToolPayload(rawInput);
+	const fullOutput = formatToolPayload(rawOutput);
+	const hasDetails = Boolean(
+		fullInput || fullOutput || toolContent?.length || permissionRequest,
+	);
+	const [isExpanded, setIsExpanded] = useState(
+		status !== "completed" || permissionRequest?.isActive === true,
+	);
 
 	return (
-		<div className="agent-client-message-tool-call">
+		<div
+			className={`agent-client-message-tool-call agent-client-message-tool-call-${status}`}
+		>
 			{/* Header */}
 			<div className="agent-client-message-tool-call-header">
-				<div className="agent-client-message-tool-call-title">
+				<button
+					type="button"
+					className="agent-client-message-tool-call-title"
+					onClick={() => {
+						if (hasDetails) setIsExpanded((expanded) => !expanded);
+					}}
+					aria-expanded={hasDetails ? isExpanded : undefined}
+					disabled={!hasDetails}
+				>
 					{showEmojis && (
 						<LucideIcon
 							name={getKindIconName(kind)}
@@ -102,25 +138,22 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 					<span className="agent-client-message-tool-call-title-text">
 						{title}
 					</span>
-					{status !== "completed" && (
+					{summary && (
+						<span className="agent-client-message-tool-call-summary">
+							{summary}
+						</span>
+					)}
+					<LucideIcon
+						name={getStatusIconName(status)}
+						className={`agent-client-message-tool-call-status-icon agent-client-status-${status}`}
+					/>
+					{hasDetails && (
 						<LucideIcon
-							name={status === "failed" ? "x" : "ellipsis"}
-							className={`agent-client-message-tool-call-status-icon agent-client-status-${status}`}
+							name={isExpanded ? "chevron-down" : "chevron-right"}
+							className="agent-client-message-tool-call-toggle-icon"
 						/>
 					)}
-				</div>
-				{kind === "execute" &&
-					rawInput &&
-					typeof rawInput.command === "string" && (
-						<div className="agent-client-message-tool-call-command">
-							<code>
-								{rawInput.command}
-								{Array.isArray(rawInput.args) &&
-									rawInput.args.length > 0 &&
-									` ${(rawInput.args as string[]).join(" ")}`}
-							</code>
-						</div>
-					)}
+				</button>
 				{locations && locations.length > 0 && (
 					<div className="agent-client-message-tool-call-locations">
 						{locations.map((loc, idx) => (
@@ -136,49 +169,75 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 				)}
 			</div>
 
-			{/* Tool call content (diffs, terminal output, etc.) */}
-			{toolContent &&
-				toolContent.map((item, index) => {
-					if (item.type === "terminal") {
-						return (
-							<TerminalBlock
-								key={index}
-								terminalId={item.terminalId}
-								terminalClient={terminalClient || null}
-							/>
-						);
-					}
-					if (item.type === "diff") {
-						return (
-							<DiffRenderer
-								key={index}
-								diff={item}
-								plugin={plugin}
-								autoCollapse={
-									plugin.settings.displaySettings
-										.autoCollapseDiffs
-								}
-								collapseThreshold={
-									plugin.settings.displaySettings
-										.diffCollapseThreshold
-								}
-							/>
-						);
-					}
-					return null;
-				})}
+			{isExpanded && hasDetails && (
+				<div className="agent-client-message-tool-call-body">
+					{fullInput && (
+						<div className="agent-client-tool-json-section">
+							<div className="agent-client-tool-json-label">
+								Input
+							</div>
+							<pre className="agent-client-tool-json-block">
+								{fullInput}
+							</pre>
+						</div>
+					)}
 
-			{/* Permission request section */}
-			{permissionRequest && (
-				<PermissionBanner
-					permissionRequest={{
-						...permissionRequest,
-						selectedOptionId: selectedOptionId,
-					}}
-					showEmojis={showEmojis}
-					onApprovePermission={onApprovePermission}
-					onOptionSelected={setSelectedOptionId}
-				/>
+					{/* Tool call content (diffs, terminal output, etc.) */}
+					{toolContent &&
+						toolContent.map((item, index) => {
+							if (item.type === "terminal") {
+								return (
+									<TerminalBlock
+										key={index}
+										terminalId={item.terminalId}
+										terminalClient={terminalClient || null}
+									/>
+								);
+							}
+							if (item.type === "diff") {
+								return (
+									<DiffRenderer
+										key={index}
+										diff={item}
+										plugin={plugin}
+										autoCollapse={
+											plugin.settings.displaySettings
+												.autoCollapseDiffs
+										}
+										collapseThreshold={
+											plugin.settings.displaySettings
+												.diffCollapseThreshold
+										}
+									/>
+								);
+							}
+							return null;
+						})}
+
+					{fullOutput && (
+						<div className="agent-client-tool-json-section">
+							<div className="agent-client-tool-json-label">
+								Output
+							</div>
+							<pre className="agent-client-tool-json-block">
+								{fullOutput}
+							</pre>
+						</div>
+					)}
+
+					{/* Permission request section */}
+					{permissionRequest && (
+						<PermissionBanner
+							permissionRequest={{
+								...permissionRequest,
+								selectedOptionId: selectedOptionId,
+							}}
+							showEmojis={showEmojis}
+							onApprovePermission={onApprovePermission}
+							onOptionSelected={setSelectedOptionId}
+						/>
+					)}
+				</div>
 			)}
 		</div>
 	);

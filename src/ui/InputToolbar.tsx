@@ -1,5 +1,5 @@
 import * as React from "react";
-const { useRef, useEffect, useCallback, useMemo } = React;
+const { useRef, useEffect, useCallback, useMemo, useState } = React;
 import { setIcon, Menu } from "obsidian";
 
 import {
@@ -9,6 +9,7 @@ import {
 	type SessionConfigOption,
 	type SessionConfigSelectGroup,
 } from "../types/session";
+import { buildUsageDisplay } from "../services/usage-display";
 
 // ============================================================================
 // ToolbarDropdown — themed dropdown using Obsidian's Menu
@@ -27,6 +28,105 @@ interface ToolbarDropdownProps {
 	currentValue: string | undefined;
 	onChange: (value: string) => void;
 	className?: string;
+}
+
+function buildSelectItems(option: SessionConfigOption): ToolbarDropdownItem[] {
+	if (option.type !== "select") return [];
+	const flatOptions = flattenConfigSelectOptions(option.options);
+	const isGrouped = option.options.length > 0 && "group" in option.options[0];
+
+	if (!isGrouped) {
+		return flatOptions.map((opt) => ({
+			value: opt.value,
+			label: opt.name,
+		}));
+	}
+
+	const items: ToolbarDropdownItem[] = [];
+	for (const group of option.options as SessionConfigSelectGroup[]) {
+		for (const opt of group.options) {
+			items.push({
+				value: opt.value,
+				label: `${group.name} / ${opt.name}`,
+				groupName: group.name,
+			});
+		}
+	}
+	return items;
+}
+
+function showConfigOptionMenu({
+	event,
+	options,
+	onChange,
+	emptyTitle,
+}: {
+	event: React.MouseEvent<HTMLElement>;
+	options: SessionConfigOption[];
+	onChange?: (configId: string, value: string) => void;
+	emptyTitle: string;
+}): void {
+	const menu = new Menu();
+
+	const selectOptions = options.filter(
+		(option) =>
+			option.type === "select" &&
+			flattenConfigSelectOptions(option.options).length > 0,
+	);
+
+	if (selectOptions.length === 0) {
+		menu.addItem((menuItem) => {
+			menuItem.setTitle(emptyTitle).setIsLabel(true);
+		});
+		menu.addItem((menuItem) => {
+			menuItem.setTitle("No model options from this backend");
+		});
+		menu.showAtMouseEvent(event.nativeEvent);
+		return;
+	}
+
+	menu.addItem((menuItem) => {
+		menuItem.setTitle(emptyTitle).setIsLabel(true);
+	});
+
+	selectOptions.forEach((option, index) => {
+		if (index > 0) {
+			menu.addSeparator();
+		}
+
+		menu.addItem((menuItem) => {
+			menuItem
+				.setTitle(option.description ?? option.name)
+				.setIsLabel(true);
+		});
+
+		const items = buildSelectItems(option);
+		const hasMultipleItems = items.length > 1;
+		let lastGroupName: string | undefined;
+		for (const item of items) {
+			if (
+				item.groupName &&
+				item.groupName !== lastGroupName &&
+				lastGroupName !== undefined
+			) {
+				menu.addSeparator();
+			}
+			lastGroupName = item.groupName;
+
+			menu.addItem((menuItem) => {
+				menuItem
+					.setTitle(item.label)
+					.setChecked(item.value === option.currentValue)
+					.setDisabled(!hasMultipleItems)
+					.onClick(() => {
+						if (!hasMultipleItems) return;
+						onChange?.(option.id, item.value);
+					});
+			});
+		}
+	});
+
+	menu.showAtMouseEvent(event.nativeEvent);
 }
 
 /**
@@ -125,19 +225,35 @@ function ToolbarDropdown({
 // Utility Functions
 // ============================================================================
 
-/** Format token count for display (e.g., 21367 → "21.4K", 200000 → "200K") */
-function formatTokenCount(tokens: number): string {
-	if (tokens < 1000) return String(tokens);
-	const k = tokens / 1000;
-	return k >= 100 ? `${Math.round(k)}K` : `${k.toFixed(1)}K`;
+function isModelConfigOption(option: SessionConfigOption): boolean {
+	if (option.type !== "select") return false;
+	const optionCount = flattenConfigSelectOptions(option.options).length;
+	if (option.category === "model") return optionCount > 0;
+
+	return (
+		(option.category === "model" ||
+			option.category === "model_config" ||
+			option.category === "thought_level") &&
+		optionCount > 1
+	);
 }
 
-/** Get CSS class for usage percentage color thresholds */
-function getUsageColorClass(percentage: number): string {
-	if (percentage >= 90) return "agent-client-usage-danger";
-	if (percentage >= 80) return "agent-client-usage-warning";
-	if (percentage >= 70) return "agent-client-usage-caution";
-	return "agent-client-usage-normal";
+function getModelConfigOptions(
+	configOptions: SessionConfigOption[] | undefined,
+): SessionConfigOption[] {
+	return configOptions?.filter(isModelConfigOption) ?? [];
+}
+
+function getModelLabel(configOptions: SessionConfigOption[]): string {
+	const modelOption = configOptions.find(
+		(option) => option.type === "select" && option.category === "model",
+	);
+	if (!modelOption || modelOption.type !== "select") return "Model";
+
+	const current = flattenConfigSelectOptions(modelOption.options).find(
+		(option) => option.value === modelOption.currentValue,
+	);
+	return current?.name ?? modelOption.name;
 }
 
 // ============================================================================
@@ -153,6 +269,7 @@ export interface InputToolbarProps {
 	onModeChange?: (modeId: string) => void;
 	configOptions?: SessionConfigOption[];
 	onConfigOptionChange?: (configId: string, value: string) => void;
+	onPrepareSessionConfig?: () => Promise<SessionConfigOption[] | undefined>;
 	usage?: SessionUsage;
 	isSessionReady: boolean;
 }
@@ -166,10 +283,69 @@ export function InputToolbar({
 	onModeChange,
 	configOptions,
 	onConfigOptionChange,
+	onPrepareSessionConfig,
 	usage,
 	isSessionReady,
 }: InputToolbarProps) {
+	const addButtonRef = useRef<HTMLButtonElement>(null);
+	const modelButtonRef = useRef<HTMLButtonElement>(null);
+	const modelChevronRef = useRef<HTMLSpanElement>(null);
 	const sendButtonRef = useRef<HTMLButtonElement>(null);
+	const [isPreparingConfig, setIsPreparingConfig] = useState(false);
+	const usageDisplay = useMemo(
+		() => (usage ? buildUsageDisplay(usage) : null),
+		[usage],
+	);
+	const modelConfigOptions = useMemo(
+		() => getModelConfigOptions(configOptions),
+		[configOptions],
+	);
+	const modelConfigLabel = useMemo(
+		() => getModelLabel(modelConfigOptions),
+		[modelConfigOptions],
+	);
+
+	useEffect(() => {
+		if (addButtonRef.current) {
+			setIcon(addButtonRef.current, "plus");
+		}
+	}, []);
+
+	useEffect(() => {
+		if (modelChevronRef.current) {
+			setIcon(modelChevronRef.current, "chevron-down");
+		}
+	}, [isPreparingConfig]);
+
+	const handleAddResource = useCallback(
+		(e: React.MouseEvent<HTMLButtonElement>) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			const menu = new Menu();
+			menu.addItem((item) => {
+				item.setTitle("Add").setIsLabel(true);
+			});
+			menu.addItem((item) => {
+				item.setTitle("Files and folders")
+					.setIcon("paperclip")
+					.onClick(() => {});
+			});
+			menu.addItem((item) => {
+				item.setTitle("Current note")
+					.setIcon("file-text")
+					.onClick(() => {});
+			});
+			menu.addItem((item) => {
+				item.setTitle("Vault search")
+					.setIcon("search")
+					.onClick(() => {});
+			});
+			menu.showAtMouseEvent(e.nativeEvent);
+			addButtonRef.current?.blur();
+		},
+		[],
+	);
 
 	const updateIconColor = useCallback(
 		(svg: SVGElement) => {
@@ -227,116 +403,173 @@ export function InputToolbar({
 		return modes?.availableModes?.find((m) => m.id === id)?.name ?? "Mode";
 	}, [modes]);
 
+	const handlePrepareModelConfig = useCallback(
+		async (e: React.MouseEvent<HTMLButtonElement>) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (!onPrepareSessionConfig || isPreparingConfig) return;
+
+			setIsPreparingConfig(true);
+			try {
+				const preparedOptions = await onPrepareSessionConfig();
+				const preparedModelOptions =
+					getModelConfigOptions(preparedOptions);
+				showConfigOptionMenu({
+					event: e,
+					options: preparedModelOptions,
+					onChange: onConfigOptionChange,
+					emptyTitle: "Model",
+				});
+			} finally {
+				setIsPreparingConfig(false);
+				modelButtonRef.current?.blur();
+			}
+		},
+		[isPreparingConfig, onConfigOptionChange, onPrepareSessionConfig],
+	);
+
 	// ----- Render -----
 
 	return (
 		<div className="agent-client-chat-input-actions">
-			{/* Context Usage Indicator (left-aligned via margin-right: auto) */}
-			{usage && (
-				<span
-					className={`agent-client-usage-indicator ${getUsageColorClass(Math.round((usage.used / usage.size) * 100))}`}
-					aria-label={
-						usage.cost
-							? `${formatTokenCount(usage.used)} / ${formatTokenCount(usage.size)} tokens\n$${usage.cost.amount.toFixed(2)}`
-							: `${formatTokenCount(usage.used)} / ${formatTokenCount(usage.size)} tokens`
-					}
-				>
-					{Math.round((usage.used / usage.size) * 100)}%
-				</span>
-			)}
+			<div className="agent-client-chat-input-actions-left">
+				<button
+					ref={addButtonRef}
+					type="button"
+					className="clickable-icon agent-client-resource-add-button"
+					title="Add context"
+					aria-label="Add context"
+					onClick={handleAddResource}
+				/>
+			</div>
 
-			{/* Config Options (supersedes legacy mode/model selectors) */}
-			{configOptions && configOptions.length > 0 ? (
-				configOptions.map((option) => {
-					// boolean options (ACP 0.28+) are carried as data but
-					// not yet rendered; only select options get a dropdown.
-					if (option.type !== "select") return null;
-					const flatOptions = flattenConfigSelectOptions(
-						option.options,
-					);
-					if (flatOptions.length <= 1) return null;
-
-					const isGrouped =
-						option.options.length > 0 &&
-						"group" in option.options[0];
-
-					let items: ToolbarDropdownItem[];
-					if (isGrouped) {
-						items = [];
-						for (const group of option.options as SessionConfigSelectGroup[]) {
-							for (const opt of group.options) {
-								items.push({
-									value: opt.value,
-									label: `${group.name} / ${opt.name}`,
-									groupName: group.name,
-								});
-							}
-						}
-					} else {
-						items = flatOptions.map((opt) => ({
-							value: opt.value,
-							label: opt.name,
-						}));
-					}
-
-					const currentItem = items.find(
-						(it) => it.value === option.currentValue,
-					);
-					const label = currentItem?.label ?? option.name;
-					const title = option.description ?? option.name;
-
-					return (
-						<ToolbarDropdown
-							key={option.id}
-							label={label}
-							title={title}
-							items={items}
-							currentValue={option.currentValue}
-							onChange={(value) => {
-								onConfigOptionChange?.(option.id, value);
-							}}
-							className={
-								option.category
-									? `agent-client-config-selector-${option.category}`
-									: undefined
-							}
-						/>
-					);
-				})
-			) : (
-				<>
-					{modes &&
-						modes.availableModes.length > 1 &&
-						onModeChange && (
-							<ToolbarDropdown
-								label={currentModeLabel}
-								title={
-									modes.availableModes.find(
-										(m) => m.id === modes.currentModeId,
-									)?.description ?? "Select mode"
-								}
-								items={modeItems}
-								currentValue={modes.currentModeId ?? undefined}
-								onChange={onModeChange}
+			<div className="agent-client-chat-input-actions-right">
+				{usageDisplay && (
+					<span
+						className={`agent-client-usage-indicator agent-client-usage-${usageDisplay.tone}`}
+						aria-label={usageDisplay.ariaLabel}
+						title={usageDisplay.title}
+					>
+						<svg
+							className="agent-client-usage-ring"
+							viewBox="0 0 20 20"
+							aria-hidden="true"
+						>
+							<circle
+								className="agent-client-usage-ring-track"
+								cx="10"
+								cy="10"
+								r="7"
 							/>
-						)}
-				</>
-			)}
+							<circle
+								className="agent-client-usage-ring-progress"
+								cx="10"
+								cy="10"
+								r="7"
+								strokeDasharray={`${(usageDisplay.percentage * 0.4398).toFixed(2)} 43.98`}
+							/>
+						</svg>
+						<span className="agent-client-usage-label">
+							{usageDisplay.percentage}%
+						</span>
+					</span>
+				)}
 
-			{/* Send/Stop Button */}
-			<button
-				ref={sendButtonRef}
-				onClick={onSendOrStop}
-				disabled={isButtonDisabled}
-				className={`agent-client-chat-send-button ${isSending ? "sending" : ""} ${isButtonDisabled ? "agent-client-disabled" : ""}`}
-				title={
-					!isSessionReady
-						? "Connecting..."
-						: isSending
-							? "Stop generation"
-							: "Send message"
-				}
-			></button>
+				{/* Config Options (supersedes legacy mode/model selectors) */}
+				{configOptions && configOptions.length > 0 ? (
+					modelConfigOptions.length > 0 && (
+						<button
+							ref={modelButtonRef}
+							type="button"
+							className="agent-client-toolbar-dropdown agent-client-config-selector-model"
+							title="Model settings"
+							onClick={(event) => {
+								event.preventDefault();
+								event.stopPropagation();
+								showConfigOptionMenu({
+									event,
+									options: modelConfigOptions,
+									onChange: onConfigOptionChange,
+									emptyTitle: "Model",
+								});
+								modelButtonRef.current?.blur();
+							}}
+						>
+							<span className="agent-client-toolbar-dropdown-label-area">
+								<span className="agent-client-toolbar-dropdown-label">
+									{modelConfigLabel}
+								</span>
+							</span>
+							<span
+								ref={modelChevronRef}
+								className="agent-client-toolbar-dropdown-chevron"
+								aria-hidden="true"
+							/>
+						</button>
+					)
+				) : (
+					<>
+						{modes &&
+							modes.availableModes.length > 1 &&
+							onModeChange && (
+								<ToolbarDropdown
+									label={currentModeLabel}
+									title={
+										modes.availableModes.find(
+											(m) => m.id === modes.currentModeId,
+										)?.description ?? "Select mode"
+									}
+									items={modeItems}
+									currentValue={
+										modes.currentModeId ?? undefined
+									}
+									onChange={onModeChange}
+								/>
+							)}
+						{!configOptions?.length && onPrepareSessionConfig && (
+							<button
+								ref={modelButtonRef}
+								type="button"
+								className="agent-client-toolbar-dropdown agent-client-config-selector-model agent-client-config-selector-pending"
+								title="Load model options"
+								onClick={(event) => {
+									void handlePrepareModelConfig(event);
+								}}
+								disabled={isPreparingConfig}
+							>
+								<span className="agent-client-toolbar-dropdown-label-area">
+									<span className="agent-client-toolbar-dropdown-label">
+										{isPreparingConfig
+											? "Loading model..."
+											: "Model"}
+									</span>
+								</span>
+								<span
+									ref={modelChevronRef}
+									className="agent-client-toolbar-dropdown-chevron"
+									aria-hidden="true"
+								/>
+							</button>
+						)}
+					</>
+				)}
+
+				{/* Send/Stop Button */}
+				<button
+					ref={sendButtonRef}
+					type="button"
+					onClick={onSendOrStop}
+					disabled={isButtonDisabled}
+					className={`agent-client-chat-send-button ${isSending ? "sending" : ""} ${isButtonDisabled ? "agent-client-disabled" : ""}`}
+					title={
+						!isSessionReady
+							? "Connecting..."
+							: isSending
+								? "Stop generation"
+								: "Send message"
+					}
+				></button>
+			</div>
 		</div>
 	);
 }

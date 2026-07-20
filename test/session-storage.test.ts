@@ -13,7 +13,10 @@ import { describe, it, expect } from "vitest";
 
 interface SessionFileData {
 	version: number;
+	entryId?: string;
 	sessionId: string;
+	backendSessionId?: string;
+	backendState?: "unconnected" | "connected";
 	agentId: string;
 	cwd: string;
 	title: string;
@@ -28,6 +31,13 @@ function validateSessionFileData(raw: unknown): SessionFileData | null {
 	if (
 		typeof obj.version !== "number" ||
 		typeof obj.sessionId !== "string" ||
+		(typeof obj.entryId !== "undefined" &&
+			typeof obj.entryId !== "string") ||
+		(typeof obj.backendSessionId !== "undefined" &&
+			typeof obj.backendSessionId !== "string") ||
+		(typeof obj.backendState !== "undefined" &&
+			obj.backendState !== "unconnected" &&
+			obj.backendState !== "connected") ||
 		typeof obj.agentId !== "string" ||
 		typeof obj.cwd !== "string" ||
 		typeof obj.title !== "string" ||
@@ -36,26 +46,61 @@ function validateSessionFileData(raw: unknown): SessionFileData | null {
 	) {
 		return null;
 	}
+	if (!obj.entryId && !obj.sessionId) return null;
 	return {
 		version: obj.version,
+		entryId: typeof obj.entryId === "string" ? obj.entryId : undefined,
 		sessionId: obj.sessionId,
+		backendSessionId:
+			typeof obj.backendSessionId === "string"
+				? obj.backendSessionId
+				: undefined,
+		backendState:
+			obj.backendState === "unconnected" ||
+			obj.backendState === "connected"
+				? obj.backendState
+				: undefined,
 		agentId: obj.agentId,
 		cwd: obj.cwd,
 		title: obj.title,
 		createdAt: obj.createdAt,
 		updatedAt: obj.updatedAt,
-		forkedFrom: (typeof obj.forkedFrom === "string" ? obj.forkedFrom : null),
+		forkedFrom: typeof obj.forkedFrom === "string" ? obj.forkedFrom : null,
 	};
+}
+
+function parseJson(content: string): unknown {
+	return JSON.parse(content) as unknown;
 }
 
 describe("SessionFileData validation", () => {
 	it("accepts valid session data", () => {
 		const valid = {
 			version: 1,
+			entryId: "111e8400-e29b-41d4-a716-446655440000",
 			sessionId: "550e8400-e29b-41d4-a716-446655440000",
+			backendSessionId: "550e8400-e29b-41d4-a716-446655440000",
+			backendState: "connected",
 			agentId: "pi-acp",
 			cwd: "/home/user/project",
 			title: "My Session",
+			createdAt: "2026-07-16T00:00:00Z",
+			updatedAt: "2026-07-16T00:00:00Z",
+			forkedFrom: null,
+		};
+		expect(validateSessionFileData(valid)).toEqual(valid);
+	});
+
+	it("accepts a new unconnected session entry", () => {
+		const valid = {
+			version: 1,
+			entryId: "111e8400-e29b-41d4-a716-446655440000",
+			sessionId: "",
+			backendSessionId: "",
+			backendState: "unconnected",
+			agentId: "",
+			cwd: "/home/user/vault",
+			title: "New Session",
 			createdAt: "2026-07-16T00:00:00Z",
 			updatedAt: "2026-07-16T00:00:00Z",
 			forkedFrom: null,
@@ -85,10 +130,11 @@ describe("SessionFileData validation", () => {
 		expect(validateSessionFileData({})).toBeNull();
 	});
 
-	it("rejects missing sessionId", () => {
+	it("rejects missing entry and session identity", () => {
 		expect(
 			validateSessionFileData({
 				version: 1,
+				sessionId: "",
 				agentId: "pi-acp",
 				cwd: "/tmp",
 				title: "x",
@@ -150,12 +196,12 @@ describe("SessionFileData validation", () => {
 
 	// AC-0002-B-1: empty file content
 	it("AC-0002-B-1: rejects empty string", () => {
-		expect(() => JSON.parse("")).toThrow();
+		expect(() => parseJson("")).toThrow();
 	});
 
 	// AC-0002-B-2: malformed JSON
 	it("AC-0002-B-2: rejects malformed JSON", () => {
-		expect(() => JSON.parse("{invalid")).toThrow();
+		expect(() => parseJson("{invalid")).toThrow();
 	});
 });
 
@@ -205,30 +251,56 @@ describe("Session index JSONL parsing", () => {
 	});
 
 	it("parses multiple valid lines", () => {
-		const entries = parseSessionIndexLines([
-			JSON.stringify({ sessionId: "a", cwd: "/x", entryFile: "a.session" }),
-			JSON.stringify({ sessionId: "b", cwd: "/y", entryFile: "b.session" }),
-		].join("\n"));
+		const entries = parseSessionIndexLines(
+			[
+				JSON.stringify({
+					sessionId: "a",
+					cwd: "/x",
+					entryFile: "a.session",
+				}),
+				JSON.stringify({
+					sessionId: "b",
+					cwd: "/y",
+					entryFile: "b.session",
+				}),
+			].join("\n"),
+		);
 		expect(entries).toHaveLength(2);
 	});
 
 	it("skips malformed lines", () => {
-		const entries = parseSessionIndexLines([
-			JSON.stringify({ sessionId: "a", cwd: "/x", entryFile: "a.session" }),
-			"{broken json",
-			JSON.stringify({ sessionId: "c", cwd: "/z", entryFile: "c.session" }),
-		].join("\n"));
+		const entries = parseSessionIndexLines(
+			[
+				JSON.stringify({
+					sessionId: "a",
+					cwd: "/x",
+					entryFile: "a.session",
+				}),
+				"{broken json",
+				JSON.stringify({
+					sessionId: "c",
+					cwd: "/z",
+					entryFile: "c.session",
+				}),
+			].join("\n"),
+		);
 		expect(entries).toHaveLength(2);
 		expect(entries[0].sessionId).toBe("a");
 		expect(entries[1].sessionId).toBe("c");
 	});
 
 	it("skips lines missing required fields", () => {
-		const entries = parseSessionIndexLines([
-			JSON.stringify({ sessionId: "a", cwd: "/x", entryFile: "a.session" }),
-			JSON.stringify({ sessionId: "b" }), // missing cwd and entryFile
-			JSON.stringify({ cwd: "/z" }), // missing sessionId and entryFile
-		].join("\n"));
+		const entries = parseSessionIndexLines(
+			[
+				JSON.stringify({
+					sessionId: "a",
+					cwd: "/x",
+					entryFile: "a.session",
+				}),
+				JSON.stringify({ sessionId: "b" }), // missing cwd and entryFile
+				JSON.stringify({ cwd: "/z" }), // missing sessionId and entryFile
+			].join("\n"),
+		);
 		expect(entries).toHaveLength(1);
 	});
 
@@ -239,9 +311,21 @@ describe("Session index JSONL parsing", () => {
 
 	it("filters by cwd", () => {
 		const content = [
-			JSON.stringify({ sessionId: "a", cwd: "/x", entryFile: "a.session" }),
-			JSON.stringify({ sessionId: "b", cwd: "/y", entryFile: "b.session" }),
-			JSON.stringify({ sessionId: "c", cwd: "/x", entryFile: "c.session" }),
+			JSON.stringify({
+				sessionId: "a",
+				cwd: "/x",
+				entryFile: "a.session",
+			}),
+			JSON.stringify({
+				sessionId: "b",
+				cwd: "/y",
+				entryFile: "b.session",
+			}),
+			JSON.stringify({
+				sessionId: "c",
+				cwd: "/x",
+				entryFile: "c.session",
+			}),
 		].join("\n");
 		const all = parseSessionIndexLines(content);
 		const filtered = all.filter((e) => e.cwd === "/x");
@@ -269,7 +353,10 @@ describe("JSONL format round-trip", () => {
 	it("session file data round-trips through JSON stringify/parse", () => {
 		const data: SessionFileData = {
 			version: 1,
+			entryId: "111e8400-e29b-41d4-a716-446655440000",
 			sessionId: "550e8400-e29b-41d4-a716-446655440000",
+			backendSessionId: "550e8400-e29b-41d4-a716-446655440000",
+			backendState: "connected",
 			agentId: "pi-acp",
 			cwd: "/home/user/vault",
 			title: "New Session",

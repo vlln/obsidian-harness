@@ -17,14 +17,8 @@ export interface SidebarHeaderProps {
 	agentLabel: string;
 	/** Whether a plugin update is available */
 	isUpdateAvailable: boolean;
-	/** Callback to create a new chat session */
-	onNewChat: () => void;
-	/** Callback to export the chat */
-	onExportChat: () => void;
 	/** Callback to show the header menu at the click position */
 	onShowMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
-	/** Callback to open session history */
-	onOpenHistory?: () => void;
 }
 
 /**
@@ -103,10 +97,7 @@ function NavActionButton({
 function SidebarHeader({
 	agentLabel,
 	isUpdateAvailable,
-	onNewChat,
-	onExportChat,
 	onShowMenu,
-	onOpenHistory,
 }: SidebarHeaderProps) {
 	return (
 		<div className="nav-header agent-client-chat-view-header">
@@ -119,23 +110,6 @@ function SidebarHeader({
 						Plugin update available!
 					</span>
 				)}
-				<NavActionButton
-					icon="plus"
-					label="New chat"
-					onClick={onNewChat}
-				/>
-				{onOpenHistory && (
-					<NavActionButton
-						icon="history"
-						label="Session history"
-						onClick={onOpenHistory}
-					/>
-				)}
-				<NavActionButton
-					icon="save"
-					label="Export chat to Markdown"
-					onClick={onExportChat}
-				/>
 				<NavActionButton
 					icon="more-vertical"
 					label="More"

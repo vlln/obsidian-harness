@@ -4,9 +4,14 @@ import {
 	Notice,
 	requestUrl,
 	TFile,
+	TAbstractFile,
 	normalizePath,
 	FileSystemAdapter,
+	Menu,
 } from "obsidian";
+import { existsSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 import * as semver from "semver";
 import { ChatView, VIEW_TYPE_CHAT } from "./ui/ChatView";
 import {
@@ -45,14 +50,21 @@ import {
 	xyPoint,
 } from "./services/settings-normalizer";
 import {
+	selectPreferredDefaultAgentId,
+	uniqueNonEmpty,
+} from "./services/session-helpers";
+import { resolveSessionFolderFromFileMenuTarget } from "./services/session-entry-target";
+import {
 	AgentEnvVar,
 	GeminiAgentSettings,
 	ClaudeAgentSettings,
 	CodexAgentSettings,
 	CustomAgentSettings,
 } from "./types/agent";
-import type { SavedSessionInfo, SessionIndexEntry } from "./types/session";
+import type { SessionFileData, SessionIndexEntry } from "./types/session";
 import { initializeLogger, getLogger } from "./utils/logger";
+
+const PLUGIN_RELEASE_REPO = "vlln/obsidian-harness-frontend";
 
 // Re-export for backward compatibility
 export type { AgentEnvVar, CustomAgentSettings };
@@ -84,21 +96,12 @@ export interface AgentClientPluginSettings {
 	customAgents: CustomAgentSettings[];
 	/** Default agent ID for new views (renamed from activeAgentId for multi-session) */
 	defaultAgentId: string;
+	/** Vault-relative folder where default .session files are created */
+	sessionFolder: string;
 	autoAllowPermissions: boolean;
 	autoMentionActiveNote: boolean;
 	/** Show OS system notifications on response completion and permission requests */
 	enableSystemNotifications: boolean;
-	/** Prompt injection settings for Obsidian-flavored Markdown guidance */
-	promptInjection: {
-		/** Master toggle for prompt injection */
-		enabled: boolean;
-		/** Inject LaTeX math formatting instructions ($...$ and $$...$$) */
-		latex: boolean;
-		/** Instruct agents to use [[Note Name]] wikilink syntax */
-		wikiLinks: boolean;
-		/** Instruct agents to leave a blank line before Markdown tables */
-		tables: boolean;
-	};
 	debugMode: boolean;
 	nodePath: string;
 	exportSettings: {
@@ -128,8 +131,6 @@ export interface AgentClientPluginSettings {
 		showEmojis: boolean;
 		fontSize: number | null;
 	};
-	// Locally saved session metadata (for agents without session/list support)
-	savedSessions: SavedSessionInfo[];
 	// Last used model per agent (agentId → modelId)
 	lastUsedModels: Record<string, string>;
 	// Last used mode per agent (agentId → modeId)
@@ -171,15 +172,10 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 	},
 	customAgents: [],
 	defaultAgentId: "claude-code-acp",
+	sessionFolder: "Sessions",
 	autoAllowPermissions: false,
 	autoMentionActiveNote: true,
 	enableSystemNotifications: true,
-	promptInjection: {
-		enabled: true,
-		latex: true,
-		wikiLinks: true,
-		tables: true,
-	},
 	debugMode: false,
 	nodePath: "",
 	exportSettings: {
@@ -205,7 +201,6 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 		showEmojis: true,
 		fontSize: null,
 	},
-	savedSessions: [],
 	lastUsedModels: {},
 	lastUsedModes: {},
 	lastUsedConfigOptions: {},
@@ -276,32 +271,6 @@ export default class AgentClientPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "focus-next-chat-view",
-			name: "Focus next chat view",
-			callback: () => {
-				this.focusChatView("next");
-			},
-		});
-
-		this.addCommand({
-			id: "focus-previous-chat-view",
-			name: "Focus previous chat view",
-			callback: () => {
-				this.focusChatView("previous");
-			},
-		});
-
-		this.addCommand({
-			id: "open-new-chat-view",
-			name: "Open new chat view",
-			callback: () => {
-				void this.openNewChatViewWithAgent(
-					this.settings.defaultAgentId,
-				);
-			},
-		});
-
-		this.addCommand({
 			id: "open-session-manager",
 			name: "Open session manager",
 			callback: () => {
@@ -318,69 +287,11 @@ export default class AgentClientPlugin extends Plugin {
 			},
 		});
 
-		// Register agent-specific commands
-		this.registerAgentCommands();
-		this.registerPermissionCommands();
-		this.registerBroadcastCommands();
-
-		// Floating chat window commands
-		this.addCommand({
-			id: "open-floating-chat-view",
-			name: "Open floating chat view",
-			checkCallback: (checking) => {
-				if (!this.settings.enableFloatingChat) return false;
-				if (checking) return true;
-				const instances = this.getFloatingChatInstances();
-				if (instances.length === 0) {
-					this.openNewFloatingChat(true);
-				} else if (instances.length === 1) {
-					this.expandFloatingChat(instances[0]);
-				} else {
-					const focused = this.viewRegistry.getFocused();
-					if (focused && focused.viewType === "floating") {
-						focused.expand();
-					} else {
-						this.expandFloatingChat(
-							instances[instances.length - 1],
-						);
-					}
-				}
-			},
-		});
-
-		this.addCommand({
-			id: "open-new-floating-chat-view",
-			name: "Open new floating chat view",
-			checkCallback: (checking) => {
-				if (!this.settings.enableFloatingChat) return false;
-				if (checking) return true;
-				this.openNewFloatingChat(true);
-			},
-		});
-
-		this.addCommand({
-			id: "minimize-floating-chat-view",
-			name: "Minimize floating chat view",
-			checkCallback: (checking) => {
-				if (!this.settings.enableFloatingChat) return false;
-				const focused = this.viewRegistry.getFocused();
-				if (!(focused && focused.viewType === "floating")) return false;
-				if (checking) return true;
-				focused.collapse();
-			},
-		});
-
-		this.addCommand({
-			id: "close-floating-chat-view",
-			name: "Close floating chat view",
-			checkCallback: (checking) => {
-				if (!this.settings.enableFloatingChat) return false;
-				const focused = this.viewRegistry.getFocused();
-				if (!(focused && focused.viewType === "floating")) return false;
-				if (checking) return true;
-				this.closeFloatingChat(focused.viewId);
-			},
-		});
+		this.registerEvent(
+			this.app.workspace.on("file-menu", (menu, file) => {
+				this.addNewSessionFileMenuItem(menu, file);
+			}),
+		);
 
 		this.addSettingTab(new AgentClientSettingTab(this.app, this));
 
@@ -423,14 +334,14 @@ export default class AgentClientPlugin extends Plugin {
 			}),
 		);
 
-			// BR-004: Cascade delete session_index and history when .session file is deleted
-			this.registerEvent(
-				this.app.vault.on("delete", (file) => {
-					if (file.path.endsWith(".session")) {
-						void this.cleanupSessionFile(file.path);
-					}
-				}),
-			);
+		// BR-004: Cascade delete session_index and history when .session file is deleted
+		this.registerEvent(
+			this.app.vault.on("delete", (file) => {
+				if (file.path.endsWith(".session")) {
+					void this.cleanupSessionFile(file.path);
+				}
+			}),
+		);
 	}
 
 	onunload() {
@@ -595,18 +506,6 @@ export default class AgentClientPlugin extends Plugin {
 	}
 
 	/**
-	 * Focus the next or previous ChatView in the list.
-	 * Uses ChatViewRegistry which includes both sidebar and floating views.
-	 */
-	private focusChatView(direction: "next" | "previous"): void {
-		if (direction === "next") {
-			this.viewRegistry.focusNext();
-		} else {
-			this.viewRegistry.focusPrevious();
-		}
-	}
-
-	/**
 	 * Create a new leaf for ChatView based on the configured location setting.
 	 * @param isAdditional - true when opening additional views (e.g., Open New View)
 	 */
@@ -740,10 +639,15 @@ export default class AgentClientPlugin extends Plugin {
 	}
 
 	/**
-	 * Get all available agents (claude, codex, gemini, custom)
+	 * Get all available agents.
+	 *
+	 * Locally discovered backends are listed first because they are known to be
+	 * present in this environment. Built-ins remain visible as configurable
+	 * options, but their commands may still need user setup.
 	 */
 	getAvailableAgents(): Array<{ id: string; displayName: string }> {
-		const agents = [
+		const discovered = this.getDiscoveredAgents();
+		const configured = [
 			{
 				id: this.settings.claude.id,
 				displayName:
@@ -765,14 +669,18 @@ export default class AgentClientPlugin extends Plugin {
 			})),
 		];
 
-		// Auto-discover pi-acp if installed as a pi plugin
-		if (this.isPiAcpAvailable()) {
-			agents.push({
-				id: "pi-acp",
-				displayName: "pi-acp",
-			});
-		}
+		const discoveredIds = new Set(discovered.map((agent) => agent.id));
+		return [
+			...discovered,
+			...configured.filter((agent) => !discoveredIds.has(agent.id)),
+		];
+	}
 
+	private getDiscoveredAgents(): Array<{ id: string; displayName: string }> {
+		const agents: Array<{ id: string; displayName: string }> = [];
+		if (this.isPiAcpAvailable()) {
+			agents.push({ id: "pi-acp", displayName: "pi-acp" });
+		}
 		return agents;
 	}
 
@@ -782,200 +690,10 @@ export default class AgentClientPlugin extends Plugin {
 	 */
 	isPiAcpAvailable(): boolean {
 		try {
-			const { existsSync } = require("fs");
-			const { join } = require("path");
-			const { homedir } = require("os");
 			return existsSync(join(homedir(), ".pi", "pi-acp"));
 		} catch {
 			return false;
 		}
-	}
-
-	/**
-	 * Register commands for each configured agent
-	 */
-	private registerAgentCommands(): void {
-		const agents = this.getAvailableAgents();
-
-		for (const agent of agents) {
-			this.addCommand({
-				id: `switch-agent-to-${agent.id}`,
-				name: `Switch agent to ${agent.displayName}`,
-				callback: () => {
-					this.app.workspace.trigger(
-						"agent-client:new-chat-requested",
-						this.lastActiveChatViewId,
-						agent.id,
-					);
-				},
-			});
-		}
-	}
-
-	private registerPermissionCommands(): void {
-		this.addCommand({
-			id: "approve-active-permission",
-			name: "Approve active permission",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:approve-active-permission",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "reject-active-permission",
-			name: "Reject active permission",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:reject-active-permission",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "toggle-auto-mention",
-			name: "Toggle auto-mention",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:toggle-auto-mention",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "new-chat",
-			name: "New chat",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:new-chat-requested",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "cancel-current-message",
-			name: "Cancel current message",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:cancel-message",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-
-		this.addCommand({
-			id: "export-chat",
-			name: "Export chat",
-			callback: () => {
-				this.app.workspace.trigger(
-					"agent-client:export-chat",
-					this.lastActiveChatViewId,
-				);
-			},
-		});
-	}
-
-	/**
-	 * Register broadcast commands for multi-view operations
-	 */
-	private registerBroadcastCommands(): void {
-		// Broadcast prompt: Copy prompt from active view to all other views
-		this.addCommand({
-			id: "broadcast-prompt",
-			name: "Broadcast prompt",
-			callback: () => {
-				this.broadcastPrompt();
-			},
-		});
-
-		// Broadcast send: Send message in all views that can send
-		this.addCommand({
-			id: "broadcast-send",
-			name: "Broadcast send",
-			callback: () => {
-				void this.broadcastSend();
-			},
-		});
-
-		// Broadcast cancel: Cancel operation in all views
-		this.addCommand({
-			id: "broadcast-cancel",
-			name: "Broadcast cancel",
-			callback: () => {
-				void this.broadcastCancel();
-			},
-		});
-	}
-
-	/**
-	 * Copy prompt from active view to all other views
-	 */
-	private broadcastPrompt(): void {
-		const allViews = this.viewRegistry.getAll();
-		if (allViews.length === 0) {
-			new Notice("[Agent Client] No chat views open");
-			return;
-		}
-
-		const inputState = this.viewRegistry.toFocused((v) =>
-			v.getInputState(),
-		);
-		if (
-			!inputState ||
-			(inputState.text.trim() === "" && inputState.files.length === 0)
-		) {
-			new Notice("[Agent Client] No prompt to broadcast");
-			return;
-		}
-
-		const focusedId = this.viewRegistry.getFocusedId();
-		const targetViews = allViews.filter((v) => v.viewId !== focusedId);
-		if (targetViews.length === 0) {
-			new Notice("[Agent Client] No other chat views to broadcast to");
-			return;
-		}
-
-		for (const view of targetViews) {
-			view.setInputState(inputState);
-		}
-	}
-
-	/**
-	 * Send message in all views that can send
-	 */
-	private async broadcastSend(): Promise<void> {
-		const allViews = this.viewRegistry.getAll();
-		if (allViews.length === 0) {
-			new Notice("[Agent Client] No chat views open");
-			return;
-		}
-
-		const sendableViews = allViews.filter((v) => v.canSend());
-		if (sendableViews.length === 0) {
-			new Notice("[Agent Client] No views ready to send");
-			return;
-		}
-
-		await Promise.allSettled(sendableViews.map((v) => v.sendMessage()));
-	}
-
-	/**
-	 * Cancel operation in all views
-	 */
-	private async broadcastCancel(): Promise<void> {
-		const allViews = this.viewRegistry.getAll();
-		if (allViews.length === 0) {
-			new Notice("[Agent Client] No chat views open");
-			return;
-		}
-
-		await Promise.allSettled(allViews.map((v) => v.cancelOperation()));
-		new Notice("[Agent Client] Cancel broadcast to all views");
 	}
 
 	async loadSettings() {
@@ -1078,6 +796,7 @@ export default class AgentClientPlugin extends Plugin {
 			},
 			customAgents,
 			defaultAgentId,
+			sessionFolder: str(raw.sessionFolder, D.sessionFolder),
 			autoAllowPermissions: bool(
 				raw.autoAllowPermissions,
 				D.autoAllowPermissions,
@@ -1090,15 +809,6 @@ export default class AgentClientPlugin extends Plugin {
 				raw.enableSystemNotifications,
 				D.enableSystemNotifications,
 			),
-			promptInjection: (() => {
-				const rp = obj(raw.promptInjection) ?? {};
-				return {
-					enabled: bool(rp.enabled, D.promptInjection.enabled),
-					latex: bool(rp.latex, D.promptInjection.latex),
-				wikiLinks: bool(rp.wikiLinks, D.promptInjection.wikiLinks),
-					tables: bool(rp.tables, D.promptInjection.tables),
-				};
-			})(),
 			debugMode: bool(raw.debugMode, D.debugMode),
 			nodePath: str(raw.nodePath, D.nodePath),
 			exportSettings: {
@@ -1178,9 +888,6 @@ export default class AgentClientPlugin extends Plugin {
 				showEmojis: bool(rd.showEmojis, D.displaySettings.showEmojis),
 				fontSize: parseChatFontSize(rd.fontSize),
 			},
-			savedSessions: Array.isArray(raw.savedSessions)
-				? (raw.savedSessions as SavedSessionInfo[])
-				: D.savedSessions,
 			lastUsedModels: strRecord(raw.lastUsedModels),
 			lastUsedModes: strRecord(raw.lastUsedModes),
 			lastUsedConfigOptions: nestedStrRecord(raw.lastUsedConfigOptions),
@@ -1205,9 +912,9 @@ export default class AgentClientPlugin extends Plugin {
 			floatingButtonPosition: xyPoint(raw.floatingButtonPosition),
 		};
 
-		this.ensureDefaultAgentId();
+		const defaultAgentChanged = this.ensureDefaultAgentId();
 
-		if (migratedSecrets) {
+		if (migratedSecrets || defaultAgentChanged) {
 			await this.saveSettings();
 		}
 	}
@@ -1298,30 +1005,38 @@ export default class AgentClientPlugin extends Plugin {
 	 * Fetch the latest stable release version from GitHub.
 	 */
 	private async fetchLatestStable(): Promise<string | null> {
-		const response = await requestUrl({
-			url: "https://api.github.com/repos/RAIT-09/obsidian-agent-client/releases/latest",
-		});
-		const data = response.json as { tag_name?: string };
-		return data.tag_name ? semver.clean(data.tag_name) : null;
+		try {
+			const response = await requestUrl({
+				url: `https://api.github.com/repos/${PLUGIN_RELEASE_REPO}/releases/latest`,
+			});
+			const data = response.json as { tag_name?: string };
+			return data.tag_name ? semver.clean(data.tag_name) : null;
+		} catch {
+			return null;
+		}
 	}
 
 	/**
 	 * Fetch the latest prerelease version from GitHub.
 	 */
 	private async fetchLatestPrerelease(): Promise<string | null> {
-		const response = await requestUrl({
-			url: "https://api.github.com/repos/RAIT-09/obsidian-agent-client/releases",
-		});
-		const releases = response.json as Array<{
-			tag_name: string;
-			prerelease: boolean;
-		}>;
+		try {
+			const response = await requestUrl({
+				url: `https://api.github.com/repos/${PLUGIN_RELEASE_REPO}/releases`,
+			});
+			const releases = response.json as Array<{
+				tag_name: string;
+				prerelease: boolean;
+			}>;
 
-		// Find the first prerelease (releases are sorted by date descending)
-		const latestPrerelease = releases.find((r) => r.prerelease);
-		return latestPrerelease
-			? semver.clean(latestPrerelease.tag_name)
-			: null;
+			// Find the first prerelease (releases are sorted by date descending)
+			const latestPrerelease = releases.find((r) => r.prerelease);
+			return latestPrerelease
+				? semver.clean(latestPrerelease.tag_name)
+				: null;
+		} catch {
+			return null;
+		}
 	}
 
 	/**
@@ -1352,7 +1067,7 @@ export default class AgentClientPlugin extends Plugin {
 					? latestStable
 					: latestPrerelease;
 				new Notice(
-					`[Agent Client] Update available: v${newestVersion}`,
+					`Obsidian harness: update available, v${newestVersion}`,
 				);
 				return true;
 			}
@@ -1360,7 +1075,9 @@ export default class AgentClientPlugin extends Plugin {
 			// Stable version user: check stable only
 			const latestStable = await this.fetchLatestStable();
 			if (latestStable && semver.gt(latestStable, currentVersion)) {
-				new Notice(`[Agent Client] Update available: v${latestStable}`);
+				new Notice(
+					`Obsidian harness: update available, v${latestStable}`,
+				);
 				return true;
 			}
 		}
@@ -1368,82 +1085,131 @@ export default class AgentClientPlugin extends Plugin {
 		return false;
 	}
 
-	ensureDefaultAgentId(): void {
-		const availableIds = this.collectAvailableAgentIds();
-		if (availableIds.length === 0) {
-			this.settings.defaultAgentId = DEFAULT_SETTINGS.claude.id;
-			return;
-		}
-		if (!availableIds.includes(this.settings.defaultAgentId)) {
-			this.settings.defaultAgentId = availableIds[0];
-		}
+	ensureDefaultAgentId(): boolean {
+		const configuredIds = this.collectConfiguredAgentIds();
+		const discoveredIds = this.collectDiscoveredAgentIds();
+		const nextDefaultAgentId = selectPreferredDefaultAgentId({
+			currentDefaultId: this.settings.defaultAgentId,
+			configuredAgentIds: configuredIds,
+			discoveredAgentIds: discoveredIds,
+			fallbackAgentId: DEFAULT_SETTINGS.claude.id,
+		});
+		if (nextDefaultAgentId === this.settings.defaultAgentId) return false;
+		this.settings.defaultAgentId = nextDefaultAgentId;
+		return true;
 	}
 
 	private collectAvailableAgentIds(): string[] {
-		const ids = new Set<string>();
-		ids.add(this.settings.claude.id);
-		ids.add(this.settings.codex.id);
-		ids.add(this.settings.gemini.id);
-		for (const agent of this.settings.customAgents) {
-			if (agent.id && agent.id.length > 0) {
-				ids.add(agent.id);
-			}
-		}
-		return Array.from(ids);
+		return uniqueNonEmpty([
+			...this.collectDiscoveredAgentIds(),
+			...this.collectConfiguredAgentIds(),
+		]);
 	}
 
-	/**
-	 * Create a new .session file in the vault root.
-	 *
-	 * Generates a UUID-based sessionId, writes the .session file with
-	 * metadata, appends to session_index.jsonl, and opens the file
-	 * in a HarnessSessionView tab.
-	 */
-	async createSessionFile(): Promise<void> {
-		const sessionId = crypto.randomUUID();
+	private collectConfiguredAgentIds(): string[] {
+		const ids = [
+			this.settings.claude.id,
+			this.settings.codex.id,
+			this.settings.gemini.id,
+		];
+		for (const agent of this.settings.customAgents) {
+			if (agent.id && agent.id.length > 0) {
+				ids.push(agent.id);
+			}
+		}
+		return uniqueNonEmpty(ids);
+	}
 
-		// Default cwd to vault root
+	private collectDiscoveredAgentIds(): string[] {
+		return this.getDiscoveredAgents().map((agent) => agent.id);
+	}
+
+	getVaultRootPath(): string {
 		const adapter = this.app.vault.adapter;
-		const vaultPath =
-			adapter instanceof FileSystemAdapter
-				? adapter.getBasePath()
-				: "";
+		return adapter instanceof FileSystemAdapter
+			? adapter.getBasePath()
+			: "";
+	}
 
-		const content = JSON.stringify(
-			{
-				version: 1,
-				sessionId,
-				agentId: this.settings.defaultAgentId,
-				cwd: vaultPath,
-				title: "New Session",
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-				forkedFrom: null,
-			},
-			null,
-			"\t",
+	private async ensureVaultFolder(folderPath: string): Promise<void> {
+		const normalized = normalizePath(folderPath).replace(/^\/+|\/+$/g, "");
+		if (!normalized) return;
+
+		const parts = normalized.split("/");
+		let current = "";
+		for (const part of parts) {
+			current = current ? `${current}/${part}` : part;
+			if (!this.app.vault.getAbstractFileByPath(current)) {
+				await this.app.vault.createFolder(current);
+			}
+		}
+	}
+
+	private getDefaultSessionFolder(): string {
+		return normalizePath(this.settings.sessionFolder || "Sessions").replace(
+			/^\/+|\/+$/g,
+			"",
 		);
+	}
 
-		const fileName = `session-${sessionId.slice(0, 8)}.session`;
-		const filePath = normalizePath(fileName);
+	private addNewSessionFileMenuItem(menu: Menu, file: TAbstractFile): void {
+		menu.addItem((item) => {
+			item.setTitle("New session")
+				.setIcon("bot-message-square")
+				.onClick(() => {
+					const folder = resolveSessionFolderFromFileMenuTarget(file);
+					void this.createSessionFile({ folder });
+				});
+		});
+	}
+
+	async materializeSessionFile(options?: {
+		agentId?: string;
+		cwd?: string;
+		folder?: string;
+		title?: string;
+		forkedFrom?: string | null;
+	}): Promise<{ file: TFile; config: SessionFileData }> {
+		const entryId = crypto.randomUUID();
+		const cwd = options?.cwd ?? this.getVaultRootPath();
+		const createdAt = new Date().toISOString();
+		const config: SessionFileData = {
+			version: 1,
+			entryId,
+			sessionId: "",
+			backendSessionId: "",
+			backendState: "unconnected",
+			agentId: options?.agentId ?? "",
+			cwd,
+			title: options?.title ?? "New Session",
+			createdAt,
+			updatedAt: createdAt,
+			forkedFrom: options?.forkedFrom ?? null,
+		};
+
+		const content = JSON.stringify(config, null, "\t");
+
+		const folder =
+			options?.folder !== undefined
+				? normalizePath(options.folder).replace(/^\/+|\/+$/g, "")
+				: this.getDefaultSessionFolder();
+		await this.ensureVaultFolder(folder);
+
+		const fileName = `session-${entryId.slice(0, 8)}.session`;
+		const filePath = normalizePath(
+			folder ? `${folder}/${fileName}` : fileName,
+		);
 
 		const existing = this.app.vault.getAbstractFileByPath(filePath);
 		if (existing) {
-			new Notice(`[Harness] File already exists: ${fileName}`);
-			return;
+			throw new Error(`File already exists: ${filePath}`);
 		}
 
-		try {
-			await this.app.vault.create(filePath, content);
-		} catch (error) {
-			new Notice(`[Harness] Failed to create session file: ${error}`);
-			return;
-		}
+		const file = await this.app.vault.create(filePath, content);
 
-		// Append to session_index.jsonl
 		const indexEntry: SessionIndexEntry = {
-			sessionId,
-			cwd: vaultPath,
+			sessionId: entryId,
+			cwd,
 			entryFile: filePath,
 		};
 		try {
@@ -1454,13 +1220,67 @@ export default class AgentClientPlugin extends Plugin {
 			);
 		}
 
-		new Notice(`[Harness] Created ${fileName}`);
+		return { file, config };
+	}
 
-		// Open the file in a HarnessSessionView
-		const file = this.app.vault.getAbstractFileByPath(filePath);
-		if (file instanceof TFile) {
-			await this.app.workspace.getLeaf().openFile(file);
+	async writeSessionConfig(
+		entryFilePath: string,
+		config: SessionFileData,
+	): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(entryFilePath);
+		if (!(file instanceof TFile)) return;
+		config.updatedAt = new Date().toISOString();
+		await this.app.vault.modify(file, JSON.stringify(config, null, "\t"));
+	}
+
+	async handleSessionIdChangedForFile(
+		entryFilePath: string,
+		config: SessionFileData,
+		acpSessionId: string,
+	): Promise<void> {
+		if (config.backendSessionId === acpSessionId) return;
+		const oldSessionId =
+			config.backendSessionId || config.sessionId || config.entryId;
+		config.backendSessionId = acpSessionId;
+		config.backendState = "connected";
+		config.sessionId = acpSessionId;
+		await this.writeSessionConfig(entryFilePath, config);
+
+		try {
+			if (oldSessionId) {
+				await this.settingsService.removeSessionIndex(oldSessionId);
+			}
+			await this.settingsService.appendSessionIndex({
+				sessionId: acpSessionId,
+				cwd: config.cwd,
+				entryFile: entryFilePath,
+			});
+		} catch (error) {
+			getLogger().warn(
+				`[Harness] Failed to update session index: ${error}`,
+			);
 		}
+	}
+
+	/**
+	 * Create a new .session file and open it in a HarnessSessionView tab.
+	 */
+	async createSessionFile(options?: {
+		agentId?: string;
+		cwd?: string;
+		folder?: string;
+	}): Promise<void> {
+		let materialized: { file: TFile; config: SessionFileData };
+		try {
+			materialized = await this.materializeSessionFile(options);
+		} catch (error) {
+			new Notice(`[Harness] Failed to create session file: ${error}`);
+			return;
+		}
+
+		new Notice(`[Harness] Created ${materialized.file.path}`);
+
+		await this.app.workspace.getLeaf().openFile(materialized.file);
 	}
 
 	/**
@@ -1475,9 +1295,7 @@ export default class AgentClientPlugin extends Plugin {
 
 			await this.settingsService.removeSessionIndex(entry.sessionId);
 			await this.settingsService.deleteHistory(entry.sessionId);
-			getLogger().log(
-				`[Harness] Cleaned up session: ${entry.sessionId}`,
-			);
+			getLogger().log(`[Harness] Cleaned up session: ${entry.sessionId}`);
 		} catch (error) {
 			getLogger().warn(
 				`[Harness] Failed to clean up session file ${entryFilePath}: ${error}`,

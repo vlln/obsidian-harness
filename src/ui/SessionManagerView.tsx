@@ -1,4 +1,11 @@
-import { ItemView, WorkspaceLeaf, setIcon, Menu, TFile, Notice } from "obsidian";
+import {
+	ItemView,
+	WorkspaceLeaf,
+	setIcon,
+	Menu,
+	TFile,
+	Notice,
+} from "obsidian";
 import * as React from "react";
 const { useRef, useEffect, useCallback, useState } = React;
 import { useSyncExternalStore } from "react";
@@ -9,7 +16,6 @@ import type {
 	IChatViewContainer,
 	SessionStatus,
 } from "../services/view-registry";
-import { addRenameSessionMenuItem } from "./EditTitleModal";
 import { useSettings } from "../hooks/useSettings";
 import type { SessionIndexEntry } from "../types/session";
 
@@ -76,14 +82,6 @@ const SessionItem = React.memo(function SessionItem({
 		(position: { x: number; y: number }) => {
 			const menu = new Menu();
 
-			addRenameSessionMenuItem(
-				menu,
-				plugin,
-				view.getSessionId(),
-				view.getSessionTitle(),
-				{ label: "Rename" },
-			);
-
 			menu.addItem((item) => {
 				item.setTitle("Close")
 					.setIcon("x")
@@ -148,11 +146,7 @@ const SessionItem = React.memo(function SessionItem({
 	);
 });
 
-function SessionManagerComponent({
-	plugin,
-}: {
-	plugin: AgentClientPlugin;
-}) {
+function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 	const { views, focusedId } = useSyncExternalStore(
 		plugin.viewRegistry.subscribe,
 		plugin.viewRegistry.getSnapshot,
@@ -162,31 +156,34 @@ function SessionManagerComponent({
 	// Subscribe to settings changes so renamed titles are reflected immediately
 	useSettings(plugin);
 
-	// Load saved sessions from session_index.jsonl
-	const [savedSessions, setSavedSessions] = useState<SessionIndexEntry[]>([]);
-	const [savedSessionsLoaded, setSavedSessionsLoaded] = useState(false);
+	// Load session entries from session_index.jsonl
+	const [sessionEntries, setSessionEntries] = useState<SessionIndexEntry[]>(
+		[],
+	);
+	const [sessionEntriesLoaded, setSessionEntriesLoaded] = useState(false);
 
 	useEffect(() => {
 		let cancelled = false;
-		plugin.settingsService.getSessionIndex().then((entries) => {
+		void plugin.settingsService.getSessionIndex().then((entries) => {
 			if (!cancelled) {
-				setSavedSessions(entries);
-				setSavedSessionsLoaded(true);
+				setSessionEntries(entries);
+				setSessionEntriesLoaded(true);
 			}
 		});
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	}, [plugin]);
 
 	// Group saved sessions by cwd
-	const groupedSaved = savedSessions.reduce<Record<string, SessionIndexEntry[]>>(
-		(acc, entry) => {
-			const cwd = entry.cwd || "Unknown";
-			if (!acc[cwd]) acc[cwd] = [];
-			acc[cwd].push(entry);
-			return acc;
-		},
-		{},
-	);
+	const groupedEntries = sessionEntries.reduce<
+		Record<string, SessionIndexEntry[]>
+	>((acc, entry) => {
+		const cwd = entry.cwd || "Unknown";
+		if (!acc[cwd]) acc[cwd] = [];
+		acc[cwd].push(entry);
+		return acc;
+	}, {});
 
 	const handleOpenSavedSession = useCallback(
 		async (entryFile: string) => {
@@ -197,16 +194,17 @@ function SessionManagerComponent({
 				// Orphan entry: clean up
 				new Notice(`Session file not found: ${entryFile}`);
 				const sessionId =
-					savedSessions.find((s) => s.entryFile === entryFile)?.sessionId ?? "";
+					sessionEntries.find((s) => s.entryFile === entryFile)
+						?.sessionId ?? "";
 				if (sessionId) {
 					await plugin.settingsService.removeSessionIndex(sessionId);
 				}
 				// Refresh list
 				const entries = await plugin.settingsService.getSessionIndex();
-				setSavedSessions(entries);
+				setSessionEntries(entries);
 			}
 		},
-		[plugin, savedSessions],
+		[plugin, sessionEntries],
 	);
 
 	return (
@@ -233,32 +231,43 @@ function SessionManagerComponent({
 				</>
 			)}
 
-			{/* Saved Sessions */}
-			{Object.keys(groupedSaved).length > 0 && (
+			{/* Session Files */}
+			{Object.keys(groupedEntries).length > 0 && (
 				<>
 					<div className="tree-item">
 						<div className="tree-item-self agent-client-session-manager-header">
-							Saved Sessions
+							Session Files
 						</div>
 					</div>
-					{Object.entries(groupedSaved).map(([cwd, entries]) => (
-						<div key={cwd} className="agent-client-session-manager-group">
+					{Object.entries(groupedEntries).map(([cwd, entries]) => (
+						<div
+							key={cwd}
+							className="agent-client-session-manager-group"
+						>
 							<div className="tree-item">
 								<div className="tree-item-self agent-client-session-manager-cwd">
 									{cwd}
 								</div>
 							</div>
 							{entries.map((entry) => (
-								<div key={entry.sessionId} className="tree-item">
+								<div
+									key={entry.sessionId}
+									className="tree-item"
+								>
 									<div
 										className="tree-item-self is-clickable"
 										onClick={() => {
-											void handleOpenSavedSession(entry.entryFile);
+											void handleOpenSavedSession(
+												entry.entryFile,
+											);
 										}}
 									>
 										<div className="tree-item-inner agent-client-session-item-text">
 											<div className="agent-client-session-item-title">
-												{entry.entryFile.replace(/\.session$/, "")}
+												{entry.entryFile.replace(
+													/\.session$/,
+													"",
+												)}
 											</div>
 										</div>
 									</div>
@@ -271,10 +280,11 @@ function SessionManagerComponent({
 
 			{/* Empty State */}
 			{views.length === 0 &&
-				Object.keys(groupedSaved).length === 0 &&
-				savedSessionsLoaded && (
+				Object.keys(groupedEntries).length === 0 &&
+				sessionEntriesLoaded && (
 					<div className="agent-client-session-manager-empty">
-						No sessions. Use Cmd+P → "Create new .session file" to start.
+						No sessions. Use Cmd+P → "Create new .session file" to
+						start.
 					</div>
 				)}
 		</div>
@@ -311,9 +321,7 @@ export class SessionManagerView extends ItemView {
 		const container = this.containerEl.children[1];
 		container.empty();
 		this.root = createRoot(container);
-		this.root.render(
-			<SessionManagerComponent plugin={this.plugin} />,
-		);
+		this.root.render(<SessionManagerComponent plugin={this.plugin} />);
 		return Promise.resolve();
 	}
 

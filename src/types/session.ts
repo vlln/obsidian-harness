@@ -303,6 +303,7 @@ export interface ToolCall extends SessionUpdateBase {
 	content?: ToolCallContent[];
 	locations?: ToolCallLocation[];
 	rawInput?: { [k: string]: unknown };
+	rawOutput?: { [k: string]: unknown };
 	permissionRequest?: {
 		requestId: string;
 		options: PermissionOption[];
@@ -326,6 +327,7 @@ export interface ToolCallUpdate extends SessionUpdateBase {
 	content?: ToolCallContent[];
 	locations?: ToolCallLocation[];
 	rawInput?: { [k: string]: unknown };
+	rawOutput?: { [k: string]: unknown };
 	permissionRequest?: {
 		requestId: string;
 		options: PermissionOption[];
@@ -542,12 +544,6 @@ export interface SessionResult {
 	configOptions?: SessionConfigOption[];
 }
 
-/**
- * Locally saved session metadata.
- *
- * Used when agent doesn't support session/list but supports load/resume/fork.
- * Saved to plugin settings via plugin.saveData().
- */
 // ============================================================================
 // Session File Data (.session file in vault)
 // ============================================================================
@@ -559,8 +555,14 @@ export interface SessionResult {
 export interface SessionFileData {
 	/** Format version for backward compatibility */
 	version: number;
-	/** Unique session identifier (UUID) */
+	/** Stable vault entry identifier */
+	entryId?: string;
+	/** Backend ACP session identifier. Empty until session/new succeeds. */
 	sessionId: string;
+	/** Explicit backend ACP session identifier for new files. */
+	backendSessionId?: string;
+	/** Backend lifecycle state for this entry. */
+	backendState?: "unconnected" | "connected";
 	/** Agent ID (claude-code-acp, pi-acp, custom agent ID, etc.) */
 	agentId: string;
 	/** Working directory for the agent */
@@ -588,20 +590,6 @@ export interface SessionIndexEntry {
 	entryFile: string;
 }
 
-export interface SavedSessionInfo {
-	/** Unique session identifier */
-	sessionId: string;
-	/** Agent ID that created this session */
-	agentId: string;
-	/** Working directory for the session */
-	cwd: string;
-	/** Human-readable session title (first 50 chars of first user message) */
-	title?: string;
-	/** ISO 8601 timestamp of session creation */
-	createdAt: string;
-	/** ISO 8601 timestamp of last activity */
-	updatedAt: string;
-}
 /**
  * Domain Models for Agent Initialization Results
  *

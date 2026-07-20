@@ -8,6 +8,7 @@ import { MarkdownRenderer } from "./shared/MarkdownRenderer";
 import { TerminalBlock } from "./TerminalBlock";
 import { ToolCallBlock } from "./ToolCallBlock";
 import { LucideIcon } from "./shared/IconButton";
+import { formatThoughtDuration } from "../services/workbench-display";
 
 // ---------------------------------------------------------------------------
 // TextWithMentions (internal helper)
@@ -110,13 +111,17 @@ function TextWithMentions({
 // ---------------------------------------------------------------------------
 
 interface CollapsibleThoughtProps {
-	text: string;
+	content: Extract<MessageContent, { type: "agent_thought" }>;
 	plugin: AgentClientPlugin;
 }
 
-function CollapsibleThought({ text, plugin }: CollapsibleThoughtProps) {
+function CollapsibleThought({ content, plugin }: CollapsibleThoughtProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const showEmojis = plugin.settings.displaySettings.showEmojis;
+	const duration = formatThoughtDuration(
+		content.startedAt,
+		content.updatedAt,
+	);
 
 	return (
 		<div
@@ -126,11 +131,13 @@ function CollapsibleThought({ text, plugin }: CollapsibleThoughtProps) {
 			<div className="agent-client-collapsible-thought-header">
 				{showEmojis && (
 					<LucideIcon
-						name="lightbulb"
+						name="sparkles"
 						className="agent-client-collapsible-thought-label-icon"
 					/>
 				)}
-				Thinking
+				<span className="agent-client-collapsible-thought-label">
+					Thought for {duration}
+				</span>
 				<LucideIcon
 					name={isExpanded ? "chevron-down" : "chevron-right"}
 					className="agent-client-collapsible-thought-icon"
@@ -138,7 +145,7 @@ function CollapsibleThought({ text, plugin }: CollapsibleThoughtProps) {
 			</div>
 			{isExpanded && (
 				<div className="agent-client-collapsible-thought-content">
-					<MarkdownRenderer text={text} plugin={plugin} />
+					<MarkdownRenderer text={content.text} plugin={plugin} />
 				</div>
 			)}
 		</div>
@@ -188,7 +195,7 @@ function ContentBlock({
 			);
 
 		case "agent_thought":
-			return <CollapsibleThought text={content.text} plugin={plugin} />;
+			return <CollapsibleThought content={content} plugin={plugin} />;
 
 		case "tool_call":
 			return (
@@ -388,51 +395,56 @@ export const MessageBubble = React.memo(function MessageBubble({
 	onApprovePermission,
 }: MessageBubbleProps) {
 	const groups = groupContent(message.content);
+	const hasCopyableText = message.content.some(
+		(c) => (c.type === "text" || c.type === "text_with_context") && c.text,
+	);
 
 	return (
 		<div
-			className={`agent-client-message-renderer ${message.role === "user" ? "agent-client-message-user" : "agent-client-message-assistant"}`}
+			className={`agent-client-message-frame ${message.role === "user" ? "agent-client-message-user-frame" : "agent-client-message-assistant-frame"}`}
 		>
-			{groups.map((group, idx) => {
-				if (group.type === "attachments") {
-					// Render attachments (images + resource_links) in horizontal strip
-					return (
-						<div
-							key={idx}
-							className="agent-client-message-images-strip"
-						>
-							{group.items.map((content, imgIdx) => (
+			<div
+				className={`agent-client-message-renderer ${message.role === "user" ? "agent-client-message-user" : "agent-client-message-assistant"}`}
+			>
+				{groups.map((group, idx) => {
+					if (group.type === "attachments") {
+						// Render attachments (images + resource_links) in horizontal strip
+						return (
+							<div
+								key={idx}
+								className="agent-client-message-images-strip"
+							>
+								{group.items.map((content, imgIdx) => (
+									<ContentBlock
+										key={imgIdx}
+										content={content}
+										plugin={plugin}
+										messageRole={message.role}
+										terminalClient={terminalClient}
+										onApprovePermission={
+											onApprovePermission
+										}
+									/>
+								))}
+							</div>
+						);
+					} else {
+						// Render single non-image content
+						return (
+							<div key={idx}>
 								<ContentBlock
-									key={imgIdx}
-									content={content}
+									content={group.item}
 									plugin={plugin}
 									messageRole={message.role}
 									terminalClient={terminalClient}
 									onApprovePermission={onApprovePermission}
 								/>
-							))}
-						</div>
-					);
-				} else {
-					// Render single non-image content
-					return (
-						<div key={idx}>
-							<ContentBlock
-								content={group.item}
-								plugin={plugin}
-								messageRole={message.role}
-								terminalClient={terminalClient}
-								onApprovePermission={onApprovePermission}
-							/>
-						</div>
-					);
-				}
-			})}
-			{message.content.some(
-				(c) =>
-					(c.type === "text" || c.type === "text_with_context") &&
-					c.text,
-			) && (
+							</div>
+						);
+					}
+				})}
+			</div>
+			{hasCopyableText && (
 				<div className="agent-client-message-actions">
 					<CopyButton contents={message.content} />
 				</div>

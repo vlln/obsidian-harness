@@ -63,6 +63,7 @@ export interface UseAgentMessagesReturn {
 	sendMessage: (
 		content: string,
 		options: SendMessageOptions,
+		sessionOverride?: ChatSession,
 	) => Promise<void>;
 	clearMessages: () => void;
 	setInitialMessages: (
@@ -87,6 +88,8 @@ export interface UseAgentMessagesReturn {
 
 	/** Enqueue a message-level update (used by useAgent for unified handler) */
 	enqueueUpdate: (update: SessionUpdate) => void;
+	/** Force flush pending updates (used after session/load replay) */
+	flushPendingUpdates: () => void;
 }
 
 // ============================================================================
@@ -275,8 +278,13 @@ export function useAgentMessages(
 	}, [settingsAccess]);
 
 	const sendMessage = useCallback(
-		async (content: string, options: SendMessageOptions): Promise<void> => {
-			if (!session.sessionId) {
+		async (
+			content: string,
+			options: SendMessageOptions,
+			sessionOverride?: ChatSession,
+		): Promise<void> => {
+			const activeSession = sessionOverride ?? session;
+			if (!activeSession.sessionId) {
 				setErrorInfo({
 					title: "Cannot Send Message",
 					message: "No active session. Please wait for connection.",
@@ -287,10 +295,14 @@ export function useAgentMessages(
 			// Wait for any in-flight send to settle (e.g. after cancel/stop)
 			// before starting a new one to avoid interleaved state updates.
 			if (sendPromiseRef.current) {
-				try { await sendPromiseRef.current; } catch { /* ignore */ }
+				try {
+					await sendPromiseRef.current;
+				} catch {
+					/* ignore */
+				}
 			}
 
-			const currentSessionId = session.sessionId;
+			const currentSessionId = activeSession.sessionId;
 			const generation = ++generationRef.current;
 			const settings = settingsAccess.getSnapshot();
 
@@ -304,18 +316,12 @@ export function useAgentMessages(
 					isAutoMentionDisabled: options.isAutoMentionDisabled,
 					convertToWsl: shouldConvertToWsl,
 					supportsEmbeddedContext:
-						session.promptCapabilities?.embeddedContext ?? false,
+						activeSession.promptCapabilities?.embeddedContext ??
+						false,
 					maxNoteLength: settings.displaySettings.maxNoteLength,
 					maxSelectionLength:
 						settings.displaySettings.maxSelectionLength,
 					isFirstMessage: options.isFirstMessage,
-					promptInjection: settings.promptInjection.enabled
-						? {
-								latex: settings.promptInjection.latex,
-								wikiLinks: settings.promptInjection.wikiLinks,
-								tables: settings.promptInjection.tables,
-							}
-						: undefined,
 				},
 				vaultAccess,
 				vaultAccess, // IMentionService (same object)
@@ -376,7 +382,7 @@ export function useAgentMessages(
 							sessionId: currentSessionId,
 							agentContent: prepared.agentContent,
 							displayContent: prepared.displayContent,
-							authMethods: session.authMethods,
+							authMethods: activeSession.authMethods,
 						},
 						agentClient,
 					);
@@ -507,5 +513,6 @@ export function useAgentMessages(
 		approveActivePermission,
 		rejectActivePermission,
 		enqueueUpdate,
+		flushPendingUpdates,
 	};
 }

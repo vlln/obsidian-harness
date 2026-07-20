@@ -8,9 +8,13 @@ import { ChatContextProvider } from "./ChatContext";
 import { ChatPanel } from "./ChatPanel";
 import { VaultService } from "../services/vault-service";
 import type { SessionFileData } from "../types/session";
-import { getLogger } from "../utils/logger";
 
 export const VIEW_TYPE_HARNESS_SESSION = "harness-session-view";
+
+function getRestorableBackendSessionId(config: SessionFileData): string {
+	if (config.backendState === "unconnected") return "";
+	return config.backendSessionId || config.sessionId || "";
+}
 
 function SessionChatComponent({
 	plugin,
@@ -40,10 +44,19 @@ function SessionChatComponent({
 				viewId={viewId}
 				workingDirectory={config.cwd || undefined}
 				initialAgentId={config.agentId}
-					initialSessionId={config.sessionId}
-
+				initialSessionId={getRestorableBackendSessionId(config)}
 				viewHost={view}
 				onSessionTitleChanged={() => view.refreshDisplayText()}
+				onAgentIdChanged={(agentId: string) => {
+					config.agentId = agentId;
+					void view.updateSessionConfig(config);
+				}}
+				onSessionIdChanged={(sessionId: string) => {
+					{
+						view.acpClient.setHistorySessionId(sessionId);
+						void view.onSessionIdChanged(sessionId, config);
+					}
+				}}
 			/>
 		</ChatContextProvider>
 	);
@@ -62,6 +75,7 @@ function SessionChatComponent({
 export class HarnessSessionView extends FileView {
 	private root: Root | null = null;
 	private plugin: AgentClientPlugin;
+	private entryFilePath: string | null = null;
 	readonly viewId: string;
 
 	acpClient!: ReturnType<AgentClientPlugin["getOrCreateAcpClient"]>;
@@ -99,6 +113,7 @@ export class HarnessSessionView extends FileView {
 	}
 
 	async onLoadFile(file: TFile): Promise<void> {
+		this.entryFilePath = file.path;
 		const container = this.containerEl.children[1];
 
 		// Unmount previous React root before clearing DOM
@@ -125,25 +140,27 @@ export class HarnessSessionView extends FileView {
 		}
 
 		// Validate required fields
-		if (!config.sessionId || !config.agentId || !config.cwd) {
+		if (!(config.entryId || config.sessionId) || !config.cwd) {
 			container.createEl("div", {
-				text: "Invalid session file: missing required fields (sessionId, agentId, cwd)",
+				text: "Invalid session file: missing required fields",
 				cls: "harness-error",
 			});
 			return;
 		}
 
-		// Check if the configured agent is available
-		const availableAgents = this.plugin.getAvailableAgents();
-		const agentExists = availableAgents.some(
-			(a) => a.id === config.agentId,
-		);
-		if (!agentExists) {
-			container.createEl("div", {
-				text: `Agent "${config.agentId}" is not configured. Please add it in plugin settings.`,
-				cls: "harness-error",
-			});
-			return;
+		// Check if agent is configured (skip if not yet set)
+		if (config.agentId) {
+			const availableAgents = this.plugin.getAvailableAgents();
+			const agentExists = availableAgents.some(
+				(a) => a.id === config.agentId,
+			);
+			if (!agentExists) {
+				container.createEl("div", {
+					text: `Agent "${config.agentId}" is not configured. Please add it in plugin settings.`,
+					cls: "harness-error",
+				});
+				return;
+			}
 		}
 
 		this.acpClient = this.plugin.getOrCreateAcpClient(this.viewId);
@@ -168,48 +185,24 @@ export class HarnessSessionView extends FileView {
 	 * BR-002: Write ACP sessionId back to .session file and session_index.
 	 * Called when the agent creates a new session (sessionId changes from null to a value).
 	 */
-	async onSessionIdChanged(acpSessionId: string, config: SessionFileData): Promise<void> {
-		if (config.sessionId === acpSessionId) return;
-		// Only update on first ACP session creation (local UUID → ACP sessionId).
-		// ACP sessionIds are ULID format (26+ chars starting with digits).
-		// Local UUIDs are standard UUID format (36 chars with hyphens).
-		// Don't overwrite on subsequent session/load or newSession calls.
-		if (config.sessionId.length >= 26 && config.sessionId[0] >= "0" && config.sessionId[0] <= "9") {
-			// Already an ACP sessionId, don't overwrite
-			return;
-		}
-
-		const oldSessionId = config.sessionId;
-		config.sessionId = acpSessionId;
-		config.updatedAt = new Date().toISOString();
-
-		// Update the .session file in vault
-		const file = this.app.workspace.getActiveFile();
-		if (file && file.extension === "session") {
-			await this.app.vault.modify(file, JSON.stringify(config, null, "	"));
-		}
-
-		// Update session_index.jsonl: remove old entry, add new entry
-		try {
-			await this.plugin.settingsService.removeSessionIndex(oldSessionId);
-			await this.plugin.settingsService.appendSessionIndex({
-				sessionId: acpSessionId,
-				cwd: config.cwd,
-				entryFile: file?.path ?? "",
-			});
-		} catch (error) {
-			getLogger().warn(`[Harness] Failed to update session index: ${error}`);
-		}
+	async onSessionIdChanged(
+		acpSessionId: string,
+		config: SessionFileData,
+	): Promise<void> {
+		if (!this.entryFilePath) return;
+		await this.plugin.handleSessionIdChangedForFile(
+			this.entryFilePath,
+			config,
+			acpSessionId,
+		);
 	}
 
 	/**
 	 * Update the .session file with new config (e.g., agentId change).
 	 */
 	async updateSessionConfig(config: SessionFileData): Promise<void> {
-		const file = this.app.workspace.getActiveFile();
-		if (!file || file.extension !== "session") return;
-		config.updatedAt = new Date().toISOString();
-		await this.app.vault.modify(file, JSON.stringify(config, null, "	"));
+		if (!this.entryFilePath) return;
+		await this.plugin.writeSessionConfig(this.entryFilePath, config);
 	}
 
 	async onClose(): Promise<void> {

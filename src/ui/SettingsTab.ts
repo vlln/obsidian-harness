@@ -20,6 +20,8 @@ import {
 	parseChatFontSize,
 } from "../services/settings-normalizer";
 
+/* eslint-disable obsidianmd/ui/sentence-case -- Settings labels contain product names, API acronyms, CLI names, environment variables, and placeholders. */
+
 export class AgentClientSettingTab extends PluginSettingTab {
 	plugin: AgentClientPlugin;
 	private agentSelector: DropdownComponent | null = null;
@@ -106,9 +108,23 @@ export class AgentClientSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.sendMessageShortcut)
 					.onChange(async (value) => {
 						await this.plugin.settingsService.updateSettings({
-							sendMessageShortcut: value as
-								| "enter"
-								| "cmd-enter",
+							sendMessageShortcut: value as "enter" | "cmd-enter",
+						});
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Session folder")
+			.setDesc(
+				"Vault-relative folder for new .session files. Leave empty to create them at the vault root.",
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("Sessions")
+					.setValue(this.plugin.settings.sessionFolder)
+					.onChange(async (value) => {
+						await this.plugin.settingsService.updateSettings({
+							sessionFolder: value.trim(),
 						});
 					}),
 			);
@@ -342,7 +358,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 								autoCollapseDiffs: value,
 							},
 						});
-						this.display();
+						this.refresh();
 					}),
 			);
 
@@ -475,74 +491,6 @@ export class AgentClientSettingTab extends PluginSettingTab {
 			);
 
 		// ─────────────────────────────────────────────────────────────────────
-		// Prompt injection
-		// ───────────��─────────────────────────────────────────────────────────
-
-		new Setting(containerEl).setName("Prompt injection").setHeading();
-
-		new Setting(containerEl)
-			.setName("Inject Obsidian Markdown instructions")
-			.setDesc(
-				"Include formatting guidance in the first message of each session so agents produce Obsidian-compatible Markdown.",
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.promptInjection.enabled)
-					.onChange(async (value) => {
-						this.plugin.settings.promptInjection.enabled = value;
-						await this.plugin.saveSettings();
-						this.display();
-					}),
-			);
-
-		if (this.plugin.settings.promptInjection.enabled) {
-			new Setting(containerEl)
-				.setName("Wikilink formatting")
-				.setDesc(
-					"Instruct agents to use [[Note Name]] wikilink syntax when referencing notes.",
-				)
-				.addToggle((toggle) =>
-					toggle
-						.setValue(
-							this.plugin.settings.promptInjection.wikiLinks,
-						)
-						.onChange(async (value) => {
-							this.plugin.settings.promptInjection.wikiLinks =
-								value;
-							await this.plugin.saveSettings();
-						}),
-				);
-
-			new Setting(containerEl)
-				.setName("Markdown table spacing")
-				.setDesc(
-					"Instruct agents to leave a blank line before Markdown tables so Obsidian renders them correctly.",
-				)
-				.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.promptInjection.tables)
-						.onChange(async (value) => {
-							this.plugin.settings.promptInjection.tables = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-
-			new Setting(containerEl)
-				.setName("LaTeX math formatting")
-				.setDesc(
-					"Instruct agents to use $...$ and $$...$$ delimiters for math expressions.",
-				)
-				.addToggle((toggle) =>
-					toggle
-						.setValue(this.plugin.settings.promptInjection.latex)
-						.onChange(async (value) => {
-							this.plugin.settings.promptInjection.latex = value;
-							await this.plugin.saveSettings();
-						}),
-				);
-		}
-
-		// ─────────────────────────────────────────────────────────────────────
 		// Windows WSL Settings (Windows only)
 		// ─────────────────────────────────────────────────────────────────────
 
@@ -563,7 +511,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 							await this.plugin.settingsService.updateSettings({
 								windowsWslMode: value,
 							});
-							this.display(); // Refresh to show/hide distribution setting
+							this.refresh(); // Refresh to show/hide distribution setting
 						}),
 				);
 
@@ -684,7 +632,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 								includeImages: value,
 							},
 						});
-						this.display();
+						this.refresh();
 					}),
 			);
 
@@ -716,7 +664,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 										| "base64",
 								},
 							});
-							this.display();
+							this.refresh();
 						}),
 				);
 
@@ -848,6 +796,11 @@ export class AgentClientSettingTab extends PluginSettingTab {
 		if (settings.defaultAgentId !== currentValue) {
 			this.agentSelector.setValue(settings.defaultAgentId);
 		}
+	}
+
+	private refresh(): void {
+		// eslint-disable-next-line @typescript-eslint/no-deprecated -- Obsidian settings tabs still refresh by re-rendering display().
+		this.display();
 	}
 
 	/**
@@ -1247,7 +1200,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 					});
 					this.plugin.ensureDefaultAgentId();
 					await this.flushSettings();
-					this.display();
+					this.refresh();
 				});
 		});
 	}
@@ -1296,7 +1249,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 					this.plugin.settings.customAgents.splice(index, 1);
 					this.plugin.ensureDefaultAgentId();
 					await this.flushSettings();
-					this.display();
+					this.refresh();
 				});
 		});
 
@@ -1481,7 +1434,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 							: await resolveCommandPath(commandName);
 						if (found) {
 							await onResolved(found);
-							this.display();
+							this.refresh();
 						} else {
 							btn.setButtonText("Not found");
 							window.setTimeout(() => {

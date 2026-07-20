@@ -174,6 +174,8 @@ export type MessageContent =
 	| {
 			type: "agent_thought";
 			text: string;
+			startedAt?: string;
+			updatedAt?: string;
 	  }
 	| {
 			type: "image";
@@ -249,7 +251,6 @@ export interface AttachedFile {
 
 /**
  * ChatInput component state that can be shared between views.
- * Used for broadcast-prompt command.
  */
 export interface ChatInputState {
 	/** Text content in the input field */

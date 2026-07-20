@@ -42,7 +42,9 @@ If your plugin does not need CSS, delete this file.
 	font: inherit;
 }
 
-.agent-client-session-manager .tree-item-self:hover .agent-client-session-item-more {
+.agent-client-session-manager
+	.tree-item-self:hover
+	.agent-client-session-item-more {
 	opacity: 1;
 }
 
@@ -110,8 +112,12 @@ If your plugin does not need CSS, delete this file.
 }
 
 @keyframes agent-client-spin {
-	from { transform: rotate(0deg); }
-	to { transform: rotate(360deg); }
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 /* ===== Settings Tab Documentation Link ===== */
@@ -147,8 +153,9 @@ If your plugin does not need CSS, delete this file.
 .agent-client-loading-indicator {
 	display: flex;
 	align-items: center;
-	padding: 16px;
-	margin: 4px 0;
+	max-width: var(--ac-workbench-column-width);
+	padding: 16px 0;
+	margin: 4px auto;
 }
 
 .agent-client-loading-indicator.agent-client-hidden {
@@ -290,12 +297,12 @@ If your plugin does not need CSS, delete this file.
 
 /* Tool Call */
 .agent-client-message-tool-call {
-	padding: 8px;
-	margin-bottom: 12px;
+	padding: 4px 0;
+	margin: 10px 0;
 	background-color: transparent;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-	font-size: 0.85em;
+	border: none;
+	border-radius: 0;
+	font-size: 0.9em;
 	user-select: text;
 	overflow-wrap: break-word;
 	word-wrap: break-word;
@@ -303,25 +310,89 @@ If your plugin does not need CSS, delete this file.
 	max-width: 100%;
 }
 
+.agent-client-message-tool-call-header {
+	min-width: 0;
+}
+
 .agent-client-message-tool-call-title {
 	display: flex;
 	align-items: center;
-	gap: 4px;
-	font-weight: bold;
-	margin-bottom: 4px;
+	gap: 8px;
+	width: 100%;
+	padding: 3px 0;
+	font-weight: 400;
+	margin-bottom: 0;
 	user-select: text;
 	white-space: nowrap;
+	min-width: 0;
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+	font: inherit;
+}
+
+.agent-client-message-tool-call-title:hover {
+	opacity: 0.86;
+}
+
+.agent-client-message-tool-call-title:disabled {
+	cursor: default;
+	opacity: 1;
+}
+
+.agent-client-message-tool-call-title:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+	border-radius: 4px;
 }
 
 .agent-client-message-tool-call-title-text {
-	flex: 1;
+	flex: 0 0 auto;
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	font-family: var(--font-monospace);
+	font-size: 13px;
+	color: var(--text-muted);
+}
+
+.agent-client-message-tool-call-summary {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.agent-client-message-tool-call-icon {
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+
+.agent-client-message-tool-call-icon svg {
+	width: 15px;
+	height: 15px;
 }
 
 .agent-client-message-tool-call-status-icon {
-	flex-shrink: 0;
+	flex: 0 0 auto;
+	margin-left: auto;
+}
+
+.agent-client-message-tool-call-toggle-icon {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+}
+
+.agent-client-message-tool-call-toggle-icon svg {
+	width: 14px;
+	height: 14px;
 }
 
 .agent-client-message-tool-call-status-icon svg {
@@ -330,11 +401,22 @@ If your plugin does not need CSS, delete this file.
 	color: var(--text-muted);
 }
 
+.agent-client-message-tool-call-status-icon.agent-client-status-completed svg {
+	color: var(--color-green);
+}
+
+.agent-client-message-tool-call-status-icon.agent-client-status-in_progress
+	svg {
+	color: var(--text-accent);
+	animation: agent-client-spin 1.5s linear infinite;
+}
+
 .agent-client-message-tool-call-status-icon.agent-client-status-failed svg {
 	color: var(--color-red);
 }
 
 .agent-client-message-tool-call-locations {
+	display: none;
 	color: var(--text-muted);
 	user-select: text;
 	overflow-wrap: break-word;
@@ -356,6 +438,44 @@ If your plugin does not need CSS, delete this file.
 .agent-client-message-tool-call-command code {
 	font-family: var(--font-monospace);
 	font-size: 0.9em;
+}
+
+.agent-client-message-tool-call-body {
+	margin-left: 7px;
+	padding: 6px 0 6px 16px;
+	border-left: 2px solid var(--background-modifier-border);
+}
+
+.agent-client-message-tool-call-body:empty {
+	display: none;
+}
+
+.agent-client-tool-json-section {
+	margin: 2px 0 8px;
+}
+
+.agent-client-tool-json-label {
+	margin-bottom: 3px;
+	font-family: var(--font-monospace);
+	font-size: 11px;
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0;
+}
+
+.agent-client-tool-json-block {
+	margin: 0;
+	padding: 8px 10px;
+	max-height: 220px;
+	overflow: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	line-height: 1.45;
+	white-space: pre;
 }
 
 /* Plan */
@@ -505,17 +625,21 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Hide stale inner view-header title (updateHeader() doesn't refresh it); visibility:hidden preserves flex layout. */
-.workspace-leaf-content[data-type="agent-client-chat-view"] > .view-header .view-header-title-container {
+.workspace-leaf-content[data-type="agent-client-chat-view"]
+	> .view-header
+	.view-header-title-container {
 	visibility: hidden;
 }
 
 /* Main container */
 .agent-client-chat-view-container {
 	--ac-chat-font-size: var(--font-text-size);
+	--ac-workbench-column-width: 760px;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 	padding: 0;
+	background: var(--background-primary);
 }
 
 /* Header — uses Obsidian's .nav-header + .nav-buttons-container pattern */
@@ -579,7 +703,7 @@ If your plugin does not need CSS, delete this file.
 /* Messages container */
 .agent-client-chat-view-messages {
 	flex: 1;
-	padding: 16px 8px;
+	padding: 22px 16px 18px;
 	overflow-y: auto;
 	overflow-x: hidden;
 	font-size: var(--ac-chat-font-size);
@@ -589,7 +713,13 @@ If your plugin does not need CSS, delete this file.
 
 /* Virtual item spacing (replaces flex gap: 2px) */
 .agent-client-virtual-item {
-	padding-bottom: 2px;
+	padding-bottom: 10px;
+}
+
+.agent-client-virtual-list-inner {
+	width: 100%;
+	max-width: var(--ac-workbench-column-width);
+	margin: 0 auto;
 }
 
 /* Allow horizontal scroll for wide tables within messages */
@@ -785,14 +915,20 @@ If your plugin does not need CSS, delete this file.
 .agent-client-chat-empty-state {
 	color: var(--text-muted);
 	text-align: center;
-	margin-top: 20px;
+	margin: 22vh auto 0;
+	max-width: var(--ac-workbench-column-width);
+	font-size: var(--font-ui-medium);
 }
 
 /* Input area */
 .agent-client-chat-input-container {
 	flex-shrink: 0;
-	padding: 0 8px;
+	width: 100%;
+	max-width: calc(var(--ac-workbench-column-width) + 32px);
+	margin: 0 auto;
+	padding: 8px 16px 16px;
 	position: relative;
+	box-sizing: border-box;
 }
 
 /* Input box - outer container with border and background */
@@ -800,14 +936,22 @@ If your plugin does not need CSS, delete this file.
 	display: flex;
 	flex-direction: column;
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
+	border-radius: 16px;
 	background-color: var(--background-primary);
 	overflow: hidden;
-	transition: box-shadow 0.15s ease;
+	box-shadow:
+		0 18px 42px rgba(0, 0, 0, 0.08),
+		0 1px 2px rgba(0, 0, 0, 0.04);
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
 }
 
 .agent-client-chat-input-box:focus-within {
-	box-shadow: 0 0 0 1.5px var(--background-modifier-border);
+	border-color: var(--background-modifier-border-hover);
+	box-shadow:
+		0 20px 46px rgba(0, 0, 0, 0.1),
+		0 0 0 1px var(--background-modifier-border-hover);
 }
 
 .agent-client-chat-input-box.agent-client-dragging-over {
@@ -879,12 +1023,12 @@ If your plugin does not need CSS, delete this file.
 
 .agent-client-chat-input-textarea {
 	width: 100%;
-	padding: 12px;
+	padding: 14px 16px 10px;
 	border: none;
 	background-color: transparent;
 	color: var(--text-normal);
 	resize: none;
-	min-height: 80px;
+	min-height: 78px;
 	max-height: 300px;
 	font-family: inherit;
 	font-size: var(--ac-chat-font-size);
@@ -924,7 +1068,7 @@ If your plugin does not need CSS, delete this file.
 .agent-client-textarea-wrapper {
 	position: relative;
 	flex: 1;
-	min-height: 80px;
+	min-height: 78px;
 }
 
 /* Hint overlay for slash commands */
@@ -960,11 +1104,56 @@ If your plugin does not need CSS, delete this file.
 .agent-client-chat-input-actions {
 	display: flex;
 	align-items: center;
-	justify-content: flex-end;
+	justify-content: space-between;
 	flex-wrap: nowrap;
-	gap: 8px;
-	padding: 4px 12px 8px 12px;
+	gap: 12px;
+	padding: 4px 12px 12px 14px;
 	min-width: 0;
+	border-top: 1px solid transparent;
+}
+
+.agent-client-chat-input-actions-left,
+.agent-client-chat-input-actions-right {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.agent-client-chat-input-actions-left {
+	flex: 0 0 auto;
+	gap: 8px;
+}
+
+.agent-client-chat-input-actions-right {
+	flex: 1 1 auto;
+	justify-content: flex-end;
+	gap: 6px;
+}
+
+.agent-client-resource-add-button {
+	width: 28px;
+	height: 28px;
+	padding: 0 !important;
+	margin: 0 !important;
+	border: none !important;
+	border-radius: 50% !important;
+	background-color: var(--background-secondary) !important;
+	color: var(--text-muted);
+	box-shadow: none !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.agent-client-resource-add-button:hover,
+.agent-client-resource-add-button:focus-visible {
+	background-color: var(--background-modifier-hover) !important;
+	color: var(--text-normal);
+}
+
+.agent-client-resource-add-button svg {
+	width: 16px;
+	height: 16px;
 }
 
 /* Toolbar dropdown — opens an Obsidian Menu on click. */
@@ -972,17 +1161,17 @@ If your plugin does not need CSS, delete this file.
 .agent-client-toolbar-dropdown {
 	display: inline-flex;
 	align-items: center;
-	padding: 0 4px !important;
+	padding: 0 8px !important;
 	margin: 0 !important;
 	border: none !important;
-	border-radius: 4px !important;
+	border-radius: 999px !important;
 	background: transparent !important;
 	background-color: transparent !important;
 	box-shadow: none !important;
 	cursor: pointer;
 	transition: background-color 0.1s ease;
-	height: 20px;
-	max-width: 120px;
+	height: 28px;
+	max-width: 180px;
 	min-width: 0;
 	flex-shrink: 1;
 	overflow: hidden;
@@ -1000,7 +1189,7 @@ If your plugin does not need CSS, delete this file.
 
 .agent-client-toolbar-dropdown-label-area {
 	display: grid;
-	max-width: 100px;
+	max-width: 150px;
 	overflow: hidden;
 }
 
@@ -1010,7 +1199,7 @@ If your plugin does not need CSS, delete this file.
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	text-align: left;
-	font-size: 11px;
+	font-size: 12px;
 }
 
 .agent-client-toolbar-dropdown-sizer {
@@ -1018,7 +1207,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 .agent-client-toolbar-dropdown-label {
-	color: var(--text-faint);
+	color: var(--text-muted);
 }
 
 .agent-client-toolbar-dropdown-chevron {
@@ -1034,42 +1223,105 @@ If your plugin does not need CSS, delete this file.
 	height: 12px;
 }
 
+.agent-client-config-selector-model {
+	max-width: 190px;
+}
+
+.agent-client-config-selector-model .agent-client-toolbar-dropdown-label-area {
+	max-width: 160px;
+}
+
+.agent-client-config-selector-effort,
+.agent-client-config-selector-thinking,
+.agent-client-config-selector-reasoning_effort {
+	max-width: 120px;
+}
+
+@media (max-width: 520px) {
+	.agent-client-chat-input-actions {
+		gap: 8px;
+		padding: 4px 10px 10px 12px;
+	}
+
+	.agent-client-chat-input-actions-right {
+		gap: 4px;
+	}
+
+	.agent-client-toolbar-dropdown {
+		max-width: 124px;
+	}
+
+	.agent-client-config-selector-model {
+		max-width: 150px;
+	}
+}
+
 /* Context Usage Indicator */
 .agent-client-usage-indicator {
+	--agent-client-usage-color: var(--text-faint);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	font-size: var(--font-smallest);
-	margin-right: auto;
 	flex-shrink: 0;
 	cursor: default;
 	user-select: none;
 	white-space: nowrap;
+	color: var(--agent-client-usage-color);
+	font-variant-numeric: tabular-nums;
+}
+
+.agent-client-usage-ring {
+	width: 20px;
+	height: 20px;
+	transform: rotate(-90deg);
+}
+
+.agent-client-usage-ring-track,
+.agent-client-usage-ring-progress {
+	fill: none;
+	stroke-width: 2;
+}
+
+.agent-client-usage-ring-track {
+	stroke: var(--background-modifier-border);
+}
+
+.agent-client-usage-ring-progress {
+	stroke: var(--agent-client-usage-color);
+	stroke-linecap: round;
+}
+
+.agent-client-usage-label {
+	color: var(--agent-client-usage-color);
 }
 
 .agent-client-usage-normal {
-	color: var(--text-faint);
+	--agent-client-usage-color: var(--text-faint);
 }
 
 .agent-client-usage-caution {
-	color: var(--color-yellow);
+	--agent-client-usage-color: var(--color-yellow);
 }
 
 .agent-client-usage-warning {
-	color: var(--color-orange);
+	--agent-client-usage-color: var(--color-orange);
 }
 
 .agent-client-usage-danger {
-	color: var(--color-red);
+	--agent-client-usage-color: var(--color-red);
 	font-weight: var(--font-semibold);
 }
 
 /* Send button */
 .agent-client-chat-send-button {
-	width: 20px;
-	height: 20px;
+	width: 28px;
+	height: 28px;
 	padding: 0 !important;
 	margin: 0 !important;
 	border: none !important;
-	border-radius: 0 !important;
-	background-color: transparent !important;
+	border-radius: 50% !important;
+	background-color: var(--background-secondary) !important;
 	cursor: pointer;
 	display: flex;
 	align-items: center;
@@ -1085,6 +1337,10 @@ If your plugin does not need CSS, delete this file.
 	cursor: not-allowed !important;
 }
 
+.agent-client-chat-send-button:hover:not(.agent-client-disabled) {
+	background-color: var(--interactive-accent) !important;
+}
+
 /* Send button icon states */
 .agent-client-chat-send-button svg {
 	transition: color 0.2s ease;
@@ -1095,7 +1351,12 @@ If your plugin does not need CSS, delete this file.
 }
 
 .agent-client-chat-send-button svg.agent-client-icon-active {
-	color: var(--interactive-accent);
+	color: var(--text-normal);
+}
+
+.agent-client-chat-send-button:hover:not(.agent-client-disabled)
+	svg.agent-client-icon-active {
+	color: var(--text-on-accent);
 }
 
 .agent-client-chat-send-button svg.agent-client-icon-inactive {
@@ -1106,23 +1367,38 @@ If your plugin does not need CSS, delete this file.
 
 /* Collapsible Thought */
 .agent-client-collapsible-thought {
-	font-style: italic;
 	color: var(--text-muted);
 	background-color: transparent;
-	font-size: 0.9em;
+	font-size: var(--font-ui-small);
 	cursor: pointer;
 	overflow-wrap: break-word;
 	word-wrap: break-word;
 	word-break: break-word;
 	max-width: 100%;
-	margin-top: 8px;
-	margin-bottom: 12px;
+	margin: 10px 0;
 }
 
 .agent-client-collapsible-thought-header {
 	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: 8px;
+	padding: 3px 0;
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.agent-client-collapsible-thought-label-icon {
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+
+.agent-client-collapsible-thought-label-icon svg {
+	width: 15px;
+	height: 15px;
+}
+
+.agent-client-collapsible-thought-label {
+	min-width: 0;
 }
 
 .agent-client-collapsible-thought-icon {
@@ -1136,8 +1412,11 @@ If your plugin does not need CSS, delete this file.
 }
 
 .agent-client-collapsible-thought-content {
-	margin-top: 8px;
-	padding-left: 16px;
+	margin-top: 2px;
+	margin-left: 7px;
+	padding: 6px 0 6px 16px;
+	border-left: 2px solid var(--background-modifier-border);
+	color: var(--text-muted);
 	user-select: text;
 	overflow-wrap: break-word;
 	word-wrap: break-word;
@@ -1226,9 +1505,9 @@ If your plugin does not need CSS, delete this file.
 /* Message Renderer */
 .agent-client-message-renderer {
 	position: relative;
-	padding: 0 16px;
+	padding: 0;
 	width: 100%;
-	margin: 4px 0;
+	margin: 0;
 	/* Prevent long strings from overflowing */
 	overflow-wrap: break-word;
 	word-wrap: break-word;
@@ -1239,36 +1518,75 @@ If your plugin does not need CSS, delete this file.
 
 .agent-client-message-renderer.agent-client-message-user {
 	width: auto;
-	margin-left: 8px;
-	margin-right: 8px;
-	background-color: var(--background-primary);
+	max-width: min(78%, 640px);
+	margin-left: auto;
+	margin-right: 0;
+	padding: 10px 14px;
+	background-color: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
+	border-radius: 16px;
+}
+
+@media (max-width: 520px) {
+	.agent-client-chat-view-messages {
+		padding: 16px 10px 12px;
+	}
+
+	.agent-client-chat-input-container {
+		padding: 8px 10px 12px;
+	}
+
+	.agent-client-message-user-frame .agent-client-message-renderer {
+		max-width: 92%;
+	}
+}
+
+.agent-client-message-frame {
+	position: relative;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+}
+
+.agent-client-message-user-frame {
+	align-items: flex-end;
+}
+
+.agent-client-message-assistant-frame {
+	align-items: flex-start;
 }
 
 .agent-client-message-renderer.agent-client-message-assistant {
+	max-width: var(--ac-workbench-column-width);
+	margin-right: auto;
 	background-color: transparent;
 	border: none;
 	border-radius: 0;
 }
 
-.agent-client-message-renderer.agent-client-message-assistant
-	.agent-client-message-actions {
-	bottom: -8px;
-}
-
 .agent-client-message-actions {
-	position: absolute;
-	bottom: 4px;
-	right: 8px;
 	display: flex;
 	gap: 2px;
+	margin-top: 4px;
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 0.15s ease;
 }
 
-.agent-client-message-renderer:hover .agent-client-message-actions {
+.agent-client-message-user-frame .agent-client-message-actions {
+	justify-content: flex-end;
+	align-self: flex-end;
+	padding-right: 2px;
+}
+
+.agent-client-message-assistant-frame .agent-client-message-actions {
+	justify-content: flex-start;
+	align-self: flex-start;
+	padding-left: 0;
+}
+
+.agent-client-message-frame:hover .agent-client-message-actions {
 	opacity: 1;
 	pointer-events: auto;
 }
@@ -1293,9 +1611,29 @@ If your plugin does not need CSS, delete this file.
 	word-wrap: break-word;
 	word-break: break-word;
 	overflow-wrap: break-word;
-	margin: 1em 0;
+	margin: 0.7em 0;
 	font-size: var(--ac-chat-font-size);
 	max-width: 100%;
+}
+
+.agent-client-message-user .agent-client-text-with-mentions {
+	margin: 0;
+}
+
+.agent-client-message-assistant .agent-client-markdown-text-renderer {
+	line-height: 1.65;
+}
+
+.agent-client-message-assistant
+	.agent-client-markdown-text-renderer.markdown-rendered
+	> :first-child {
+	margin-top: 0;
+}
+
+.agent-client-message-assistant
+	.agent-client-markdown-text-renderer.markdown-rendered
+	> :last-child {
+	margin-bottom: 0;
 }
 
 .agent-client-text-mention {
@@ -1326,6 +1664,49 @@ If your plugin does not need CSS, delete this file.
 	mjx-container[display="true"] {
 	overflow-x: auto;
 	display: block;
+}
+
+.agent-client-markdown-text-renderer.markdown-rendered
+	pre.agent-client-code-block-with-copy {
+	position: relative;
+	padding-right: 40px;
+}
+
+.agent-client-code-copy-button {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	width: 26px;
+	height: 26px;
+	padding: 0 !important;
+	margin: 0 !important;
+	border: none !important;
+	border-radius: 6px !important;
+	background-color: var(--background-primary) !important;
+	color: var(--text-muted);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+	opacity: 0;
+	pointer-events: none;
+	transition:
+		opacity 0.15s ease,
+		background-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.agent-client-code-block-with-copy:hover .agent-client-code-copy-button,
+.agent-client-code-copy-button:focus-visible {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.agent-client-code-copy-button:hover {
+	background-color: var(--background-modifier-hover) !important;
+	color: var(--text-normal);
+}
+
+.agent-client-code-copy-button svg {
+	width: 14px;
+	height: 14px;
 }
 
 /* Tool Call Diff Renderer */
@@ -2128,7 +2509,8 @@ If your plugin does not need CSS, delete this file.
 }
 
 .agent-client-floating-window .agent-client-chat-input-container {
-	padding-bottom: 8px;
+	max-width: none;
+	padding: 8px 12px 12px;
 }
 
 .agent-client-floating-messages-container {

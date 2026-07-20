@@ -47,7 +47,12 @@ export interface UseAgentSessionReturn {
 	createSession: (
 		overrideAgentId?: string,
 		overrideCwd?: string,
-	) => Promise<void>;
+	) => Promise<ChatSession | null>;
+	selectAgent: (agentId: string) => void;
+
+	/** Restore an existing session via ACP session/load. Agent replays history. */
+	restoreSession: (sessionId: string, cwd: string) => Promise<void>;
+
 	restartSession: (
 		newAgentId?: string,
 		overrideCwd?: string,
@@ -166,7 +171,10 @@ export function useAgentSession(
 	// ============================================================
 
 	const createSession = useCallback(
-		async (overrideAgentId?: string, overrideCwd?: string) => {
+		async (
+			overrideAgentId?: string,
+			overrideCwd?: string,
+		): Promise<ChatSession | null> => {
 			const effectiveCwd = overrideCwd || workingDirectory;
 			const settings = settingsAccess.getSnapshot();
 			const agentId = overrideAgentId || getDefaultAgentId(settings);
@@ -202,7 +210,7 @@ export function useAgentSession(
 						suggestion:
 							"Please check your agent configuration in settings.",
 					});
-					return;
+					return null;
 				}
 
 				const agentConfig = buildAgentConfigWithApiKey(
@@ -262,24 +270,30 @@ export function useAgentSession(
 					finalModes = restored.modes;
 				}
 
-				setSession((prev) => ({
-					...prev,
+				const finalSession: ChatSession = {
+					...sessionRef.current,
 					sessionId: sessionResult.sessionId,
 					state: "ready",
+					agentId,
+					agentDisplayName: currentAgent.displayName,
 					authMethods: initResult?.authMethods ?? [],
 					modes: finalModes,
 					configOptions: finalConfigOptions,
 					promptCapabilities: initResult
 						? initResult.promptCapabilities
-						: prev.promptCapabilities,
+						: sessionRef.current.promptCapabilities,
 					agentCapabilities: initResult
 						? initResult.agentCapabilities
-						: prev.agentCapabilities,
+						: sessionRef.current.agentCapabilities,
 					agentInfo: initResult
 						? initResult.agentInfo
-						: prev.agentInfo,
+						: sessionRef.current.agentInfo,
+					workingDirectory: effectiveCwd,
 					lastActivityAt: new Date(),
-				}));
+				};
+				sessionRef.current = finalSession;
+				setSession(finalSession);
+				return finalSession;
 			} catch (error) {
 				setSession((prev) => ({ ...prev, state: "error" }));
 				setErrorInfo({
@@ -288,9 +302,96 @@ export function useAgentSession(
 					suggestion:
 						"Please check the agent configuration and try again.",
 				});
+				return null;
 			}
 		},
 		[agentClient, settingsAccess, workingDirectory, setErrorInfo],
+	);
+
+	const selectAgent = useCallback(
+		(agentId: string) => {
+			const settings = settingsAccess.getSnapshot();
+			const currentAgent = getCurrentAgent(settings, agentId);
+			setSession((prev) => {
+				if (prev.sessionId || prev.state === "initializing") {
+					return prev;
+				}
+				const next = {
+					...prev,
+					agentId,
+					agentDisplayName: currentAgent.displayName,
+					authMethods: [],
+					availableCommands: undefined,
+					modes: undefined,
+					configOptions: undefined,
+					usage: undefined,
+					promptCapabilities: undefined,
+					agentCapabilities: undefined,
+					agentInfo: undefined,
+					lastActivityAt: new Date(),
+				};
+				sessionRef.current = next;
+				return next;
+			});
+			setErrorInfo(null);
+		},
+		[settingsAccess, setErrorInfo],
+	);
+
+	const restoreSession = useCallback(
+		async (sessionId: string, cwd: string) => {
+			const s = sessionRef.current;
+			const settings = settingsAccess.getSnapshot();
+			const agentId = s.agentId;
+
+			setSession((prev) => ({
+				...prev,
+				sessionId: null,
+				state: "initializing",
+			}));
+			setErrorInfo(null);
+
+			try {
+				const agentSettings = findAgentSettings(settings, agentId);
+				if (!agentSettings)
+					throw new Error(`Agent not found: ${agentId}`);
+
+				const agentConfig = buildAgentConfigWithApiKey(
+					settings,
+					agentSettings,
+					agentId,
+					cwd,
+				);
+
+				// Initialize agent if not already connected
+				if (
+					!agentClient.isInitialized() ||
+					agentClient.getCurrentAgentId() !== agentId
+				) {
+					await agentClient.initialize(agentConfig);
+				}
+
+				// Load existing session — agent replays history via session/update
+				const result = await agentClient.loadSession(sessionId, cwd);
+
+				setSession((prev) => ({
+					...prev,
+					sessionId: result.sessionId,
+					state: "ready",
+					modes: result.modes ?? prev.modes,
+					configOptions: result.configOptions ?? prev.configOptions,
+					lastActivityAt: new Date(),
+				}));
+			} catch (error) {
+				setErrorInfo({
+					title: "Session Restore Failed",
+					message: extractErrorMessage(error),
+				});
+				setSession((prev) => ({ ...prev, state: "error" }));
+				throw error;
+			}
+		},
+		[agentClient, settingsAccess],
 	);
 
 	const restartSession = useCallback(
@@ -301,14 +402,10 @@ export function useAgentSession(
 	);
 
 	const closeSession = useCallback(async () => {
-		const s = sessionRef.current;
-		if (s.sessionId) {
-			try {
-				await agentClient.cancel(s.sessionId);
-			} catch (error) {
-				getLogger().warn("Failed to cancel session:", error);
-			}
-		}
+		// Closing a tab/view is not the same operation as cancelling an
+		// in-flight prompt. Some ACP backends treat session/cancel as an
+		// interruption signal that can affect persistence, so normal close only
+		// tears down the process. The Stop action still uses cancelOperation().
 		try {
 			await agentClient.disconnect();
 		} catch (error) {
@@ -541,6 +638,9 @@ export function useAgentSession(
 		session,
 		isReady,
 		createSession,
+		selectAgent,
+		restoreSession,
+
 		restartSession,
 		closeSession,
 		forceRestartAgent,

@@ -10,7 +10,7 @@ import type {
 	GeminiAgentSettings,
 	CodexAgentSettings,
 } from "../types/agent";
-import type { ChatSession, SavedSessionInfo } from "../types/session";
+import type { ChatSession } from "../types/session";
 import type { ChatMessage } from "../types/chat";
 import { toAgentConfig } from "./settings-normalizer";
 import { truncateTitle } from "../utils/text";
@@ -29,6 +29,105 @@ export interface AgentDisplayInfo {
 	id: string;
 	/** Display name for UI */
 	displayName: string;
+}
+
+export function uniqueNonEmpty(
+	values: Array<string | null | undefined>,
+): string[] {
+	return Array.from(
+		new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)),
+	);
+}
+
+export function selectPreferredDefaultAgentId({
+	currentDefaultId,
+	configuredAgentIds,
+	discoveredAgentIds,
+	fallbackAgentId,
+}: {
+	currentDefaultId: string | null | undefined;
+	configuredAgentIds: string[];
+	discoveredAgentIds: string[];
+	fallbackAgentId: string;
+}): string {
+	const configured = uniqueNonEmpty(configuredAgentIds);
+	const discovered = uniqueNonEmpty(discoveredAgentIds);
+	const current = currentDefaultId?.trim() ?? "";
+
+	if (current && discovered.includes(current)) return current;
+	if (
+		current &&
+		current !== fallbackAgentId &&
+		configured.includes(current)
+	) {
+		return current;
+	}
+	if (discovered.length > 0) return discovered[0];
+	if (current && configured.includes(current)) return current;
+	return configured[0] ?? fallbackAgentId;
+}
+
+export type InitialSessionLifecycleAction =
+	| { type: "idle" }
+	| { type: "wait_for_agent" }
+	| { type: "restore_existing"; sessionId: string };
+
+/**
+ * New .session files are created before the user/backend choice is resolved.
+ * Once the runtime session has a concrete agentId, persist it exactly once so
+ * future session/load calls use the same backend instead of guessing defaults.
+ */
+export function shouldPersistResolvedAgentId(
+	storedAgentId: string | null | undefined,
+	resolvedAgentId: string | null | undefined,
+): boolean {
+	return Boolean(!storedAgentId && resolvedAgentId);
+}
+
+/**
+ * ACP session IDs are opaque. Restore is valid only after session/new has
+ * produced a backend session id and the .session file has recorded it.
+ */
+export function shouldRestoreInitialSession(
+	backendSessionId: string | null | undefined,
+	agentId: string | null | undefined,
+): boolean {
+	return Boolean(backendSessionId && agentId);
+}
+
+/**
+ * Decide the first lifecycle action for a ChatPanel opened from either a
+ * normal chat view or a .session file. This keeps restore/create decisions
+ * consistent across React effects.
+ */
+export function decideInitialSessionLifecycle({
+	initialBackendSessionId,
+	initialAgentId,
+	selectedAgentId,
+	fallbackAgentId,
+	restoreStarted,
+}: {
+	initialBackendSessionId: string | null | undefined;
+	initialAgentId: string | null | undefined;
+	selectedAgentId: string | null | undefined;
+	fallbackAgentId?: string | null | undefined;
+	restoreStarted: boolean;
+}): InitialSessionLifecycleAction {
+	if (restoreStarted) return { type: "idle" };
+	if (initialBackendSessionId && initialAgentId) {
+		return { type: "restore_existing", sessionId: initialBackendSessionId };
+	}
+	const agentId = selectedAgentId || initialAgentId || fallbackAgentId;
+	return agentId ? { type: "idle" } : { type: "wait_for_agent" };
+}
+
+export function shouldPersistResolvedSessionId(
+	initialBackendSessionId: string | null | undefined,
+	resolvedSessionId: string | null | undefined,
+): boolean {
+	return Boolean(
+		resolvedSessionId && resolvedSessionId !== initialBackendSessionId,
+	);
 }
 
 // ============================================================================
@@ -109,22 +208,21 @@ export function findAgentSettings(
 	const customAgent = settings.customAgents.find(
 		(agent) => agent.id === agentId,
 	);
-		if (customAgent) return customAgent;
+	if (customAgent) return customAgent;
 
+	// Auto-discovered pi-acp: use pi Node.js npx path
+	// (Electron does not inherit the user PATH, so npx is not found)
+	if (agentId === "pi-acp") {
+		return {
+			id: "pi-acp",
+			displayName: "pi-acp",
+			command: "pi-acp",
+			args: [],
+			env: [],
+		};
+	}
 
-		// Auto-discovered pi-acp: use pi Node.js npx path
-		// (Electron does not inherit the user PATH, so npx is not found)
-		if (agentId === "pi-acp") {
-			return {
-				id: "pi-acp",
-				displayName: "pi-acp",
-				command: "pi-acp",
-				args: [],
-				env: [],
-			};
-		}
-
-		return null;
+	return null;
 }
 
 /**
@@ -209,16 +307,8 @@ export function createInitialSession(
 // Session Title Derivation
 // ============================================================================
 
-/** Derive the session display title (saved title > first user message > "New session"). */
-export function computeSessionTitle(
-	sessionId: string | null,
-	savedSessions: SavedSessionInfo[],
-	messages: ChatMessage[],
-): string {
-	if (sessionId) {
-		const saved = savedSessions.find((s) => s.sessionId === sessionId);
-		if (saved?.title) return saved.title;
-	}
+/** Derive the session display title from the first user message. */
+export function computeSessionTitle(messages: ChatMessage[]): string {
 	const firstUserMessage = messages.find((m) => m.role === "user");
 	if (firstUserMessage) {
 		const textContent = firstUserMessage.content.find(

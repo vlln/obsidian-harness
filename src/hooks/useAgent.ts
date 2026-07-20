@@ -53,7 +53,12 @@ export interface UseAgentReturn {
 	createSession: (
 		overrideAgentId?: string,
 		overrideCwd?: string,
-	) => Promise<void>;
+	) => Promise<ChatSession | null>;
+	selectAgent: (agentId: string) => void;
+
+	/** Restore an existing session via ACP session/load */
+	restoreSession: (sessionId: string, cwd: string) => Promise<void>;
+
 	restartSession: (
 		newAgentId?: string,
 		overrideCwd?: string,
@@ -76,6 +81,7 @@ export interface UseAgentReturn {
 	sendMessage: (
 		content: string,
 		options: SendMessageOptions,
+		sessionOverride?: ChatSession,
 	) => Promise<void>;
 	clearMessages: () => void;
 	setInitialMessages: (
@@ -86,6 +92,8 @@ export interface UseAgentReturn {
 		}>,
 	) => void;
 	setMessagesFromLocal: (localMessages: ChatMessage[]) => void;
+	flushPendingUpdates: () => void;
+
 	clearError: () => void;
 	setIgnoreUpdates: (ignore: boolean) => void;
 	// Permission
@@ -181,12 +189,14 @@ export function useAgent(
 			messages: agentMessages.messages,
 			isSending: agentMessages.isSending,
 			lastUserMessage: agentMessages.lastUserMessage,
+			restoreSession: agentSession.restoreSession,
 
 			// Combined error
 			errorInfo,
 
 			// Session lifecycle
 			createSession: agentSession.createSession,
+			selectAgent: agentSession.selectAgent,
 			restartSession: agentSession.restartSession,
 			closeSession: agentSession.closeSession,
 			forceRestartAgent: agentSession.forceRestartAgent,
@@ -201,6 +211,8 @@ export function useAgent(
 			// Message operations
 			sendMessage: agentMessages.sendMessage,
 			clearMessages: agentMessages.clearMessages,
+			flushPendingUpdates: agentMessages.flushPendingUpdates,
+
 			setInitialMessages: agentMessages.setInitialMessages,
 			setMessagesFromLocal: agentMessages.setMessagesFromLocal,
 			clearError: agentMessages.clearError,
@@ -221,7 +233,10 @@ export function useAgent(
 			agentMessages.lastUserMessage,
 			errorInfo,
 			agentSession.createSession,
+			agentSession.selectAgent,
 			agentSession.restartSession,
+			agentSession.restoreSession,
+
 			agentSession.closeSession,
 			agentSession.forceRestartAgent,
 			cancelOperation,
@@ -231,6 +246,8 @@ export function useAgent(
 			agentSession.setConfigOption,
 			agentMessages.sendMessage,
 			agentMessages.clearMessages,
+			agentMessages.flushPendingUpdates,
+
 			agentMessages.setInitialMessages,
 			agentMessages.setMessagesFromLocal,
 			agentMessages.clearError,

@@ -49,5 +49,15 @@ dev/
 # Local implementation plans and working documents
 plan/
 
+# Local-only agent/developer environment notes
+AGENTS.local.md
+
 # E2E test cache
 .obsidian-cache/
+
+# Generated Obsidian state in test vaults
+test/vaults/*/.obsidian/app.json
+test/vaults/*/.obsidian/appearance.json
+test/vaults/*/.obsidian/workspace.json
+test/vaults/*/.obsidian/plugins/
+test/vaults/*/*.session

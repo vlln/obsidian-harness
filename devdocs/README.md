@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE` → `DESIGN` (下一迭代) |
-| **当前版本** | `v0.1.2` |
-| **设计评估** | Spec-0003 完成，对话历史恢复可用 |
+| **当前阶段** | `RELEASE` develop 系统测试通过，等待版本发布决策 |
+| **当前版本** | `v0.1.3` 后 develop release candidate |
+| **设计评估** | 当前迭代已通过系统测试；ACP turn transcript 作为下一轮增量设计，不混入本次 release candidate |
 
 ## 子目录
 
