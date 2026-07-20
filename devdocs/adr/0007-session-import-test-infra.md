@@ -2,7 +2,7 @@
 title: ADR-0007: Session Importer 测试基建
 description: 复用 Vitest/WDIO 并增加 Python unittest、跨语言 contract vectors、发布点故障注入与脱敏 harness fixtures。
 type: adr
-status: proposed
+status: accepted
 created: 2026-07-20T13:46:13Z
 ---
 
