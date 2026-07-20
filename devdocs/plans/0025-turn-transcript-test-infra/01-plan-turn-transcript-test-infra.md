@@ -2,7 +2,7 @@
 title: Plan-0025-01: Turn Transcript Test Infrastructure
 description: Build deterministic ACP fixtures, fault-injectable storage, offline E2E fixtures, coverage reporting, and enforceable gates for AC-0003.
 type: plan
-status: pending
+status: done
 created: 2026-07-20T10:08:02Z
 ---
 

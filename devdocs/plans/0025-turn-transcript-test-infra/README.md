@@ -2,4 +2,4 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Turn transcript test infrastructure | pending | [01-plan-turn-transcript-test-infra.md](01-plan-turn-transcript-test-infra.md) | [01-report-turn-transcript-test-infra.md](01-report-turn-transcript-test-infra.md) |
+| Turn transcript test infrastructure | done | [01-plan-turn-transcript-test-infra.md](01-plan-turn-transcript-test-infra.md) | [01-report-turn-transcript-test-infra.md](01-report-turn-transcript-test-infra.md) |

@@ -28,4 +28,4 @@
 | 0022 | [0022-lazy-model-config-load](0022-lazy-model-config-load/) | `feat/0022-lazy-model-config-load` | done |
 | 0023 | [0023-model-config-menu](0023-model-config-menu/) | `feat/0023-model-config-menu` | done |
 | 0024 | [0024-show-current-model-option](0024-show-current-model-option/) | `fix/0024-show-current-model-option` | done |
-| 0025 | [0025-turn-transcript-test-infra](0025-turn-transcript-test-infra/) | `test/0025-turn-transcript-infra` | pending |
+| 0025 | [0025-turn-transcript-test-infra](0025-turn-transcript-test-infra/) | `test/0025-turn-transcript-infra` | done |
