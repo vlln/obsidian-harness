@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `TEST_INFRA` ACP turn transcript 增量基建 |
+| **当前阶段** | `DEVELOP` ACP turn transcript 实现 |
 | **当前版本** | `v0.2.0` 已发布 |
-| **设计评估** | Spec-0004 v2、AC-0003 与 ADR-0005 已冻结；下一步建立 turn 聚合 fixture、存储故障注入、schema 门禁及离线打开 E2E 证据 |
+| **设计评估** | 0025 测试基建已通过 PR #1 合并；按 AC-0007 至 AC-0013 实现 turn 聚合、v2 存储、离线投影与显式 continuation 生命周期 |
 
 ## 子目录
 
