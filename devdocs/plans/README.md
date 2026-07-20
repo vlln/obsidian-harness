@@ -32,3 +32,4 @@
 | 0026 | [0026-turn-transcript-domain](0026-turn-transcript-domain/) | `feat/0026-turn-transcript-domain` | pending |
 | 0027 | [0027-turn-transcript-storage](0027-turn-transcript-storage/) | `feat/0027-turn-transcript-storage` | pending |
 | 0028 | [0028-offline-session-lifecycle](0028-offline-session-lifecycle/) | `feat/0028-offline-session-lifecycle` | pending |
+| 0029 | [0029-session-importer-test-infra](0029-session-importer-test-infra/) | `test/0029-session-importer-infra` | pending |
