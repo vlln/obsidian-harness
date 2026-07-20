@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `DEVELOP` ACP turn transcript 实现 |
+| **当前阶段** | `SYSTEM_TEST` ACP turn transcript 系统验证 |
 | **当前版本** | `v0.2.0` 已发布 |
-| **设计评估** | 0025 测试基建已通过 PR #1 合并；按 AC-0007 至 AC-0013 实现 turn 聚合、v2 存储、离线投影与显式 continuation 生命周期 |
+| **设计评估** | 0025 至 0028 已合并；29 条 AC submission gate 通过，进入 develop 全量系统验证 |
 
 ## 子目录
 
