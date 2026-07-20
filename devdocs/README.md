@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `DESIGN` 下一轮迭代待定义 |
+| **当前阶段** | `TEST_INFRA` Harness Session Importer 测试基建 |
 | **当前版本** | `v0.3.0` 已发布 |
-| **设计评估** | ACP turn transcript 迭代已完成发布归档；下一轮按增量设计流程新增 Spec、AC 与 ADR |
+| **设计评估** | Spec-0005、AC-0004、ADR-0006 与 Interface-0001 已冻结；搭建 importer 跨语言契约、故障注入和 E2E 基建 |
 
 ## 子目录
 
