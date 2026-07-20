@@ -29,3 +29,6 @@
 | 0023 | [0023-model-config-menu](0023-model-config-menu/) | `feat/0023-model-config-menu` | done |
 | 0024 | [0024-show-current-model-option](0024-show-current-model-option/) | `fix/0024-show-current-model-option` | done |
 | 0025 | [0025-turn-transcript-test-infra](0025-turn-transcript-test-infra/) | `test/0025-turn-transcript-infra` | done |
+| 0026 | [0026-turn-transcript-domain](0026-turn-transcript-domain/) | `feat/0026-turn-transcript-domain` | pending |
+| 0027 | [0027-turn-transcript-storage](0027-turn-transcript-storage/) | `feat/0027-turn-transcript-storage` | pending |
+| 0028 | [0028-offline-session-lifecycle](0028-offline-session-lifecycle/) | `feat/0028-offline-session-lifecycle` | pending |
