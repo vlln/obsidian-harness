@@ -2,7 +2,7 @@
 title: Spec-0004: ACP Turn Transcript
 description: 将 ACP 实时事件聚合为可离线阅读的完整 turn 历史，并将本地历史与 ACP 会话恢复能力解耦。
 type: spec
-status: proposed
+status: active
 version: 1
 created: 2026-07-20T09:39:30Z
 ---
