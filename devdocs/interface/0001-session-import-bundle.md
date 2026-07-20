@@ -2,7 +2,7 @@
 title: Interface-0001: Session Import Bundle
 description: Harness Session Importer 的 CLI、descriptor、bundle、conversion report、receipt、transaction journal 与错误契约。
 type: interface
-status: proposed
+status: active
 created: 2026-07-20T13:46:13Z
 ---
 

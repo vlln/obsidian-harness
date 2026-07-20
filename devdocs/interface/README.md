@@ -6,4 +6,4 @@
 
 | 编号 | 文档 | 状态 |
 |------|------|------|
-| [0001](0001-session-import-bundle.md) | Session Import Bundle | proposed |
+| [0001](0001-session-import-bundle.md) | Session Import Bundle | active |
