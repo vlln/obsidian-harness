@@ -312,6 +312,7 @@ describe("projectTranscript", () => {
 			toolCallId: "tool-blob",
 			status: "completed",
 			rawOutput: {
+				type: "blob_ref",
 				schemaVersion: 2,
 				sha256: "abc",
 				mediaType: "text/plain",
