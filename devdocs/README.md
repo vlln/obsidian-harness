@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `TEST_INFRA` Harness Session Importer 测试基建 |
+| **当前阶段** | `DEVELOP` Harness Session Importer 实现 |
 | **当前版本** | `v0.3.0` 已发布 |
-| **设计评估** | Spec-0005、AC-0004、ADR-0006 与 Interface-0001 已冻结；搭建 importer 跨语言契约、故障注入和 E2E 基建 |
+| **设计评估** | Spec-0005、AC-0004、ADR-0006、ADR-0007 与 Interface-0001 已冻结；测试基建和独立覆盖率门禁已就绪，可分别实现 converter skill、generic plugin materializer 与只读 import UI |
 
 ## 子目录
 
