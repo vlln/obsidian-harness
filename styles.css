@@ -2377,6 +2377,37 @@ If your plugin does not need CSS, delete this file.
 	text-overflow: ellipsis;
 }
 
+.agent-client-continuation-status {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	font-size: var(--font-ui-small);
+}
+
+.agent-client-continuation-copy {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.agent-client-continuation-copy span {
+	color: var(--text-muted);
+	overflow-wrap: anywhere;
+}
+
+.agent-client-continuation-status button {
+	flex: 0 0 auto;
+}
+
+.agent-client-continuation-status.is-backend_unavailable {
+	border-bottom-color: var(--background-modifier-error);
+}
+
 .agent-client-change-dir-buttons {
 	display: flex;
 	justify-content: flex-end;

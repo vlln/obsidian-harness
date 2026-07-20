@@ -288,12 +288,14 @@ describe("SessionStorage transcript v2", () => {
 		const adapter = new MemoryDataAdapter();
 		const storage = createStorage(adapter);
 		await storage.appendSessionIndex({
-			sessionId: "one",
+			entryId: "one",
+			historyId: "history-one",
 			cwd: "/one",
 			entryFile: "one.session",
 		});
 		await storage.appendSessionIndex({
-			sessionId: "two",
+			entryId: "two",
+			historyId: "history-two",
 			cwd: "/two",
 			entryFile: "two.session",
 		});
@@ -301,14 +303,15 @@ describe("SessionStorage transcript v2", () => {
 
 		expect(await storage.getSessionIndex("/two")).toEqual([
 			{
-				sessionId: "two",
+				entryId: "two",
+				historyId: "history-two",
 				cwd: "/two",
 				entryFile: "two.session",
 			},
 		]);
 		await storage.removeSessionIndex("one");
 		expect(
-			(await storage.getSessionIndex()).map((entry) => entry.sessionId),
+			(await storage.getSessionIndex()).map((entry) => entry.entryId),
 		).toEqual(["two"]);
 		await storage.removeSessionIndex("two");
 		expect(await storage.getSessionIndex()).toEqual([]);

@@ -1171,14 +1171,13 @@ export default class AgentClientPlugin extends Plugin {
 		forkedFrom?: string | null;
 	}): Promise<{ file: TFile; config: SessionFileData }> {
 		const entryId = crypto.randomUUID();
+		const historyId = crypto.randomUUID();
 		const cwd = options?.cwd ?? this.getVaultRootPath();
 		const createdAt = new Date().toISOString();
 		const config: SessionFileData = {
-			version: 1,
+			version: 2,
 			entryId,
-			sessionId: "",
-			backendSessionId: "",
-			backendState: "unconnected",
+			historyId,
 			agentId: options?.agentId ?? "",
 			cwd,
 			title: options?.title ?? "New Session",
@@ -1206,9 +1205,16 @@ export default class AgentClientPlugin extends Plugin {
 		}
 
 		const file = await this.app.vault.create(filePath, content);
+		await this.settingsService.initializeTranscript(historyId, {
+			agentId: config.agentId,
+			cwd,
+			title: config.title,
+			createdAt,
+		});
 
 		const indexEntry: SessionIndexEntry = {
-			sessionId: entryId,
+			entryId,
+			historyId,
 			cwd,
 			entryFile: filePath,
 		};
@@ -1238,28 +1244,12 @@ export default class AgentClientPlugin extends Plugin {
 		config: SessionFileData,
 		acpSessionId: string,
 	): Promise<void> {
-		if (config.backendSessionId === acpSessionId) return;
-		const oldSessionId =
-			config.backendSessionId || config.sessionId || config.entryId;
-		config.backendSessionId = acpSessionId;
-		config.backendState = "connected";
-		config.sessionId = acpSessionId;
+		if (config.acpBinding?.sessionId === acpSessionId) return;
+		config.acpBinding = {
+			agentId: config.agentId,
+			sessionId: acpSessionId,
+		};
 		await this.writeSessionConfig(entryFilePath, config);
-
-		try {
-			if (oldSessionId) {
-				await this.settingsService.removeSessionIndex(oldSessionId);
-			}
-			await this.settingsService.appendSessionIndex({
-				sessionId: acpSessionId,
-				cwd: config.cwd,
-				entryFile: entryFilePath,
-			});
-		} catch (error) {
-			getLogger().warn(
-				`[Harness] Failed to update session index: ${error}`,
-			);
-		}
 	}
 
 	/**
@@ -1293,9 +1283,9 @@ export default class AgentClientPlugin extends Plugin {
 			const entry = entries.find((e) => e.entryFile === entryFilePath);
 			if (!entry) return;
 
-			await this.settingsService.removeSessionIndex(entry.sessionId);
-			await this.settingsService.deleteTranscript(entry.sessionId);
-			getLogger().log(`[Harness] Cleaned up session: ${entry.sessionId}`);
+			await this.settingsService.removeSessionIndex(entry.entryId);
+			await this.settingsService.deleteTranscript(entry.historyId);
+			getLogger().log(`[Harness] Cleaned up session: ${entry.entryId}`);
 		} catch (error) {
 			getLogger().warn(
 				`[Harness] Failed to clean up session file ${entryFilePath}: ${error}`,

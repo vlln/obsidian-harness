@@ -311,6 +311,18 @@ export class SessionStorage {
 
 	async readTranscript(historyId: string): Promise<TranscriptReadResult> {
 		const warnings: TranscriptWarning[] = [];
+		if (!(await this.adapter.exists(this.historyDir(historyId)))) {
+			return {
+				turns: [],
+				warnings: [
+					{
+						code: "missing_transcript",
+						path: this.historyDir(historyId),
+						message: `Local history is unavailable: ${historyId}`,
+					},
+				],
+			};
+		}
 		const manifest = await this.readManifest(historyId, warnings);
 		const turns = await this.readTurns(historyId, warnings);
 		const seen = new Set(turns.map((turn) => turn.turnId));
@@ -568,7 +580,8 @@ export class SessionStorage {
 			try {
 				const entry = JSON.parse(line) as SessionIndexEntry;
 				if (
-					entry.sessionId &&
+					entry.entryId &&
+					entry.historyId &&
 					entry.cwd &&
 					entry.entryFile &&
 					(!cwd || entry.cwd === cwd)
@@ -582,7 +595,7 @@ export class SessionStorage {
 		return entries;
 	}
 
-	async removeSessionIndex(sessionId: string): Promise<void> {
+	async removeSessionIndex(entryId: string): Promise<void> {
 		const path = this.sessionIndexPath();
 		if (!(await this.adapter.exists(path))) return;
 		const lines = (await this.adapter.read(path)).split("\n");
@@ -590,8 +603,7 @@ export class SessionStorage {
 			if (!line.trim()) return false;
 			try {
 				return (
-					(JSON.parse(line) as SessionIndexEntry).sessionId !==
-					sessionId
+					(JSON.parse(line) as SessionIndexEntry).entryId !== entryId
 				);
 			} catch {
 				return true;

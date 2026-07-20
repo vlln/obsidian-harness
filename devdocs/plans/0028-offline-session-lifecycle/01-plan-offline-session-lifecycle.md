@@ -2,7 +2,7 @@
 title: Plan-0028-01: Offline Session Lifecycle
 description: Implement v2 entry identities, offline-first history rendering, explicit continuation states, and no implicit ACP startup or new session fallback.
 type: plan
-status: pending
+status: done
 created: 2026-07-20T11:17:04Z
 ---
 

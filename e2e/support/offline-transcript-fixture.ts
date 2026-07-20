@@ -36,10 +36,12 @@ export async function materializeOfflineTranscriptFixture(
 				version: 2,
 				entryId,
 				historyId,
+				agentId: "",
 				title: "Offline fixture",
 				cwd: "/missing/offline/project",
 				createdAt: "2026-07-20T00:00:00.000Z",
 				updatedAt: "2026-07-20T00:01:00.000Z",
+				forkedFrom: null,
 			},
 			null,
 			2,
@@ -48,16 +50,21 @@ export async function materializeOfflineTranscriptFixture(
 	await writeFile(
 		path.join(historyDir, "manifest.json"),
 		JSON.stringify({
-			version: 2,
+			schemaVersion: 2,
 			historyId,
 			createdAt: "2026-07-20T00:00:00.000Z",
 			updatedAt: "2026-07-20T00:01:00.000Z",
+			metadata: {
+				agentId: "",
+				cwd: "/missing/offline/project",
+				title: "Offline fixture",
+			},
 		}),
 	);
 	await writeFile(
 		path.join(historyDir, "turns.jsonl"),
 		`${JSON.stringify({
-			version: 2,
+			schemaVersion: 2,
 			turnId: "33333333-3333-4333-8333-333333333333",
 			startedAt: "2026-07-20T00:00:00.000Z",
 			endedAt: "2026-07-20T00:01:00.000Z",
@@ -65,7 +72,7 @@ export async function materializeOfflineTranscriptFixture(
 			prompt: [{ type: "text", text: "Offline prompt" }],
 			items: [
 				{
-					id: "item-1",
+					itemId: "item-1",
 					type: "assistant_message",
 					text: "Offline answer",
 				},

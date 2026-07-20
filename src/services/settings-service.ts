@@ -86,7 +86,7 @@ export interface ISettingsAccess {
 
 	appendSessionIndex(entry: SessionIndexEntry): Promise<void>;
 	getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]>;
-	removeSessionIndex(sessionId: string): Promise<void>;
+	removeSessionIndex(entryId: string): Promise<void>;
 }
 
 /** Listener callback invoked when settings change */
@@ -235,8 +235,8 @@ export class SettingsService implements ISettingsAccess {
 		return this.sessionStorage.getSessionIndex(cwd);
 	}
 
-	async removeSessionIndex(sessionId: string): Promise<void> {
-		return this.sessionStorage.removeSessionIndex(sessionId);
+	async removeSessionIndex(entryId: string): Promise<void> {
+		return this.sessionStorage.removeSessionIndex(entryId);
 	}
 }
 

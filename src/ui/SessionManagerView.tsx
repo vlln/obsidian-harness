@@ -195,7 +195,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 				new Notice(`Session file not found: ${entryFile}`);
 				const sessionId =
 					sessionEntries.find((s) => s.entryFile === entryFile)
-						?.sessionId ?? "";
+						?.entryId ?? "";
 				if (sessionId) {
 					await plugin.settingsService.removeSessionIndex(sessionId);
 				}
@@ -250,10 +250,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 								</div>
 							</div>
 							{entries.map((entry) => (
-								<div
-									key={entry.sessionId}
-									className="tree-item"
-								>
+								<div key={entry.entryId} className="tree-item">
 									<div
 										className="tree-item-self is-clickable"
 										onClick={() => {

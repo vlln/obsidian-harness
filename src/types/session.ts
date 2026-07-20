@@ -553,18 +553,15 @@ export interface SessionResult {
  * This is the user-visible entry point for a session.
  */
 export interface SessionFileData {
-	/** Format version for backward compatibility */
-	version: number;
+	version: 2;
 	/** Stable vault entry identifier */
-	entryId?: string;
-	/** Backend ACP session identifier. Empty until session/new succeeds. */
-	sessionId: string;
-	/** Explicit backend ACP session identifier for new files. */
-	backendSessionId?: string;
-	/** Backend lifecycle state for this entry. */
-	backendState?: "unconnected" | "connected";
-	/** Agent ID (claude-code-acp, pi-acp, custom agent ID, etc.) */
+	entryId: string;
+	/** Stable local transcript identifier */
+	historyId: string;
+	/** Preferred Agent configuration for a new continuation */
 	agentId: string;
+	/** Optional opaque ACP continuation binding */
+	acpBinding?: { agentId: string; sessionId: string };
 	/** Working directory for the agent */
 	cwd: string;
 	/** Human-readable session title */
@@ -582,8 +579,8 @@ export interface SessionFileData {
  * Maps sessionId → entry file path for quick lookup.
  */
 export interface SessionIndexEntry {
-	/** Unique session identifier */
-	sessionId: string;
+	entryId: string;
+	historyId: string;
 	/** Working directory for the agent */
 	cwd: string;
 	/** Relative path of the .session file in vault */
