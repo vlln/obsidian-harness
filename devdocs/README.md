@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE` develop 系统测试通过，等待版本发布决策 |
-| **当前版本** | `v0.1.3` 后 develop release candidate |
-| **设计评估** | 当前迭代已通过系统测试；ACP turn transcript 作为下一轮增量设计，不混入本次 release candidate |
+| **当前阶段** | `DESIGN` ACP turn transcript 增量设计 |
+| **当前版本** | `v0.2.0` 已发布 |
+| **设计评估** | 新一轮需重新定义本地 history 身份、完整 turn snapshot、活动 turn checkpoint，以及可阅读历史与 ACP 恢复能力的边界 |
 
 ## 子目录
 
