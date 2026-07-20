@@ -20,7 +20,8 @@ async function main() {
 	const reportPath = args.get("report");
 	const coveragePath =
 		args.get("coverage") ?? "coverage/coverage-summary.json";
-	const requiredAc = (args.get("ac") ?? "")
+	const acFilePath = args.get("ac-file");
+	let requiredAc = (args.get("ac") ?? "")
 		.split(",")
 		.map((value) => value.trim())
 		.filter(Boolean);
@@ -31,10 +32,17 @@ async function main() {
 		throw new Error("--min-lines must be between 0 and 100");
 	}
 
-	const [report, coverageText] = await Promise.all([
+	const [report, coverageText, acFile] = await Promise.all([
 		readFile(reportPath, "utf8"),
 		readFile(coveragePath, "utf8"),
+		acFilePath ? readFile(acFilePath, "utf8") : Promise.resolve(""),
 	]);
+	if (acFilePath) {
+		requiredAc = [...new Set(acFile.match(/AC-\d{4}-[NBEF]-\d+/g) ?? [])];
+		if (requiredAc.length === 0) {
+			throw new Error(`no AC scenarios found in ${acFilePath}`);
+		}
+	}
 	const coverage = JSON.parse(coverageText);
 	const lineCoverage = coverage?.total?.lines?.pct;
 	const errors = [];
@@ -61,7 +69,7 @@ async function main() {
 	}
 
 	console.log(
-		`[submission-gate] PASS (${requiredAc.length} AC groups, ${lineCoverage}% lines)`,
+		`[submission-gate] PASS (${requiredAc.length} AC scenarios, ${lineCoverage}% lines)`,
 	);
 }
 
