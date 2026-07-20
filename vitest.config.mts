@@ -8,6 +8,16 @@ export default defineConfig({
 	test: {
 		environment: "node",
 		include: ["test/**/*.test.ts"],
+		coverage: {
+			provider: "v8",
+			reporter: ["text", "json-summary"],
+			reportsDirectory: "coverage",
+			include: [
+				"src/services/session-storage.ts",
+				"src/services/transcript-*.ts",
+				"src/services/session-continuation.ts",
+			],
+		},
 	},
 	resolve: {
 		alias: {
