@@ -2,7 +2,7 @@
 title: Spec-0005: Harness Session Importer Skill
 description: 通过随 Obsidian Harness 仓库发布的 Agent Skill，将外部 harness 私有历史转换为可离线阅读的 v2 transcript。
 type: spec
-status: proposed
+status: active
 version: 1
 created: 2026-07-20T13:46:13Z
 ---
