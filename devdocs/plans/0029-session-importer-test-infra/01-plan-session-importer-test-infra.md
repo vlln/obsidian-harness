@@ -2,7 +2,7 @@
 title: Plan-0029-01: Session Importer Test Infrastructure
 description: Build the shared contract vectors, Python/Vitest coverage gates, fault-injection support, sanitized adapter fixture layout, and generic Obsidian E2E helpers required by AC-0004.
 type: plan
-status: pending
+status: done
 created: 2026-07-20T13:46:13Z
 ---
 

@@ -2,4 +2,4 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Session importer test infrastructure | pending | [01-plan-session-importer-test-infra.md](01-plan-session-importer-test-infra.md) | pending |
+| Session importer test infrastructure | done | [01-plan-session-importer-test-infra.md](01-plan-session-importer-test-infra.md) | [01-report-session-importer-test-infra.md](01-report-session-importer-test-infra.md) |
