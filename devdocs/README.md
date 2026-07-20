@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `DESIGN` ACP turn transcript 增量设计 |
+| **当前阶段** | `TEST_INFRA` ACP turn transcript 增量基建 |
 | **当前版本** | `v0.2.0` 已发布 |
-| **设计评估** | 新一轮需重新定义本地 history 身份、完整 turn snapshot、活动 turn checkpoint，以及可阅读历史与 ACP 恢复能力的边界 |
+| **设计评估** | Spec-0004 v2、AC-0003 与 ADR-0005 已冻结；下一步建立 turn 聚合 fixture、存储故障注入、schema 门禁及离线打开 E2E 证据 |
 
 ## 子目录
 
