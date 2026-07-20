@@ -1,19 +1,32 @@
 import json
+import io
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL_ROOT / "scripts"))
 
 import importer  # noqa: E402
+import import_session  # noqa: E402
 
 
 FIXTURES = SKILL_ROOT / "tests" / "fixtures"
 
 
 class ConverterTest(unittest.TestCase):
+    def test_canonical_json_number_and_key_rules(self):
+        self.assertEqual(importer.canonical_json({"z": 1e20, "a": 1e-7}), '{"a":1e-7,"z":100000000000000000000}')
+        self.assertEqual(importer.canonical_json(-0.0), "0")
+        with self.assertRaises(importer.ImportFailure):
+            importer.canonical_json(float("inf"))
+        with self.assertRaises(importer.ImportFailure):
+            importer.canonical_json(9007199254740992)
+        with self.assertRaises(importer.ImportFailure):
+            importer.canonical_json("\ud800")
+
     def test_four_adapters_preserve_semantic_counts(self):
         cases = [
             ("claude", FIXTURES / "claude/session.jsonl", "c-main-leaf", 1, 2),
@@ -33,6 +46,15 @@ class ConverterTest(unittest.TestCase):
             source = FIXTURES / harness / "session.jsonl"
             with self.assertRaisesRegex(importer.ImportFailure, "branch"):
                 importer.inspect_session(harness, source)
+
+    def test_pi_selected_branch_keeps_sibling_tool_results(self):
+        result = importer.inspect_session(
+            "pi", FIXTURES / "pi/session.jsonl", branch="p-main-leaf"
+        )
+        tools = [item for item in result.turns[0]["items"] if item["type"] == "tool"]
+        self.assertEqual(len(tools), 2)
+        self.assertTrue(all(item["status"] == "completed" for item in tools))
+        self.assertEqual(result.report["output"]["toolResults"], 2)
 
     def test_codex_deduplicates_message_keeps_nested_tool_and_tail_prompt(self):
         result = importer.inspect_session("codex", FIXTURES / "codex/session.jsonl")
@@ -60,6 +82,28 @@ class ConverterTest(unittest.TestCase):
         self.assertFalse(result.report["complete"])
         self.assertEqual({item["code"] for item in result.report["diagnostics"]}, {"orphan_tool_result", "unknown_record"})
 
+    def test_incomplete_bundle_requires_explicit_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            vault = Path(directory)
+            (vault / ".obsidian").mkdir()
+            source = vault / "session.jsonl"
+            source.write_text(
+                "\n".join(
+                    json.dumps(record)
+                    for record in [
+                        {"timestamp": "2026-01-01T00:00:00Z", "type": "session_meta", "payload": {"id": "incomplete", "cwd": "/fixture"}},
+                        {"timestamp": "2026-01-01T00:00:01Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "x"}]}},
+                        {"timestamp": "2026-01-01T00:00:02Z", "type": "mystery", "payload": {}},
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(importer.ImportFailure, "incomplete"):
+                importer.create_bundle("codex", source, vault, ".")
+            result = importer.create_bundle("codex", source, vault, ".", accept_incomplete=True)
+            self.assertEqual(result["status"], "created")
+
+
     def test_bundle_is_lossless_idempotent_and_stays_inside_vault(self):
         with tempfile.TemporaryDirectory() as directory:
             vault = Path(directory)
@@ -86,6 +130,19 @@ class ConverterTest(unittest.TestCase):
             with self.assertRaisesRegex(importer.ImportFailure, "entry-dir"):
                 importer.create_bundle("codex", source, vault, "../outside")
 
+    def test_bundle_publish_failure_leaves_no_recognizable_candidate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            vault = Path(directory)
+            (vault / ".obsidian").mkdir()
+            source = FIXTURES / "codex/session.jsonl"
+            with mock.patch("importer.os.replace", side_effect=OSError("injected")):
+                with self.assertRaises(importer.ImportFailure) as failure:
+                    importer.create_bundle("codex", source, vault, "Imports")
+            self.assertEqual(failure.exception.code, "bundle_write_failed")
+            imports = vault / "Imports"
+            self.assertFalse(any(imports.glob("*.harness-import")))
+            self.assertFalse(any(imports.glob("*.harness-import.bundle")))
+
     def test_malformed_json_and_missing_identity_fail_without_writes(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "bad.jsonl"
@@ -93,6 +150,42 @@ class ConverterTest(unittest.TestCase):
             with self.assertRaises(importer.ImportFailure) as failure:
                 importer.inspect_session("codex", source)
             self.assertEqual(failure.exception.code, "source_invalid")
+
+            source.write_text('{"x":1,"x":2}\n', encoding="utf-8")
+            with self.assertRaises(importer.ImportFailure) as duplicate:
+                importer.inspect_session("codex", source)
+            self.assertEqual(duplicate.exception.code, "source_invalid")
+
+    def test_cli_inspect_and_structured_error(self):
+        original = sys.argv
+        try:
+            sys.argv = [
+                "import_session.py",
+                "inspect",
+                "--harness",
+                "codex",
+                "--session",
+                str(FIXTURES / "codex/session.jsonl"),
+            ]
+            output = io.StringIO()
+            with mock.patch("sys.stdout", output):
+                self.assertEqual(import_session.main(), 0)
+            self.assertEqual(json.loads(output.getvalue())["source"]["identity"], "codex-fixture")
+
+            sys.argv = [
+                "import_session.py",
+                "inspect",
+                "--harness",
+                "codex",
+                "--session",
+                str(FIXTURES / "missing.jsonl"),
+            ]
+            error = io.StringIO()
+            with mock.patch("sys.stderr", error):
+                self.assertEqual(import_session.main(), 2)
+            self.assertEqual(json.loads(error.getvalue())["code"], "source_not_found")
+        finally:
+            sys.argv = original
 
 
 if __name__ == "__main__":

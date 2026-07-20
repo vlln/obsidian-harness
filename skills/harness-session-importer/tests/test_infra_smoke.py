@@ -18,6 +18,20 @@ class ImporterInfrastructureSmokeTest(unittest.TestCase):
         self.assertEqual(vector["schemaVersion"], runtime.BUNDLE_SCHEMA_VERSION)
         self.assertEqual(vector["importNamespace"], runtime.IMPORT_NAMESPACE)
 
+        import importer
+
+        self.assertEqual(
+            importer.canonical_json(vector["jcs"]["input"]),
+            vector["jcs"]["canonical"],
+        )
+        identity = vector["identity"]
+        canonical = importer.canonical_json(identity["input"])
+        self.assertEqual(canonical, identity["canonical"])
+        import_id = importer._stable_uuid(runtime.IMPORT_NAMESPACE, canonical)
+        self.assertEqual(import_id, identity["importId"])
+        self.assertEqual(importer._stable_uuid(import_id, "entry"), identity["entryId"])
+        self.assertEqual(importer._stable_uuid(import_id, "history"), identity["historyId"])
+
 
 if __name__ == "__main__":
     unittest.main()

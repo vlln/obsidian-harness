@@ -1,5 +1,5 @@
 [run]
-branch = True
+branch = False
 source = scripts
 data_file = coverage/.python-coverage
 
