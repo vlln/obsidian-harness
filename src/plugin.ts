@@ -1294,7 +1294,7 @@ export default class AgentClientPlugin extends Plugin {
 			if (!entry) return;
 
 			await this.settingsService.removeSessionIndex(entry.sessionId);
-			await this.settingsService.deleteHistory(entry.sessionId);
+			await this.settingsService.deleteTranscript(entry.sessionId);
 			getLogger().log(`[Harness] Cleaned up session: ${entry.sessionId}`);
 		} catch (error) {
 			getLogger().warn(

@@ -15,6 +15,7 @@ export type TranscriptSchemaVersion = typeof TRANSCRIPT_SCHEMA_VERSION;
 export type TurnStatus = "completed" | "cancelled" | "interrupted" | "error";
 
 export interface BlobRef {
+	type: "blob_ref";
 	schemaVersion: TranscriptSchemaVersion;
 	sha256: string;
 	mediaType: string;
@@ -103,4 +104,38 @@ export interface TurnRecord extends TurnBase {
 	status: TurnStatus;
 	endedAt?: string;
 	stopReason?: string;
+}
+
+export interface TranscriptManifest {
+	schemaVersion: TranscriptSchemaVersion;
+	historyId: string;
+	createdAt: string;
+	updatedAt: string;
+	metadata: {
+		agentId: string;
+		cwd: string;
+		title: string;
+	};
+}
+
+export type TranscriptWarningCode =
+	| "corrupt_manifest"
+	| "corrupt_turn"
+	| "duplicate_turn"
+	| "corrupt_checkpoint"
+	| "missing_blob"
+	| "corrupt_blob"
+	| "missing_transcript";
+
+export interface TranscriptWarning {
+	code: TranscriptWarningCode;
+	path: string;
+	message: string;
+	expectedSha256?: string;
+}
+
+export interface TranscriptReadResult {
+	manifest?: TranscriptManifest;
+	turns: TurnRecord[];
+	warnings: TranscriptWarning[];
 }

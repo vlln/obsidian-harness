@@ -30,6 +30,7 @@ export class MemoryDataAdapter {
 	private readonly files = new Map<string, string>();
 	private readonly folders = new Set<string>([""]);
 	private readonly failures: FailureRule[] = [];
+	readonly operations: { operation: AdapterOperation; path: string }[] = [];
 
 	failNext(
 		operation: AdapterOperation,
@@ -149,6 +150,7 @@ export class MemoryDataAdapter {
 	}
 
 	private maybeFail(operation: AdapterOperation, path: string): void {
+		this.operations.push({ operation, path });
 		const index = this.failures.findIndex(
 			(rule) =>
 				rule.operation === operation &&
