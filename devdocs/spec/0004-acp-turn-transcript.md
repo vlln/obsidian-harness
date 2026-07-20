@@ -3,7 +3,7 @@ title: Spec-0004: ACP Turn Transcript
 description: 将 ACP 实时事件聚合为可离线阅读的完整 turn 历史，并将本地历史与 ACP 会话恢复能力解耦。
 type: spec
 status: active
-version: 1
+version: 2
 created: 2026-07-20T09:39:30Z
 ---
 
@@ -25,7 +25,6 @@ Obsidian Harness 当前将 ACP `SessionUpdate` 流直接追加到 JSONL，并以
 | US-011 | 用户 | 看到按 turn、消息和工具调用组织的历史，而不是 streaming 片段 | 获得稳定、清晰且不依赖旧渲染算法的阅读体验 | P0 |
 | US-012 | 用户 | 明确看到当前 session 是可继续、后端不可用还是只读历史 | 避免把历史可见误解为后端已恢复 | P0 |
 | US-013 | 用户 | Obsidian 或 Agent 在长任务中异常退出后仍能看到已产生的内容 | 降低长时间 Agent 工作的过程丢失风险 | P0 |
-| US-014 | 用户 | 已有 v1 JSONL 历史可以安全迁移并继续阅读 | 升级插件时不丢失既有 session 历史 | P0 |
 | US-015 | 用户 | ACP 恢复失败时由自己决定是否开始新会话 | 防止插件静默改变 session 身份或制造错误的“续聊”感知 | P1 |
 
 ## 三、模块划分
@@ -35,7 +34,7 @@ Obsidian Harness 当前将 ACP `SessionUpdate` 流直接追加到 JSONL，并以
 | Transcript 类型 | 定义完整 turn、消息、thought、tool call、plan、usage 与中断状态的内部领域模型 | `src/types/` | P0 |
 | ACP Turn 聚合 | 将当前 turn 内的 ACP prompt、streaming update 与完成结果确定性聚合为语义 snapshot | `src/acp/` + `src/services/` | P0 |
 | Transcript 存储 | 管理稳定 history 身份、已完成 turn、活动 turn checkpoint 和大型内容引用 | `src/services/session-storage.ts` 及拆分后的 transcript service | P0 |
-| v1 迁移 | 识别现有 raw `SessionUpdate` JSONL，幂等转换并保留失败回退路径 | `src/services/` | P0 |
+| Schema 版本门禁 | 校验 entry 与 transcript schema version，明确拒绝不受支持的开发期格式 | `src/services/` | P0 |
 | 历史投影 | 从 transcript 重建 `ChatMessage[]`、tool call 和 plan 等 UI 状态 | `src/services/` + `src/hooks/` | P0 |
 | 阅读/恢复状态 UI | 始终先展示本地历史，并独立显示 ACP continuation 的运行时可用性 | `src/ui/` | P0 |
 
@@ -56,7 +55,7 @@ Obsidian Harness 当前将 ACP `SessionUpdate` 流直接追加到 JSONL，并以
 
 ### 4.2 Transcript Manifest
 
-Manifest 保存 transcript schema 版本、`historyId`、创建/更新时间、迁移状态和当前 session 元数据。它不保存 streaming 事件，也不宣称 ACP 后端当前在线。
+Manifest 保存 transcript schema 版本、`historyId`、创建/更新时间和当前 session 元数据。它不保存 streaming 事件，也不宣称 ACP 后端当前在线。
 
 ### 4.3 Turn Record
 
@@ -94,7 +93,7 @@ Streaming chunk、重复 usage update 和工具状态的每次临时 patch 不�
 | BR-015 | Continuation 状态在运行时计算 | 仅当绑定存在、Agent 可用且 ACP 能力允许时，session 才可尝试继续 |
 | BR-016 | 恢复失败不得自动创建新会话 | UI 保留本地历史并显示失败；创建新会话必须由用户明确触发 |
 | BR-017 | Obsidian Harness 只负责 ACP | 核心代码不扫描或解析 Claude Code、Codex、Pi、Kimi 等私有 history schema |
-| BR-018 | v1 迁移必须幂等且可回退 | 迁移失败不得覆盖或删除原始 JSONL；重复迁移不得产生重复 turn |
+| BR-018 | v2 不兼容开发期 v1 history | schema version 不匹配时明确拒绝读取；不迁移、不做 legacy projection、不自动修改旧文件 |
 | BR-019 | Transcript 只有一个权威表示 | `ChatMessage[]` 是可重建 projection，不作为第二份持久化真相 |
 
 ## 六、UI 约束
@@ -110,13 +109,13 @@ Streaming chunk、重复 usage update 和工具状态的每次临时 patch 不�
 
 状态提示必须出现在会话工作区内，不能只依赖日志或 transient Notice。只读模式下不得显示看似可发送但必然失败的 composer。
 
-## 七、兼容与迁移
+## 七、版本边界
 
-1. v2 reader 识别当前 `.session` v1 和 `sessions/{sessionId}/main.jsonl`。
-2. 首次需要写入 v2 transcript 前执行迁移；纯阅读可以使用兼容 projection，具体策略由 ADR 决定。
-3. 迁移成功前保留 v1 文件；清理时机必须有独立、可验证的规则。
-4. v1 中无法可靠恢复的消息边界或完成状态必须显式标为推断或 interrupted，不伪造确定性。
-5. 外部 harness 历史转换属于独立 adapter 工具；若未来接入，只能产出本 Spec 定义的 transcript，不改变 obsidian-harness 的后端边界。
+1. 本轮是无外部用户的开发期 schema 断代，v2 reader 只读取明确声明为 v2 的 `.session` 与 transcript。
+2. v1 `.session` 或 `sessions/{sessionId}/main.jsonl` 不受支持，不提供兼容 reader、自动迁移或 legacy projection。
+3. schema version 不受支持时，工作区必须显示实际版本与所需版本；不得启动 Agent、猜测格式或自动修改文件。
+4. 现有开发测试数据由开发者手动删除并重新创建，不进入产品代码路径。
+5. 外部 harness 历史转换属于未来独立 adapter 工具；若接入，只能直接产出当时受支持的 transcript schema，不改变 obsidian-harness 的后端边界。
 
 ## 八、非功能指标
 
@@ -125,7 +124,7 @@ Streaming chunk、重复 usage update 和工具状态的每次临时 patch 不�
 | 离线性 | 读取本地历史不启动 Agent 进程、不访问网络、不要求 cwd 存在 |
 | 完整性 | 正常完成的 turn 必须保留 prompt、可见 assistant 内容、tool call/result 顺序与最终状态 |
 | 崩溃恢复 | 已写入 active checkpoint 的语义内容在重启后可见，并标记为 interrupted |
-| 幂等性 | 同一 v1 history 重复迁移，turn 数量和内容保持不变 |
+| 版本安全 | entry 或 transcript schema version 不受支持时明确失败，不做兼容推断或隐式写入 |
 | 可演进性 | 所有持久化实体带 schema version；未知 content 类型不得导致整段历史无法读取 |
 | 性能 | streaming 更新不得同步触发 vault 写入；checkpoint 必须合并和限频 |
 | 存储 | transcript 不保存 token 级 streaming；大型内容允许外置并通过摘要校验 |
@@ -133,6 +132,7 @@ Streaming chunk、重复 usage update 和工具状态的每次临时 patch 不�
 ## 九、范围外
 
 - 扫描或解析各 Agent 产品的私有 session storage
+- 读取或迁移开发期 v1 `.session` 与 raw `SessionUpdate` history
 - 让 imported history 自动恢复到原后端
 - 跨 ACP Agent 的真正 session 迁移
 - 在 obsidian-harness 中表达后端内部 sub-agent graph

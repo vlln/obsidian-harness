@@ -46,7 +46,7 @@ vault/
             └── sha256-<digest>
 ```
 
-- `manifest.json`：schema version、historyId、创建/更新时间、迁移 provenance 和 transcript 级元数据。它不记录后端在线状态。
+- `manifest.json`：schema version、historyId、创建/更新时间和 transcript 级元数据。它不记录后端在线状态。
 - `turns.jsonl`：每行一个完整、不可变的 `TurnRecord`。JSONL 提供增量提交和行级故障隔离，但记录单位是语义 turn，不是 ACP event。
 - `active-turn.json`：最多一个正在聚合的 turn snapshot，通过同目录临时文件 + rename 原子覆盖。它是崩溃恢复检查点，不是 event journal。
 - `blobs/`：超过阈值的大型内容，以 canonical bytes 的 SHA-256 为文件名不可变存储。
@@ -93,18 +93,15 @@ Reader 按文件顺序读取合法、turnId 唯一的 TurnRecord。单行损坏�
 
 以上过程不得 spawn Agent 或调用 ACP `session/load`、`session/resume`、`session/new`。只有用户明确执行继续操作时才连接 Agent 并进入 `restoring`。恢复失败保留历史并进入 backend unavailable/read-only 状态，绝不自动调用 new session。新建 ACP session 是独立且明确的用户命令。
 
-### 7. v1 兼容与迁移
+### 7. Schema 版本边界
 
-v2 reader 保留 v1 raw `SessionUpdate` 的只读兼容 projection。需要首次 v2 写入时才迁移：
+本轮发生在没有外部用户的开发阶段，因此采用明确断代而不是兼容层：
 
-1. 为 entry 分配并持久保持一个 historyId；
-2. 从 v1 source 构建带 source path、schema version 和 content fingerprint 的 migration provenance；
-3. 在独立临时目录生成 manifest、turns 和 blobs；
-4. 重新读取并校验 turnId 唯一性、引用完整性和 source fingerprint；
-5. 原子发布 v2 目录并更新 `.session` 指向；
-6. 保留 v1 source，不在本轮自动删除。
-
-重复迁移根据 entry、provenance 和 fingerprint 复用同一结果。无法确定的 v1 message 边界必须标记 inferred，未完成序列标记 interrupted。任何失败都不切换入口，不覆盖原文件；临时目录可安全清理后重试。
+- v2 reader 只接受声明为 v2 的 `.session`、manifest、TurnRecord、checkpoint 和 BlobRef；
+- v1 `.session` 与 raw `SessionUpdate` history 不读取、不迁移、不做 legacy projection；
+- 发现不受支持的版本时，在工作区报告实际版本与所需版本，不启动 Agent，也不修改源文件；
+- 当前开发数据由开发者手动删除并重新创建，清理逻辑不进入产品代码；
+- 产品存在外部用户后，未来 schema 断代必须另立兼容或迁移 ADR，不能沿用本次开发期例外。
 
 ### 8. 大型内容
 
@@ -126,11 +123,15 @@ v2 reader 保留 v1 raw `SessionUpdate` 的只读兼容 projection。需要首�
 
 ### D. 只持久化 UI `ChatMessage[]`
 
-优点是渲染直接；缺点是丢失 turn、prompt、tool、usage 和迁移 provenance 等领域语义，并形成 UI 与协议耦合。拒绝。
+优点是渲染直接；缺点是丢失 turn、prompt、tool 和 usage 等领域语义，并形成 UI 与协议耦合。拒绝。
 
 ### E. 插件直接兼容各 harness 私有 schema
 
 优点是可直接导入现有历史；缺点是破坏 ACP 边界，使核心随外部产品格式变化。拒绝；未来导入器必须是独立 adapter，只产出本 ADR 的 transcript。
+
+### F. 兼容或迁移 v1 开发历史
+
+优点是保留当前测试 session；缺点是为无用户的短命格式增加双 reader、推断规则和故障恢复路径，并使新模型受 raw event schema 约束。拒绝，开发数据手动重建。
 
 ## 后果
 
@@ -144,18 +145,18 @@ v2 reader 保留 v1 raw `SessionUpdate` 的只读兼容 projection。需要首�
 
 ### 负面
 
-- 需要新的聚合器、projection reader 和 v1 migration，写入路径比 raw append 更复杂。
+- 需要新的聚合器和 projection reader，写入路径比 raw append 更复杂。
 - completed turn 前的最新内容最多损失一个 checkpoint debounce 窗口。
 - JSONL append、blob 提交和 checkpoint 删除无法组成单个文件系统事务，必须依赖 turnId 幂等恢复。
-- 原 v1 与 v2 在兼容期会占用重复空间。
+- 当前 v1 开发 session 升级后不可读取，需要手动清理并重建。
 
 ## 验证
 
-本 ADR 不引入新的外部技术选型，属于内部存储与边界约定，无需 spike。可行性由 [AC-0003](../ac/0003-acp-turn-transcript.md) 的自动化证据验证：纯聚合器 golden fixtures、文件系统故障注入、v1 migration fixtures，以及断言离线打开不 spawn Agent 的 Obsidian E2E。
+本 ADR 不引入新的外部技术选型，属于内部存储与边界约定，无需 spike。可行性由 [AC-0003](../ac/0003-acp-turn-transcript.md) 的自动化证据验证：纯聚合器 golden fixtures、文件系统故障注入、schema version fixtures，以及断言离线打开不 spawn Agent 的 Obsidian E2E。
 
 ## 约束范围
 
-`src/types/`、`src/acp/`、`src/services/`、`src/hooks/`、`.session` schema、history workspace UI 与迁移测试。
+`src/types/`、`src/acp/`、`src/services/`、`src/hooks/`、`.session` schema、history workspace UI 与 transcript 测试。
 
 ## 约束规则
 
@@ -167,8 +168,8 @@ v2 reader 保留 v1 raw `SessionUpdate` 的只读兼容 projection。需要首�
 | AR-005-04 | 本地 transcript 是唯一权威历史；UI message state 仅为 projection | storage + hooks + UI | architecture test + code review |
 | AR-005-05 | 打开历史不得启动 Agent；恢复失败不得隐式 new session | lifecycle + UI | AC-0010/AC-0011 E2E |
 | AR-005-06 | 核心只接受 ACP-normalized 输入，不解析外部 harness 私有 schema | `src/` | import-boundary test + code review |
-| AR-005-07 | v1 迁移幂等、非破坏，校验完成前不得切换入口 | migration service | AC-0012 fixtures |
-| AR-005-08 | blob 必须先于引用落盘并按 SHA-256 校验 | blob/turn writer | AC-0014 故障注入 |
+| AR-005-07 | reader 只接受受支持的 schema version，不兼容或迁移 v1 开发格式 | entry/transcript reader | AC-0007-B-2 |
+| AR-005-08 | blob 必须先于引用落盘并按 SHA-256 校验 | blob/turn writer | AC-0013 故障注入 |
 
 ## 与既有决策的关系
 

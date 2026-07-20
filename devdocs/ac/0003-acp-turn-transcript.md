@@ -1,6 +1,6 @@
 ---
 title: AC-0003: ACP Turn Transcript
-description: ACP 语义 turn 的离线阅读、持久化、崩溃恢复、续聊状态、v1 迁移与存储失败验收标准。
+description: ACP 语义 turn 的离线阅读、持久化、崩溃恢复、续聊状态、schema 门禁与存储失败验收标准。
 type: ac
 status: proposed
 created: 2026-07-20T09:49:32Z
@@ -16,6 +16,7 @@ created: 2026-07-20T09:49:32Z
 |----------|----------|------|----------|----------|
 | AC-0007-N-1 | `.session` 指向有效本地 transcript；Agent 未运行 | 打开 `.session` | 完整 prompt、assistant 内容、tool call/result 及 turn 状态按语义顺序显示；没有 Agent 子进程和网络请求 | E2E + 进程/网络断言 |
 | AC-0007-B-1 | `.session` 的 cwd 在当前设备不存在 | 打开 `.session` | prompt、assistant 内容和 tool 记录仍可读取；工作目录缺失只影响 continuation 状态 | E2E |
+| AC-0007-B-2 | `.session` 或 manifest 的 schema version 为 1 | 打开 `.session` | 工作区显示“unsupported history version 1; requires version 2”；不投影 v1 history、不启动 Agent、不迁移或修改旧文件 | 单元测试 + E2E |
 | AC-0007-E-1 | `.session` 含未知的可选字段或 transcript 含未知 item 类型 | 打开 `.session` | 所有已知 item 均被渲染；未知内容显示为 unsupported 占位且保留类型标识 | 单元测试 |
 | AC-0007-F-1 | transcript 目录不存在 | 打开 `.session` | 工作区显示“本地历史不可用”及 historyId；不启动 Agent、不显示空白对话冒充有效历史 | E2E |
 
@@ -55,29 +56,20 @@ created: 2026-07-20T09:49:32Z
 | AC-0011-E-1 | ACP 返回 session not found 或 capability unsupported | 用户明确继续 | 显示恢复失败原因并保留只读历史；提供独立的“新建会话”用户操作 | 集成测试 |
 | AC-0011-F-1 | 恢复请求超时或连接中断 | 等待恢复结束 | 状态退出 restoring；newSession 调用次数为 0；entryId、historyId、acpSessionId 均未被静默替换 | 故障注入测试 |
 
-## AC-0012: v1 历史迁移
+## AC-0012: 损坏历史与存储写入失败
 
 | 场景编号 | 前置条件 | 操作 | 预期结果 | 验证方式 |
 |----------|----------|------|----------|----------|
-| AC-0012-N-1 | 有合法 v1 `main.jsonl` | 首次执行需要 v2 写入的操作 | 在新 historyId 下生成 manifest、TurnRecord 和迁移 provenance；校验成功后 `.session` 才切换到 v2 | 迁移夹具测试 |
-| AC-0012-B-1 | 同一 v1 history 已成功迁移 | 重复执行迁移 | historyId、turn 数量、turnId 和 blob 数量不变，不产生重复内容 | 迁移夹具测试 |
-| AC-0012-E-1 | v1 chunk 无法可靠判断消息边界或 turn 未结束 | 迁移并读取 | 可恢复内容被保留，推断字段带 provenance，未结束 turn 标为 interrupted，不伪造确定边界 | 迁移夹具测试 |
-| AC-0012-F-1 | 迁移中解析、写入或校验失败 | 重新打开原 `.session` | 原 v1 文件未修改或删除，入口不切换到半成品 v2；用户仍可通过兼容 reader 阅读可解析历史并看到迁移错误 | 故障注入测试 |
+| AC-0012-N-1 | transcript 文件均合法且存储可写 | 完成一个 turn | blob（如有）先持久化，TurnRecord 后提交，checkpoint 最后清理；重载后内容一致 | 单元测试 |
+| AC-0012-B-1 | `turns.jsonl` 有单行损坏，其他行合法 | 打开 history | 每个合法且 turnId 唯一的记录显示一次；损坏行被跳过并在工作区显示持久警告 | 单元测试 + E2E |
+| AC-0012-E-1 | manifest 或 `active-turn.json` JSON 损坏 | 打开 history | 尽可能读取有效 TurnRecord；损坏 checkpoint 不参与投影；工作区显示具体损坏文件，不启动 Agent | 单元测试 + E2E |
+| AC-0012-F-1 | checkpoint 或 completed turn 写入失败 | Agent turn 仍在运行或刚完成 | 实时 UI 不崩溃且明确标记“历史未保存”；内存聚合和最后有效 checkpoint 不被清除，可重试；不得宣称 turn 已持久化 | 故障注入测试 |
 
-## AC-0013: 损坏历史与存储写入失败
-
-| 场景编号 | 前置条件 | 操作 | 预期结果 | 验证方式 |
-|----------|----------|------|----------|----------|
-| AC-0013-N-1 | transcript 文件均合法且存储可写 | 完成一个 turn | blob（如有）先持久化，TurnRecord 后提交，checkpoint 最后清理；重载后内容一致 | 单元测试 |
-| AC-0013-B-1 | `turns.jsonl` 有单行损坏，其他行合法 | 打开 history | 每个合法且 turnId 唯一的记录显示一次；损坏行被跳过并在工作区显示持久警告 | 单元测试 + E2E |
-| AC-0013-E-1 | manifest 或 `active-turn.json` JSON 损坏 | 打开 history | 尽可能读取有效 TurnRecord；损坏 checkpoint 不参与投影；工作区显示具体损坏文件，不启动 Agent | 单元测试 + E2E |
-| AC-0013-F-1 | checkpoint 或 completed turn 写入失败 | Agent turn 仍在运行或刚完成 | 实时 UI 不崩溃且明确标记“历史未保存”；内存聚合和最后有效 checkpoint 不被清除，可重试；不得宣称 turn 已持久化 | 故障注入测试 |
-
-## AC-0014: 大型 Tool Output 引用
+## AC-0013: 大型 Tool Output 引用
 
 | 场景编号 | 前置条件 | 操作 | 预期结果 | 验证方式 |
 |----------|----------|------|----------|----------|
-| AC-0014-N-1 | tool output 超过实现定义阈值 | 完成 turn | canonical bytes 以 SHA-256 内容地址写入 `blobs/`；TurnRecord 仅保存 hash、mediaType、byteLength 和 preview 引用；渲染内容与原输出一致 | 单元测试 |
-| AC-0014-B-1 | 两个 tool output 内容完全相同 | 依次完成两个 turn | 只存一份 blob；两个引用使用同一 hash | 单元测试 |
-| AC-0014-E-1 | TurnRecord 引用的 blob 缺失或 hash 校验失败 | 打开 history | 未引用该 blob 的 item 均被渲染；该位置显示包含期望 hash 的 unavailable/corrupt 占位和持久警告 | 单元测试 + E2E |
-| AC-0014-F-1 | blob 写入失败 | 提交 completed turn | 不提交引用缺失 blob 的 completed TurnRecord；保留可重试状态并显示“历史未保存” | 故障注入测试 |
+| AC-0013-N-1 | tool output 超过实现定义阈值 | 完成 turn | canonical bytes 以 SHA-256 内容地址写入 `blobs/`；TurnRecord 仅保存 hash、mediaType、byteLength 和 preview 引用；渲染内容与原输出一致 | 单元测试 |
+| AC-0013-B-1 | 两个 tool output 内容完全相同 | 依次完成两个 turn | 只存一份 blob；两个引用使用同一 hash | 单元测试 |
+| AC-0013-E-1 | TurnRecord 引用的 blob 缺失或 hash 校验失败 | 打开 history | 未引用该 blob 的 item 均被渲染；该位置显示包含期望 hash 的 unavailable/corrupt 占位和持久警告 | 单元测试 + E2E |
+| AC-0013-F-1 | blob 写入失败 | 提交 completed turn | 不提交引用缺失 blob 的 completed TurnRecord；保留可重试状态并显示“历史未保存” | 故障注入测试 |
