@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `SYSTEM_TEST` ACP turn transcript 系统验证 |
+| **当前阶段** | `RELEASE` ACP turn transcript 待发布 |
 | **当前版本** | `v0.2.0` 已发布 |
-| **设计评估** | 0025 至 0028 已合并；29 条 AC submission gate 通过，进入 develop 全量系统验证 |
+| **设计评估** | 29 条 AC、16 条系统 E2E、3 个视觉状态和专项边界检查全部通过；develop 已具备发布条件 |
 
 ## 子目录
 
