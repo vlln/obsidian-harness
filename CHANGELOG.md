@@ -6,6 +6,25 @@
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-07-20
+
+### Added
+- **Vault-native session entries**: Every sidebar, floating, and file-explorer session is represented by a linkable `.session` file.
+- **Unified session persistence**: Session metadata, indexes, and JSONL transcripts now follow one storage path across all chat entry points.
+- **Agent workbench UI**: Added thought duration, collapsible tool details, aligned copy actions, and richer composer resource affordances.
+- **ACP configuration controls**: Added lazy-loaded model configuration, grouped model menus, current-model visibility, and usage display.
+- **Session creation workflow**: Added the file-explorer New session command and configurable default session folder.
+
+### Changed
+- **Deferred agent startup**: Opening a session no longer starts the ACP backend until the first message is sent.
+- **Backend-neutral lifecycle**: Session entry and persistence behavior now rely on ACP capabilities instead of backend-specific assumptions.
+- **Prompt behavior**: Removed automatic Obsidian note injection so session context remains explicit.
+
+### Fixed
+- **Session restoration**: Hardened `session/load` replay, agent identity persistence, and backend session ID lifecycle handling.
+- **Workbench consistency**: Fixed model menu visibility, message copy placement, tool-call rendering, and floating-session materialization.
+- **Release metadata**: Version updates now always add the released plugin version to `versions.json`.
+
 ## [0.1.1] — 2026-07-17
 
 ### Added
