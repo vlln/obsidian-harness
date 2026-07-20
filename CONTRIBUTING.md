@@ -214,7 +214,7 @@ devloop 特有约定：
 | `npm run test:coverage` | 单元测试并生成 `coverage/coverage-summary.json` |
 | `npm run test:e2e` | E2E 测试（wdio-obsidian-service） |
 | `npm run gate:mr` | lint、生产构建、单元测试和 coverage 采集 |
-| `npm run gate:submission -- --report <path> --ac <ids> --min-lines <n>` | 校验 Report 状态、AC PASS 证据和行覆盖率 |
+| `npm run gate:submission -- --report <path> --ac-file <path> --min-lines <n>` | 校验 Report 状态、全部 AC 场景 PASS 证据和行覆盖率 |
 
 ### 测试目录
 

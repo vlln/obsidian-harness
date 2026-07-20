@@ -21,7 +21,7 @@ Provide reusable test infrastructure for DEVELOP plans without implementing tran
 - Typed ACP-normalized turn fixtures covering messages, thoughts, tools, plans, usage, completion and interruption.
 - An in-memory Obsidian-compatible adapter with deterministic failures for write, append, rename, remove and corrupted reads.
 - E2E helpers that materialize `.session` entries and plugin-local transcript files without starting an Agent.
-- Coverage reporting and executable MR/submission gate commands.
+- Coverage reporting and executable MR/submission gate commands; the submission gate derives every N/B/E/F scenario from the frozen AC document.
 - A complete Report with positive and negative gate evidence.
 
 ## Constraints
