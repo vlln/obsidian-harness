@@ -55,6 +55,9 @@ AGENTS.local.md
 # E2E test cache
 .obsidian-cache/
 
+# Test coverage output
+coverage/
+
 # Generated Obsidian state in test vaults
 test/vaults/*/.obsidian/app.json
 test/vaults/*/.obsidian/appearance.json
