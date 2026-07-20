@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `SYSTEM_TEST` 0024 show current model option passed on develop |
-| **当前版本** | `v0.1.3` 后 develop 修复线 |
-| **设计评估** | Session entry、统一落盘、延迟连接、session 恢复、composer UI、ACP model config 菜单已完成；develop 通过 typecheck/lint/unit/build/e2e，可进入下一轮 |
+| **当前阶段** | `RELEASE` develop 系统测试通过，等待版本发布决策 |
+| **当前版本** | `v0.1.3` 后 develop release candidate |
+| **设计评估** | 当前迭代已通过系统测试；ACP turn transcript 作为下一轮增量设计，不混入本次 release candidate |
 
 ## 子目录
 
