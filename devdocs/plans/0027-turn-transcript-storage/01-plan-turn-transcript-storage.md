@@ -2,7 +2,7 @@
 title: Plan-0027-01: Turn Transcript Storage
 description: Replace raw SessionUpdate persistence with v2 manifest, immutable TurnRecord JSONL, atomic checkpoint and content-addressed blob storage.
 type: plan
-status: pending
+status: done
 created: 2026-07-20T11:17:04Z
 ---
 
