@@ -2,4 +2,4 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Offline-first history and explicit continuation UI | pending | [01-plan-offline-session-lifecycle.md](01-plan-offline-session-lifecycle.md) | [01-report-offline-session-lifecycle.md](01-report-offline-session-lifecycle.md) |
+| Offline-first history and explicit continuation UI | done | [01-plan-offline-session-lifecycle.md](01-plan-offline-session-lifecycle.md) | [01-report-offline-session-lifecycle.md](01-report-offline-session-lifecycle.md) |
