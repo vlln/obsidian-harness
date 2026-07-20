@@ -2,7 +2,7 @@
 title: AC-0004: Harness Session Importer Skill
 description: 外部 harness 语义转换、bundle 校验、幂等冲突、事务恢复与 imported receipt 只读体验的验收标准。
 type: ac
-status: proposed
+status: active
 created: 2026-07-20T13:46:13Z
 ---
 
