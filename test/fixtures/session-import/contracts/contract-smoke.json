@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "importNamespace": "5ad9d0b0-c511-423c-84d6-64aedca2a19a",
+  "contract": "session-import-bundle",
+  "sample": {
+    "unicode": "contract-smoke",
+    "cost": 1.25
+  }
+}

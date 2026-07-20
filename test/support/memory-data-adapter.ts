@@ -13,6 +13,12 @@ interface FailureRule {
 	operation: AdapterOperation;
 	path?: string;
 	error: Error;
+	remainingMatches: number;
+}
+
+export interface MemoryDataAdapterState {
+	files: Array<[string, string]>;
+	folders: string[];
 }
 
 export interface AdapterListResult {
@@ -30,17 +36,64 @@ export class MemoryDataAdapter {
 	private readonly files = new Map<string, string>();
 	private readonly folders = new Set<string>([""]);
 	private readonly failures: FailureRule[] = [];
+	private readonly checkpointFailures = new Map<string, Error>();
 	readonly operations: { operation: AdapterOperation; path: string }[] = [];
+	readonly checkpoints: string[] = [];
+
+	constructor(state?: MemoryDataAdapterState) {
+		if (!state) return;
+		for (const [path, content] of state.files)
+			this.files.set(path, content);
+		for (const folder of state.folders) this.folders.add(folder);
+	}
 
 	failNext(
 		operation: AdapterOperation,
 		options: { path?: string; error?: Error } = {},
 	): void {
+		this.failOnOccurrence(operation, 1, options);
+	}
+
+	failOnOccurrence(
+		operation: AdapterOperation,
+		occurrence: number,
+		options: { path?: string; error?: Error } = {},
+	): void {
+		if (!Number.isInteger(occurrence) || occurrence < 1) {
+			throw new Error("Failure occurrence must be a positive integer");
+		}
 		this.failures.push({
 			operation,
 			path: options.path,
 			error: options.error ?? new Error(`Injected ${operation} failure`),
+			remainingMatches: occurrence,
 		});
+	}
+
+	failAtCheckpoint(name: string, error?: Error): void {
+		this.checkpointFailures.set(
+			name,
+			error ?? new Error(`Injected checkpoint failure: ${name}`),
+		);
+	}
+
+	checkpoint(name: string): void {
+		this.checkpoints.push(name);
+		const error = this.checkpointFailures.get(name);
+		if (!error) return;
+		this.checkpointFailures.delete(name);
+		throw error;
+	}
+
+	exportState(): MemoryDataAdapterState {
+		return {
+			files: [...this.files.entries()],
+			folders: [...this.folders],
+		};
+	}
+
+	cloneForReload(): MemoryDataAdapter {
+		return new MemoryDataAdapter(this.exportState());
 	}
 
 	seedFile(path: string, content: string): void {
@@ -89,10 +142,29 @@ export class MemoryDataAdapter {
 	async rename(from: string, to: string): Promise<void> {
 		this.maybeFail("rename", from);
 		const content = this.files.get(from);
-		if (content === undefined) throw new Error(`File not found: ${from}`);
-		this.ensureParentFolders(to);
-		this.files.set(to, content);
-		this.files.delete(from);
+		if (content !== undefined) {
+			this.ensureParentFolders(to);
+			this.files.set(to, content);
+			this.files.delete(from);
+			return;
+		}
+		if (!this.folders.has(from)) throw new Error(`Path not found: ${from}`);
+		if (this.files.has(to) || this.folders.has(to)) {
+			throw new Error(`Path already exists: ${to}`);
+		}
+		this.ensureParentFolders(`${to}/child`);
+		const prefix = `${from}/`;
+		for (const [path, value] of [...this.files.entries()]) {
+			if (!path.startsWith(prefix)) continue;
+			this.files.set(`${to}/${path.slice(prefix.length)}`, value);
+			this.files.delete(path);
+		}
+		for (const folder of [...this.folders]) {
+			if (folder !== from && !folder.startsWith(prefix)) continue;
+			const suffix = folder === from ? "" : folder.slice(prefix.length);
+			this.folders.add(suffix ? `${to}/${suffix}` : to);
+			this.folders.delete(folder);
+		}
 	}
 
 	async remove(path: string): Promise<void> {
@@ -157,7 +229,10 @@ export class MemoryDataAdapter {
 				(rule.path === undefined || rule.path === path),
 		);
 		if (index < 0) return;
-		const [rule] = this.failures.splice(index, 1);
+		const rule = this.failures[index];
+		rule.remainingMatches -= 1;
+		if (rule.remainingMatches > 0) return;
+		this.failures.splice(index, 1);
 		throw rule.error;
 	}
 }
