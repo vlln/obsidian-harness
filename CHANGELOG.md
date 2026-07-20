@@ -6,6 +6,26 @@
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-20
+
+### Added
+- **Semantic turn transcripts**: Persist complete prompts, assistant messages, tool activity, plans, usage, stop reasons, and interrupted turns instead of token-level streaming events.
+- **Offline-first session history**: Opening a `.session` renders its local transcript before any ACP process is initialized, even when the original working directory is unavailable.
+- **Explicit continuation workspace**: Added read-only, ready-to-continue, connecting, connected, and backend-unavailable states with separate Continue and Start session actions.
+- **Crash-resilient persistence**: Added atomic active-turn checkpoints, corrupt-record diagnostics, retryable persistence errors, and content-addressed blobs for large tool output.
+
+### Changed
+- **Version 2 session entries**: Session entry identity, local history identity, and optional opaque ACP binding are now independent and stable.
+- **Continuation behavior**: Opening a session never automatically loads, resumes, or creates an ACP session; continuation requires an explicit user action.
+- **History representation**: Local transcript storage is now the single authoritative semantic history and no longer preserves streaming chunk timing.
+
+### Removed
+- **Development v1 compatibility**: Removed v1 `.session` and raw `SessionUpdate` history readers, migration paths, and legacy projection. Development v1 sessions must be recreated.
+
+### Fixed
+- **Restore isolation**: Failed restoration preserves visible local history and all identities and can never silently fall back to a new ACP session.
+- **Storage failure visibility**: Missing or corrupt transcripts and blobs, plus checkpoint and commit failures, now remain visible in the session workspace.
+
 ## [0.2.0] — 2026-07-20
 
 ### Added
