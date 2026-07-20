@@ -72,11 +72,11 @@ describe("Obsidian Harness Plugin", () => {
 			return JSON.parse(content);
 		});
 
-		expect(data).toHaveProperty("version", 1);
+		expect(data).toHaveProperty("version", 2);
 		expect(data).toHaveProperty("entryId");
-		expect(data).toHaveProperty("sessionId");
-		expect(data).toHaveProperty("backendSessionId");
-		expect(data).toHaveProperty("backendState");
+		expect(data).toHaveProperty("historyId");
+		expect(data).not.toHaveProperty("sessionId");
+		expect(data).not.toHaveProperty("backendState");
 		expect(data).toHaveProperty("agentId");
 		expect(data).toHaveProperty("cwd");
 		expect(data).toHaveProperty("title");
@@ -101,9 +101,10 @@ describe("Obsidian Harness Plugin", () => {
 		expect(data.entryId).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
 		);
-		expect(data.sessionId).toBe("");
-		expect(data.backendSessionId).toBe("");
-		expect(data.backendState).toBe("unconnected");
+		expect(data.historyId).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+		);
+		expect(data.acpBinding).toBeUndefined();
 	});
 
 	/**
@@ -281,8 +282,6 @@ describe("Obsidian Harness Plugin", () => {
 
 		expect(result).not.toBeNull();
 		expect(result!.finalData.entryId).toBe(result!.initialEntryId);
-		expect(result!.finalData.sessionId).toBe("");
-		expect(result!.finalData.backendSessionId).toBe("");
-		expect(result!.finalData.backendState).toBe("unconnected");
+		expect(result!.finalData.acpBinding).toBeUndefined();
 	});
 });

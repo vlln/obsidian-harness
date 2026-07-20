@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	decideInitialSessionLifecycle,
 	findAgentSettings,
 	selectPreferredDefaultAgentId,
 	shouldPersistResolvedSessionId,
-	shouldRestoreInitialSession,
 	shouldPersistResolvedAgentId,
 	uniqueNonEmpty,
 } from "../src/services/session-helpers";
@@ -79,28 +77,6 @@ function createMinimalSettings(): AgentClientPluginSettings {
 }
 
 describe("session restore helpers", () => {
-	it("restores when both session id and agent id are known", () => {
-		expect(
-			shouldRestoreInitialSession(
-				"019f70f3-178a-79be-aff7-981f0c1fa6e8",
-				"configured-acp",
-			),
-		).toBe(true);
-		expect(
-			shouldRestoreInitialSession(
-				"01JZABCDEFGHJKLMNPQRSTUVWX",
-				"configured-acp",
-			),
-		).toBe(true);
-		expect(
-			shouldRestoreInitialSession(
-				"550e8400-e29b-41d4-a716-446655440000",
-				"",
-			),
-		).toBe(false);
-		expect(shouldRestoreInitialSession("", "configured-acp")).toBe(false);
-	});
-
 	it("persists the runtime agent id only when the .session file has none", () => {
 		expect(shouldPersistResolvedAgentId("", "runtime-acp")).toBe(true);
 		expect(shouldPersistResolvedAgentId(undefined, "runtime-acp")).toBe(
@@ -129,57 +105,6 @@ describe("session restore helpers", () => {
 		expect(shouldPersistResolvedSessionId("local-bootstrap-id", null)).toBe(
 			false,
 		);
-	});
-
-	it("decides the initial lifecycle action for session files", () => {
-		expect(
-			decideInitialSessionLifecycle({
-				initialBackendSessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
-				initialAgentId: "configured-acp",
-				selectedAgentId: undefined,
-				restoreStarted: false,
-			}),
-		).toEqual({
-			type: "restore_existing",
-			sessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
-		});
-
-		expect(
-			decideInitialSessionLifecycle({
-				initialBackendSessionId: "",
-				initialAgentId: "",
-				selectedAgentId: "selected-acp",
-				restoreStarted: false,
-			}),
-		).toEqual({ type: "idle" });
-
-		expect(
-			decideInitialSessionLifecycle({
-				initialBackendSessionId: "",
-				initialAgentId: "",
-				selectedAgentId: undefined,
-				fallbackAgentId: "runtime-acp",
-				restoreStarted: false,
-			}),
-		).toEqual({ type: "idle" });
-
-		expect(
-			decideInitialSessionLifecycle({
-				initialBackendSessionId: "",
-				initialAgentId: "",
-				selectedAgentId: undefined,
-				restoreStarted: false,
-			}),
-		).toEqual({ type: "wait_for_agent" });
-
-		expect(
-			decideInitialSessionLifecycle({
-				initialBackendSessionId: "019f70f3-178a-79be-aff7-981f0c1fa6e8",
-				initialAgentId: "configured-acp",
-				selectedAgentId: "selected-acp",
-				restoreStarted: true,
-			}),
-		).toEqual({ type: "idle" });
 	});
 
 	it("resolves auto-discovered pi-acp sessions without custom settings", () => {
