@@ -211,14 +211,21 @@ devloop 特有约定：
 |------|------|
 | `npm run test` | 单元测试（vitest） |
 | `npm run test:watch` | 测试 watch 模式 |
+| `npm run test:coverage` | 单元测试并生成 `coverage/coverage-summary.json` |
 | `npm run test:e2e` | E2E 测试（wdio-obsidian-service） |
+| `npm run gate:mr` | lint、生产构建、单元测试和 coverage 采集 |
+| `npm run gate:submission -- --report <path> --ac <ids> --min-lines <n>` | 校验 Report 状态、AC PASS 证据和行覆盖率 |
 
 ### 测试目录
 
 | 层级 | 目录路径 |
 |------|---------|
 | 单元测试 | `test/` |
+| Fixtures 与故障注入工具 | `test/fixtures/`、`test/support/` |
 | E2E 测试 | `e2e/` |
+| E2E fixture helpers | `e2e/support/` |
+| Coverage 输出 | `coverage/coverage-summary.json`（不提交） |
+| 提测门禁 | `scripts/check-submission-gate.mjs` |
 
 ---
 
