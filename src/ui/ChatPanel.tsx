@@ -1,4 +1,5 @@
 import * as React from "react";
+import { existsSync } from "fs";
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 import {
 	Notice,
@@ -15,7 +16,6 @@ import { isSameDirectory } from "../utils/platform";
 import {
 	buildGeminiDeprecationNotice,
 	computeSessionTitle,
-	decideInitialSessionLifecycle,
 	shouldPersistResolvedAgentId,
 	shouldPersistResolvedSessionId,
 } from "../services/session-helpers";
@@ -40,13 +40,20 @@ import { useSessionHistory } from "../hooks/useSessionHistory";
 
 // Domain model imports
 import {
-	flattenConfigSelectOptions,
 	type SlashCommand,
 	type SessionModeState,
 	type SessionConfigOption,
+	type SessionFileData,
 } from "../types/session";
 import { checkAgentUpdate } from "../services/update-checker";
+import { projectTranscript } from "../services/transcript-projection";
 import type { SessionStatus } from "../services/view-registry";
+import {
+	deriveContinuationState,
+	executeContinuation,
+	type ContinuationState,
+} from "../services/session-continuation";
+import type { TranscriptPersistenceState } from "../services/transcript-recorder";
 
 /** Stable empty array for useSuggestions when no commands available */
 const EMPTY_COMMANDS: SlashCommand[] = [];
@@ -87,10 +94,8 @@ export interface ChatPanelProps {
 	viewId: string;
 	workingDirectory?: string;
 	initialAgentId?: string;
-	/** Backend ACP sessionId recorded in the .session file */
 	initialSessionId?: string;
-
-	config?: { agent?: string; model?: string };
+	sessionEntry: SessionFileData;
 	onRegisterCallbacks?: (callbacks: ChatPanelCallbacks) => void;
 	/** Called when agent ID changes (sidebar only — persists in Obsidian state) */
 	onAgentIdChanged?: (agentId: string) => void;
@@ -144,8 +149,7 @@ export function ChatPanel({
 	workingDirectory,
 	initialAgentId,
 	initialSessionId,
-
-	config,
+	sessionEntry,
 	onSessionIdChanged,
 
 	onRegisterCallbacks,
@@ -248,36 +252,54 @@ export function ChatPanel({
 		onIgnoreUpdates: agent.setIgnoreUpdates,
 		onClearMessages: agent.clearMessages,
 	});
-	// Restore session via ACP session/load when opening a .session file
-	const sessionRestoredRef = useRef(false);
-	useEffect(() => {
-		const action = decideInitialSessionLifecycle({
-			initialBackendSessionId: initialSessionId,
-			initialAgentId,
-			selectedAgentId: config?.agent,
-			fallbackAgentId: session.agentId,
-			restoreStarted: sessionRestoredRef.current,
-		});
-		if (action.type !== "restore_existing") return;
+	const [continuationState, setContinuationState] =
+		useState<ContinuationState>(() =>
+			deriveContinuationState({
+				entry: sessionEntry,
+				agentConfigured: plugin
+					.getAvailableAgents()
+					.some(
+						(item) => item.id === sessionEntry.acpBinding?.agentId,
+					),
+				cwdAvailable: existsSync(sessionEntry.cwd),
+			}),
+		);
+	const [historyDiagnostics, setHistoryDiagnostics] = useState<string[]>([]);
+	const [persistenceState, setPersistenceState] =
+		useState<TranscriptPersistenceState>({ state: "idle" });
 
-		sessionRestoredRef.current = true;
-		logger.log(`[ChatPanel] Restoring session: ${action.sessionId}`);
-		agent
-			.restoreSession(action.sessionId, agentCwd)
-			.then(() => {
-				// Flush replay updates that were batched during loadSession await
-				agent.flushPendingUpdates();
+	// Local transcript loading is deliberately independent from ACP startup.
+	useEffect(() => {
+		acpClient.setTranscriptHistoryId(sessionEntry.historyId);
+		setPersistenceState(acpClient.getTranscriptPersistenceState());
+		const unsubscribe =
+			acpClient.onTranscriptPersistenceStateChange(setPersistenceState);
+		let cancelled = false;
+		plugin.settingsService
+			.readTranscript(sessionEntry.historyId)
+			.then((transcript) => {
+				if (cancelled) return;
+				const messages = projectTranscript(transcript.turns);
+				agent.setMessagesFromLocal(messages);
+				setHistoryDiagnostics(
+					transcript.warnings.map((warning) => warning.message),
+				);
 			})
-			.catch((err) => {
-				logger.warn(`[ChatPanel] Session restore failed: ${err}`);
+			.catch((error: unknown) => {
+				if (cancelled) return;
+				setHistoryDiagnostics([
+					error instanceof Error ? error.message : String(error),
+				]);
 			});
+		return () => {
+			cancelled = true;
+			unsubscribe();
+		};
 	}, [
-		initialSessionId,
-		initialAgentId,
-		config?.agent,
-		session.agentId,
-		agentCwd,
-		agent.restoreSession,
+		acpClient,
+		sessionEntry.historyId,
+		agent.setMessagesFromLocal,
+		plugin.settingsService,
 	]);
 
 	// ============================================================
@@ -646,64 +668,6 @@ export function ChatPanel({
 		};
 	}, []);
 
-	// ============================================================
-	// Effects - Session Lifecycle
-	// ============================================================
-	// Initialize session on first open (local UUID) or when agent is selected
-	useEffect(() => {
-		const action = decideInitialSessionLifecycle({
-			initialBackendSessionId: initialSessionId,
-			initialAgentId,
-			selectedAgentId: config?.agent,
-			fallbackAgentId: session.agentId,
-			restoreStarted: sessionRestoredRef.current,
-		});
-		if (action.type === "wait_for_agent") {
-			logger.log("[ChatPanel] No agent selected yet, waiting...");
-			return;
-		}
-		if (action.type === "restore_existing" || action.type === "idle") {
-			logger.log(
-				"[ChatPanel] Existing session, waiting for restoreSession...",
-			);
-			return;
-		}
-	}, [config?.agent, initialAgentId, initialSessionId, session.agentId]);
-
-	// Apply configured model (a select config option with category "model")
-	// when session is ready.
-	useEffect(() => {
-		if (!config?.model || !isSessionReady) return;
-
-		if (session.configOptions) {
-			const modelOption = session.configOptions.find(
-				(o) => o.category === "model",
-			);
-			if (
-				modelOption &&
-				modelOption.type === "select" &&
-				modelOption.currentValue !== config.model
-			) {
-				const valueExists = flattenConfigSelectOptions(
-					modelOption.options,
-				).some((o) => o.value === config.model);
-				if (valueExists) {
-					logger.log(
-						"[ChatPanel] Applying configured model via configOptions:",
-						config.model,
-					);
-					void agent.setConfigOption(modelOption.id, config.model);
-				}
-			}
-		}
-	}, [
-		config?.model,
-		isSessionReady,
-		session.configOptions,
-		agent.setConfigOption,
-		logger,
-	]);
-
 	// Refs for cleanup (to access latest values in cleanup function)
 	const messagesRef = useRef(messages);
 	const sessionRef = useRef(session);
@@ -1019,6 +983,7 @@ export function ChatPanel({
 	const hasActivePermissionRef = useRef(agent.hasActivePermission);
 	const sessionHistoryLoadingRef = useRef(sessionHistory.loading);
 	const handleSendMessageRef = useRef(handleSendMessage);
+	const canComposeRef = useRef(continuationState.type === "resumable");
 	inputValueRef.current = inputValue;
 	attachedFilesRef.current = attachedFiles;
 	isSessionReadyRef.current = isSessionReady;
@@ -1028,6 +993,7 @@ export function ChatPanel({
 	hasActivePermissionRef.current = agent.hasActivePermission;
 	sessionHistoryLoadingRef.current = sessionHistory.loading;
 	handleSendMessageRef.current = handleSendMessage;
+	canComposeRef.current = continuationState.type === "resumable";
 
 	useEffect(() => {
 		onRegisterCallbacks?.({
@@ -1058,6 +1024,7 @@ export function ChatPanel({
 					attachedFilesRef.current.length > 0;
 				return (
 					hasContent &&
+					canComposeRef.current &&
 					!sessionHistoryLoadingRef.current &&
 					!isSendingRef.current
 				);
@@ -1072,6 +1039,7 @@ export function ChatPanel({
 				if (sessionHistoryLoadingRef.current) {
 					return false;
 				}
+				if (!canComposeRef.current) return false;
 				if (isSendingRef.current) {
 					return false;
 				}
@@ -1156,6 +1124,102 @@ export function ChatPanel({
 		/>
 	);
 
+	const handleContinueSession = useCallback(async () => {
+		const binding = sessionEntry.acpBinding;
+		if (!binding || continuationState.type !== "available") return;
+		setContinuationState({ type: "restoring", action: "continue" });
+		agent.setIgnoreUpdates(true);
+		try {
+			await executeContinuation(binding, sessionEntry.cwd, {
+				restoreSession: agent.restoreSession,
+			});
+			agent.flushPendingUpdates();
+			setContinuationState({ type: "resumable" });
+		} catch (error) {
+			setContinuationState({
+				type: "backend_unavailable",
+				reason: error instanceof Error ? error.message : String(error),
+			});
+		} finally {
+			agent.setIgnoreUpdates(false);
+		}
+	}, [
+		agent.flushPendingUpdates,
+		agent.restoreSession,
+		agent.setIgnoreUpdates,
+		continuationState.type,
+		sessionEntry.acpBinding,
+		sessionEntry.cwd,
+	]);
+
+	const handleStartSession = useCallback(async () => {
+		if (continuationState.type === "restoring") return;
+		setContinuationState({ type: "restoring", action: "new" });
+		const created = await agent.createSession(
+			session.agentId,
+			sessionEntry.cwd,
+		);
+		if (!created?.sessionId) {
+			setContinuationState({
+				type: "backend_unavailable",
+				reason: "Agent session could not be created",
+			});
+			return;
+		}
+		onAgentIdChanged?.(session.agentId);
+		onSessionIdChanged?.(created.sessionId);
+		setContinuationState({ type: "resumable" });
+	}, [
+		agent.createSession,
+		continuationState.type,
+		onAgentIdChanged,
+		onSessionIdChanged,
+		session.agentId,
+		sessionEntry.cwd,
+	]);
+
+	const continuationStatusElement = (
+		<div
+			className={`agent-client-continuation-status is-${continuationState.type}`}
+		>
+			<div className="agent-client-continuation-copy">
+				<strong>
+					{continuationState.type === "resumable"
+						? "Connected"
+						: continuationState.type === "available"
+							? "Ready to continue"
+							: continuationState.type === "restoring"
+								? "Connecting"
+								: continuationState.type === "read_only"
+									? "Read-only history"
+									: "Backend unavailable"}
+				</strong>
+				{continuationState.type !== "available" &&
+					continuationState.type !== "resumable" &&
+					continuationState.type !== "restoring" && (
+						<span>{continuationState.reason}</span>
+					)}
+				{historyDiagnostics.map((diagnostic) => (
+					<span key={diagnostic}>{diagnostic}</span>
+				))}
+				{persistenceState.state === "error" && (
+					<span>History not saved: {persistenceState.message}</span>
+				)}
+			</div>
+			{continuationState.type === "available" && (
+				<button onClick={() => void handleContinueSession()}>
+					Continue
+				</button>
+			)}
+			{(continuationState.type === "read_only" ||
+				continuationState.type === "backend_unavailable") && (
+				<button onClick={() => void handleStartSession()}>
+					Start session
+				</button>
+			)}
+		</div>
+	);
+
 	const handlePrepareSessionConfig = useCallback(async () => {
 		if (session.configOptions?.length) {
 			return session.configOptions;
@@ -1177,48 +1241,49 @@ export function ChatPanel({
 		session.workingDirectory,
 	]);
 
-	const inputAreaElement = (
-		<InputArea
-			isSending={isSending}
-			isSessionReady={isSessionReady}
-			isRestoringSession={sessionHistory.loading}
-			agentLabel={activeAgentLabel}
-			availableCommands={session.availableCommands || []}
-			autoMentionEnabled={settings.autoMentionActiveNote}
-			restoredMessage={restoredMessage}
-			suggestions={suggestions}
-			plugin={plugin}
-			view={viewHost}
-			onSendMessage={handleSendMessageWithGeminiDismiss}
-			onStopGeneration={handleStopGeneration}
-			onRestoredMessageConsumed={handleRestoredMessageConsumed}
-			modes={session.modes}
-			onModeChange={(modeId) => void handleSetMode(modeId)}
-			configOptions={session.configOptions}
-			onConfigOptionChange={(configId, value) =>
-				void handleSetConfigOption(configId, value)
-			}
-			onPrepareSessionConfig={handlePrepareSessionConfig}
-			usage={session.usage}
-			supportsImages={session.promptCapabilities?.image ?? false}
-			agentId={session.agentId}
-			// Controlled component props (for broadcast commands)
-			inputValue={inputValue}
-			onInputChange={setInputValue}
-			attachedFiles={attachedFiles}
-			onAttachedFilesChange={setAttachedFiles}
-			// Error overlay props
-			errorInfo={errorInfo}
-			onClearError={handleClearError}
-			// Agent update notification props
-			agentUpdateNotification={agentUpdateNotification}
-			onClearAgentUpdate={handleClearAgentUpdate}
-			// Gemini CLI deprecation notice props
-			geminiNotice={effectiveGeminiNotice}
-			onClearGeminiNotice={handleClearGeminiNotice}
-			messages={messages}
-		/>
-	);
+	const inputAreaElement =
+		continuationState.type === "resumable" ? (
+			<InputArea
+				isSending={isSending}
+				isSessionReady={isSessionReady}
+				isRestoringSession={sessionHistory.loading}
+				agentLabel={activeAgentLabel}
+				availableCommands={session.availableCommands || []}
+				autoMentionEnabled={settings.autoMentionActiveNote}
+				restoredMessage={restoredMessage}
+				suggestions={suggestions}
+				plugin={plugin}
+				view={viewHost}
+				onSendMessage={handleSendMessageWithGeminiDismiss}
+				onStopGeneration={handleStopGeneration}
+				onRestoredMessageConsumed={handleRestoredMessageConsumed}
+				modes={session.modes}
+				onModeChange={(modeId) => void handleSetMode(modeId)}
+				configOptions={session.configOptions}
+				onConfigOptionChange={(configId, value) =>
+					void handleSetConfigOption(configId, value)
+				}
+				onPrepareSessionConfig={handlePrepareSessionConfig}
+				usage={session.usage}
+				supportsImages={session.promptCapabilities?.image ?? false}
+				agentId={session.agentId}
+				// Controlled component props (for broadcast commands)
+				inputValue={inputValue}
+				onInputChange={setInputValue}
+				attachedFiles={attachedFiles}
+				onAttachedFilesChange={setAttachedFiles}
+				// Error overlay props
+				errorInfo={errorInfo}
+				onClearError={handleClearError}
+				// Agent update notification props
+				agentUpdateNotification={agentUpdateNotification}
+				onClearAgentUpdate={handleClearAgentUpdate}
+				// Gemini CLI deprecation notice props
+				geminiNotice={effectiveGeminiNotice}
+				onClearGeminiNotice={handleClearGeminiNotice}
+				messages={messages}
+			/>
+		) : null;
 
 	if (variant === "floating") {
 		// Floating layout: no wrapper div. Parent agent-client-floating-window is the flex container.
@@ -1232,6 +1297,7 @@ export function ChatPanel({
 					{headerElement}
 				</div>
 				{cwdBanner}
+				{continuationStatusElement}
 				<div className="agent-client-floating-content">
 					<div className="agent-client-floating-messages-container">
 						{messageListElement}
@@ -1251,6 +1317,7 @@ export function ChatPanel({
 		>
 			{headerElement}
 			{cwdBanner}
+			{continuationStatusElement}
 			{messageListElement}
 			{inputAreaElement}
 		</div>

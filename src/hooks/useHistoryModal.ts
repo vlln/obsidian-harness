@@ -86,7 +86,7 @@ export function useHistoryModal(
 				logger.log(`[ChatPanel] Deleting session: ${sessionId}`);
 				const entries = await plugin.settingsService.getSessionIndex();
 				const entry = entries.find(
-					(item) => item.sessionId === sessionId,
+					(item) => item.entryId === sessionId,
 				);
 				if (entry) {
 					const file = plugin.app.vault.getAbstractFileByPath(

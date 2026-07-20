@@ -26,11 +26,6 @@ import { VaultService } from "../services/vault-service";
 
 export const VIEW_TYPE_CHAT = "agent-client-chat-view";
 
-function getRestorableBackendSessionId(config: SessionFileData): string {
-	if (config.backendState === "unconnected") return "";
-	return config.backendSessionId || config.sessionId || "";
-}
-
 function ChatComponent({
 	plugin,
 	view,
@@ -90,8 +85,11 @@ function ChatComponent({
 				variant="sidebar"
 				viewId={viewId}
 				workingDirectory={config.cwd || undefined}
-				initialAgentId={config.agentId || restoredAgentId}
-				initialSessionId={getRestorableBackendSessionId(config)}
+				initialAgentId={
+					config.acpBinding?.agentId || config.agentId || restoredAgentId
+				}
+				initialSessionId={config.acpBinding?.sessionId}
+				sessionEntry={config}
 				viewHost={view}
 				onRegisterCallbacks={(callbacks) =>
 					view.setCallbacks(callbacks)
@@ -102,7 +100,6 @@ function ChatComponent({
 					void plugin.writeSessionConfig(entryFilePath, config);
 				}}
 				onSessionIdChanged={(sessionId) => {
-					view.acpClient.setHistorySessionId(sessionId);
 					void plugin.handleSessionIdChangedForFile(
 						entryFilePath,
 						config,

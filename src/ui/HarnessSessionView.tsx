@@ -8,13 +8,9 @@ import { ChatContextProvider } from "./ChatContext";
 import { ChatPanel } from "./ChatPanel";
 import { VaultService } from "../services/vault-service";
 import type { SessionFileData } from "../types/session";
+import { parseSessionFileData } from "../services/session-entry";
 
 export const VIEW_TYPE_HARNESS_SESSION = "harness-session-view";
-
-function getRestorableBackendSessionId(config: SessionFileData): string {
-	if (config.backendState === "unconnected") return "";
-	return config.backendSessionId || config.sessionId || "";
-}
 
 function SessionChatComponent({
 	plugin,
@@ -43,8 +39,9 @@ function SessionChatComponent({
 				variant="sidebar"
 				viewId={viewId}
 				workingDirectory={config.cwd || undefined}
-				initialAgentId={config.agentId}
-				initialSessionId={getRestorableBackendSessionId(config)}
+				initialAgentId={config.acpBinding?.agentId || config.agentId}
+				initialSessionId={config.acpBinding?.sessionId}
+				sessionEntry={config}
 				viewHost={view}
 				onSessionTitleChanged={() => view.refreshDisplayText()}
 				onAgentIdChanged={(agentId: string) => {
@@ -53,7 +50,6 @@ function SessionChatComponent({
 				}}
 				onSessionIdChanged={(sessionId: string) => {
 					{
-						view.acpClient.setHistorySessionId(sessionId);
 						void view.onSessionIdChanged(sessionId, config);
 					}
 				}}
@@ -130,37 +126,16 @@ export class HarnessSessionView extends FileView {
 		const raw = await this.app.vault.read(file);
 		let config: SessionFileData;
 		try {
-			config = JSON.parse(raw) as SessionFileData;
-		} catch {
+			config = parseSessionFileData(raw);
+		} catch (error) {
 			container.createEl("div", {
-				text: "Invalid session file format",
+				text:
+					error instanceof Error
+						? error.message
+						: "Invalid session file format",
 				cls: "harness-error",
 			});
 			return;
-		}
-
-		// Validate required fields
-		if (!(config.entryId || config.sessionId) || !config.cwd) {
-			container.createEl("div", {
-				text: "Invalid session file: missing required fields",
-				cls: "harness-error",
-			});
-			return;
-		}
-
-		// Check if agent is configured (skip if not yet set)
-		if (config.agentId) {
-			const availableAgents = this.plugin.getAvailableAgents();
-			const agentExists = availableAgents.some(
-				(a) => a.id === config.agentId,
-			);
-			if (!agentExists) {
-				container.createEl("div", {
-					text: `Agent "${config.agentId}" is not configured. Please add it in plugin settings.`,
-					cls: "harness-error",
-				});
-				return;
-			}
 		}
 
 		this.acpClient = this.plugin.getOrCreateAcpClient(this.viewId);

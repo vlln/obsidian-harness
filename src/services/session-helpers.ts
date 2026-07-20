@@ -67,11 +67,6 @@ export function selectPreferredDefaultAgentId({
 	return configured[0] ?? fallbackAgentId;
 }
 
-export type InitialSessionLifecycleAction =
-	| { type: "idle" }
-	| { type: "wait_for_agent" }
-	| { type: "restore_existing"; sessionId: string };
-
 /**
  * New .session files are created before the user/backend choice is resolved.
  * Once the runtime session has a concrete agentId, persist it exactly once so
@@ -88,39 +83,6 @@ export function shouldPersistResolvedAgentId(
  * ACP session IDs are opaque. Restore is valid only after session/new has
  * produced a backend session id and the .session file has recorded it.
  */
-export function shouldRestoreInitialSession(
-	backendSessionId: string | null | undefined,
-	agentId: string | null | undefined,
-): boolean {
-	return Boolean(backendSessionId && agentId);
-}
-
-/**
- * Decide the first lifecycle action for a ChatPanel opened from either a
- * normal chat view or a .session file. This keeps restore/create decisions
- * consistent across React effects.
- */
-export function decideInitialSessionLifecycle({
-	initialBackendSessionId,
-	initialAgentId,
-	selectedAgentId,
-	fallbackAgentId,
-	restoreStarted,
-}: {
-	initialBackendSessionId: string | null | undefined;
-	initialAgentId: string | null | undefined;
-	selectedAgentId: string | null | undefined;
-	fallbackAgentId?: string | null | undefined;
-	restoreStarted: boolean;
-}): InitialSessionLifecycleAction {
-	if (restoreStarted) return { type: "idle" };
-	if (initialBackendSessionId && initialAgentId) {
-		return { type: "restore_existing", sessionId: initialBackendSessionId };
-	}
-	const agentId = selectedAgentId || initialAgentId || fallbackAgentId;
-	return agentId ? { type: "idle" } : { type: "wait_for_agent" };
-}
-
 export function shouldPersistResolvedSessionId(
 	initialBackendSessionId: string | null | undefined,
 	resolvedSessionId: string | null | undefined,

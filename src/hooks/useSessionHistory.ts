@@ -242,7 +242,7 @@ export function useSessionHistory(
 				const indexEntries = await settingsAccess.getSessionIndex(cwd);
 				const sessionInfos: SessionInfo[] = indexEntries.map(
 					(entry) => ({
-						sessionId: entry.sessionId,
+						sessionId: entry.entryId,
 						cwd: entry.cwd,
 						title: titleFromEntryFile(entry.entryFile),
 					}),
@@ -250,7 +250,7 @@ export function useSessionHistory(
 
 				setSessions(sessionInfos);
 				setLocalSessionIds(
-					new Set(indexEntries.map((entry) => entry.sessionId)),
+					new Set(indexEntries.map((entry) => entry.entryId)),
 				);
 				setNextCursor(undefined);
 				setError(null);
@@ -398,11 +398,11 @@ export function useSessionHistory(
 			try {
 				const entries = await settingsAccess.getSessionIndex();
 				const entry = entries.find(
-					(item) => item.sessionId === sessionId,
+					(item) => item.entryId === sessionId,
 				);
 				if (entry) {
-					await settingsAccess.removeSessionIndex(sessionId);
-					await settingsAccess.deleteTranscript(sessionId);
+					await settingsAccess.removeSessionIndex(entry.entryId);
+					await settingsAccess.deleteTranscript(entry.historyId);
 				}
 
 				// Remove from local state

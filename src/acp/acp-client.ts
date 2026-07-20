@@ -504,11 +504,6 @@ export class AcpClient {
 		);
 	}
 
-	/** Transitional call name; v2 entry views bind the explicit historyId. */
-	setHistorySessionId(historyId: string): void {
-		this.setTranscriptHistoryId(historyId);
-	}
-
 	getTranscriptPersistenceState(): TranscriptPersistenceState {
 		return (
 			this.transcriptRecorder?.getPersistenceState() ?? { state: "idle" }
