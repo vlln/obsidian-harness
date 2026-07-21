@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `DEVELOP` Harness Session Importer 实现 |
+| **当前阶段** | `DEVELOP` 设计变更已吸收：导入 session 绑定原生后端并可续聊 |
 | **当前版本** | `v0.3.0` 已发布 |
-| **设计评估** | ADR-0008 已取代过度设计的 bundle/materializer 协议；当前执行 0031，将 converter 收敛为直接生成标准只读 v2 session |
+| **设计评估** | ADR-0009 取代 ADR-0008 的"只读、无 binding"约定：导入产物写入指向原生后端会话的 `acpBinding`，E2 手测（pi-acp）验证可续聊；后端不可达时 continuation state 自然降级。Spec-0005 v3 / AC-0004 / Interface-0001 已同步，代码已实现并通过 gate |
 
 ## 子目录
 
