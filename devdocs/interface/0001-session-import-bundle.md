@@ -41,7 +41,9 @@ interface ImportResult {
 ```
 
 产物是插件原生 v2 `.session`、transcript manifest、turns、可选 blobs 和一条
-`session_index.jsonl` 记录。`.session` 不含 `acpBinding`。
+`session_index.jsonl` 记录。`.session` 写入 `acpBinding = { agentId, sessionId }`，其中
+`sessionId` 为源生 backend 会话 id、`agentId` 为对应 ACP agent（见
+[ADR-0009](../adr/0009-imported-session-continuation.md)）。
 
 ## 失败输出
 

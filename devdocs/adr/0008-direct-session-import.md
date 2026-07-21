@@ -1,12 +1,18 @@
 ---
 title: ADR-0008: Companion Skill 直接生成标准 Session
-description: 外部 harness 私有格式只存在于 companion skill；脚本直接写 Obsidian Harness 当前标准的只读 session，不引入中间导入协议。
+description: 外部 harness 私有格式只存在于 companion skill；脚本直接写 Obsidian Harness 当前标准 session，不引入中间导入协议。
 type: adr
-status: accepted
+status: superseded
 created: 2026-07-21T05:30:00Z
 ---
 
 # ADR-0008: Companion Skill 直接生成标准 Session
+
+> **已被 [ADR-0009](0009-imported-session-continuation.md) 取代（2026-07-21）。**
+> 本 ADR 的"直接生成标准 session、私有格式只留在 companion skill"决策继续有效，
+> 唯独"`.session` 不含 `acpBinding`、只读打开"一条被 ADR-0009 推翻：导入产物现在
+> 写入指向原生后端会话的 `acpBinding`，使其可续聊。E2 手测已验证 pi-acp 能
+> `session/load` 导入产物并恢复上下文。
 
 ## 背景
 
