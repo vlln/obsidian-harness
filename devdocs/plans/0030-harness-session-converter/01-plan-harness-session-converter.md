@@ -2,7 +2,7 @@
 title: Plan-0030-01: Harness Session Converter
 description: Implement the companion skill CLI, four private source adapters, semantic conversion reports, stable identity, lossless blobs, and atomic generic bundle publication.
 type: plan
-status: pending
+status: done
 created: 2026-07-20T16:45:00Z
 ---
 

@@ -1,0 +1,8 @@
+{"timestamp":"2026-07-20T00:00:00Z","type":"session_meta","payload":{"id":"codex-fixture","cwd":"/fixture/project"}}
+{"timestamp":"2026-07-20T00:00:01Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Use fixture tool"}]}}
+{"timestamp":"2026-07-20T00:00:02Z","type":"event_msg","payload":{"type":"agent_message","message":"Working on fixture."}}
+{"timestamp":"2026-07-20T00:00:02Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Working on fixture."}]}}
+{"timestamp":"2026-07-20T00:00:03Z","type":"response_item","payload":{"type":"custom_tool_call","call_id":"custom-1","name":"apply_patch","input":"fixture patch"}}
+{"timestamp":"2026-07-20T00:00:04Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"custom-1","output":"fixture output"}}
+{"timestamp":"2026-07-20T00:00:05Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-1"}}
+{"timestamp":"2026-07-20T00:00:06Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Tail prompt"}]}}
