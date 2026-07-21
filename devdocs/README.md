@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE` 导入 session 续聊迭代待发布；SYSTEM_TEST 全绿，等待发布决策 |
-| **当前版本** | `v0.3.0` 已发布，下一版待定 |
-| **设计评估** | ADR-0009 取代 ADR-0008 的"只读、无 binding"约定：导入产物写入指向原生后端会话的 `acpBinding`，E2 手测（pi-acp）验证可续聊；后端不可达时 continuation state 自然降级。Spec-0005 v3 / AC-0004 / Interface-0001 已同步。develop 已合并本迭代，MR/E2E/CLI 端到端全绿，详见 [reports/system-test-imported-session-continuation.md](reports/system-test-imported-session-continuation.md) |
+| **当前阶段** | `DESIGN` 新一轮迭代：v0.4.0 已发布，进入下一轮设计 |
+| **当前版本** | `v0.4.0` 刚发布（导入 session 可续聊） |
+| **设计评估** | ADR-0009 已落地：导入产物写入 `acpBinding` 指向原生后端，可续聊，后端不可达时 continuation state 降级。已知增强项：换设备场景用 `session/list` 预检提前降级（另开 plan）。参见 [ADR-0009](adr/0009-imported-session-continuation.md) |
 
 ## 子目录
 
