@@ -37,4 +37,39 @@ describe("turn transcript test infrastructure", () => {
 			"checkpoint",
 		);
 	});
+
+	it("supports occurrence failures, directory rename, and reload snapshots", async () => {
+		const adapter = new MemoryDataAdapter();
+		await adapter.mkdir("sessions/staging/history");
+		await adapter.write("sessions/staging/history/manifest.json", "{}");
+		adapter.failOnOccurrence("read", 2, {
+			path: "sessions/staging/history/manifest.json",
+		});
+		expect(
+			await adapter.read("sessions/staging/history/manifest.json"),
+		).toBe("{}");
+		await expect(
+			adapter.read("sessions/staging/history/manifest.json"),
+		).rejects.toThrow("Injected read failure");
+
+		await adapter.rename("sessions/staging/history", "sessions/history");
+		const reloaded = adapter.cloneForReload();
+		expect(reloaded.getFile("sessions/history/manifest.json")).toBe("{}");
+		expect(reloaded.hasFile("sessions/staging/history/manifest.json")).toBe(
+			false,
+		);
+	});
+
+	it("injects named checkpoint failures exactly once", () => {
+		const adapter = new MemoryDataAdapter();
+		adapter.failAtCheckpoint("entry-published");
+		expect(() => adapter.checkpoint("entry-published")).toThrow(
+			"Injected checkpoint failure: entry-published",
+		);
+		expect(() => adapter.checkpoint("entry-published")).not.toThrow();
+		expect(adapter.checkpoints).toEqual([
+			"entry-published",
+			"entry-published",
+		]);
+	});
 });

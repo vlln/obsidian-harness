@@ -20,23 +20,36 @@ async function main() {
 	const reportPath = args.get("report");
 	const coveragePath =
 		args.get("coverage") ?? "coverage/coverage-summary.json";
+	const pythonCoveragePath = args.get("python-coverage");
 	const acFilePath = args.get("ac-file");
 	let requiredAc = (args.get("ac") ?? "")
 		.split(",")
 		.map((value) => value.trim())
 		.filter(Boolean);
 	const minimum = Number(args.get("min-lines") ?? "80");
+	const pythonMinimum = Number(args.get("min-python-lines") ?? "85");
 
 	if (!reportPath) throw new Error("--report is required");
 	if (!Number.isFinite(minimum) || minimum < 0 || minimum > 100) {
 		throw new Error("--min-lines must be between 0 and 100");
 	}
+	if (
+		!Number.isFinite(pythonMinimum) ||
+		pythonMinimum < 0 ||
+		pythonMinimum > 100
+	) {
+		throw new Error("--min-python-lines must be between 0 and 100");
+	}
 
-	const [report, coverageText, acFile] = await Promise.all([
-		readFile(reportPath, "utf8"),
-		readFile(coveragePath, "utf8"),
-		acFilePath ? readFile(acFilePath, "utf8") : Promise.resolve(""),
-	]);
+	const [report, coverageText, pythonCoverageText, acFile] =
+		await Promise.all([
+			readFile(reportPath, "utf8"),
+			readFile(coveragePath, "utf8"),
+			pythonCoveragePath
+				? readFile(pythonCoveragePath, "utf8")
+				: Promise.resolve(""),
+			acFilePath ? readFile(acFilePath, "utf8") : Promise.resolve(""),
+		]);
 	if (acFilePath) {
 		requiredAc = [...new Set(acFile.match(/AC-\d{4}-[NBEF]-\d+/g) ?? [])];
 		if (requiredAc.length === 0) {
@@ -45,6 +58,10 @@ async function main() {
 	}
 	const coverage = JSON.parse(coverageText);
 	const lineCoverage = coverage?.total?.lines?.pct;
+	const pythonCoverage = pythonCoverageText
+		? JSON.parse(pythonCoverageText)
+		: null;
+	const pythonLineCoverage = pythonCoverage?.totals?.percent_covered;
 	const errors = [];
 
 	if (!/^status:\s*complete\s*$/m.test(report)) {
@@ -61,6 +78,17 @@ async function main() {
 	} else if (lineCoverage < minimum) {
 		errors.push(`line coverage ${lineCoverage}% is below ${minimum}%`);
 	}
+	if (pythonCoveragePath) {
+		if (typeof pythonLineCoverage !== "number") {
+			errors.push(
+				"Python coverage summary does not contain totals.percent_covered",
+			);
+		} else if (pythonLineCoverage < pythonMinimum) {
+			errors.push(
+				`Python line coverage ${pythonLineCoverage}% is below ${pythonMinimum}%`,
+			);
+		}
+	}
 
 	if (errors.length > 0) {
 		for (const error of errors) console.error(`[submission-gate] ${error}`);
@@ -68,8 +96,11 @@ async function main() {
 		return;
 	}
 
+	const pythonSummary = pythonCoveragePath
+		? `, ${pythonLineCoverage}% Python lines`
+		: "";
 	console.log(
-		`[submission-gate] PASS (${requiredAc.length} AC scenarios, ${lineCoverage}% lines)`,
+		`[submission-gate] PASS (${requiredAc.length} AC scenarios, ${lineCoverage}% lines${pythonSummary})`,
 	);
 }
 

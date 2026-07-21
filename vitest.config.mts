@@ -12,10 +12,13 @@ export default defineConfig({
 			provider: "v8",
 			reporter: ["text", "json-summary"],
 			reportsDirectory: "coverage",
+			thresholds: { lines: 80 },
 			include: [
 				"src/services/session-storage.ts",
 				"src/services/transcript-*.ts",
 				"src/services/session-continuation.ts",
+				"src/services/session-import*.ts",
+				"src/types/session-import.ts",
 			],
 		},
 	},

@@ -8,7 +8,15 @@ const script = fileURLToPath(
 );
 const acFile = `${root}/devdocs/ac/0003-acp-turn-transcript.md`;
 
-function runGate(report: string, coverage: string) {
+function runGate(report: string, coverage: string, pythonCoverage?: string) {
+	const pythonArgs = pythonCoverage
+		? [
+				"--python-coverage",
+				`${root}/test/fixtures/gates/${pythonCoverage}`,
+				"--min-python-lines",
+				"85",
+			]
+		: [];
 	return spawnSync(
 		process.execPath,
 		[
@@ -21,6 +29,7 @@ function runGate(report: string, coverage: string) {
 			acFile,
 			"--min-lines",
 			"80",
+			...pythonArgs,
 		],
 		{ encoding: "utf8" },
 	);
@@ -46,5 +55,27 @@ describe("submission gate", () => {
 		const result = runGate("complete-report.txt", "coverage-fail.json");
 		expect(result.status).toBe(1);
 		expect(result.stderr).toContain("line coverage 42% is below 80%");
+	});
+
+	it("accepts independently sufficient V8 and Python coverage", () => {
+		const result = runGate(
+			"complete-report.txt",
+			"coverage-pass.json",
+			"python-coverage-pass.json",
+		);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toContain("91% lines, 92% Python lines");
+	});
+
+	it("rejects insufficient Python coverage independently", () => {
+		const result = runGate(
+			"complete-report.txt",
+			"coverage-pass.json",
+			"python-coverage-fail.json",
+		);
+		expect(result.status).toBe(1);
+		expect(result.stderr).toContain(
+			"Python line coverage 41% is below 85%",
+		);
 	});
 });

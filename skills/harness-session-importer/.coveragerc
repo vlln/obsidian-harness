@@ -1,0 +1,11 @@
+[run]
+branch = False
+source = scripts
+data_file = coverage/.python-coverage
+
+[report]
+fail_under = 85
+show_missing = True
+
+[json]
+output = coverage/python-coverage.json

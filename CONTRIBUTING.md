@@ -212,9 +212,13 @@ devloop 特有约定：
 | `npm run test` | 单元测试（vitest） |
 | `npm run test:watch` | 测试 watch 模式 |
 | `npm run test:coverage` | 单元测试并生成 `coverage/coverage-summary.json` |
+| `npm run test:importer:python` | 运行 importer skill 的 Python 单元测试 |
+| `npm run test:importer:contracts` | 运行 Python/TypeScript 共享契约冒烟 |
+| `npm run test:importer:coverage` | 运行 importer Python 测试并生成独立覆盖率报告 |
+| `npm run lint:importer-fixtures` | 检查 importer fixtures 不含真实路径或凭据 |
 | `npm run test:e2e` | E2E 测试（wdio-obsidian-service） |
 | `npm run gate:mr` | lint、生产构建、单元测试和 coverage 采集 |
-| `npm run gate:submission -- --report <path> --ac-file <path> --min-lines <n>` | 校验 Report 状态、全部 AC 场景 PASS 证据和行覆盖率 |
+| `npm run gate:submission -- --report <path> --ac-file <path> --min-lines <n> [--python-coverage <path> --min-python-lines <n>]` | 校验 Report 状态、全部 AC 场景 PASS 证据及独立 V8/Python 行覆盖率 |
 
 ### 测试目录
 
@@ -224,7 +228,10 @@ devloop 特有约定：
 | Fixtures 与故障注入工具 | `test/fixtures/`、`test/support/` |
 | E2E 测试 | `e2e/` |
 | E2E fixture helpers | `e2e/support/` |
+| Importer skill 测试 | `skills/harness-session-importer/tests/` |
+| 共享 importer 契约 fixtures | `test/fixtures/session-import/contracts/` |
 | Coverage 输出 | `coverage/coverage-summary.json`（不提交） |
+| Python coverage 输出 | `skills/harness-session-importer/coverage/python-coverage.json`（不提交） |
 | 提测门禁 | `scripts/check-submission-gate.mjs` |
 
 ---

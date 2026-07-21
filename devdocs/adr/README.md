@@ -11,3 +11,7 @@
 | [0003-session-entry](0003-session-entry.md) | Session 入口文件设计 | accepted |
 | [0004-test-infra](0004-test-infra.md) | 测试基础设施选型 | accepted |
 | [0005-turn-transcript-storage](0005-turn-transcript-storage.md) | Turn Transcript 存储 | accepted |
+| [0006-session-import-boundary](0006-session-import-boundary.md) | Session Import Skill 与 Materialization 边界 | superseded |
+| [0007-session-import-test-infra](0007-session-import-test-infra.md) | Session Importer 测试基建 | accepted |
+| [0008-direct-session-import](0008-direct-session-import.md) | Companion Skill 直接生成标准 Session | accepted（只读子决策被 0009 推翻） |
+| [0009-imported-session-continuation](0009-imported-session-continuation.md) | 导入 Session 绑定原生后端并可续聊 | accepted |

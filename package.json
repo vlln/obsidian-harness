@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-harness",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Obsidian as cockpit, Agent as engine — manage AI coding agents from your knowledge base",
 	"main": "main.js",
 	"scripts": {
@@ -9,8 +9,11 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
+		"test:importer:python": "python3 -m unittest discover -s skills/harness-session-importer/tests -p 'test_*.py'",
+		"test:importer:coverage": "cd skills/harness-session-importer && python3 -m coverage erase && python3 -m coverage run -m unittest discover -s tests -p 'test_*.py' && python3 -m coverage report && python3 -m coverage json",
+		"lint:importer-fixtures": "node scripts/check-session-import-fixtures.mjs",
 		"test:e2e": "wdio run wdio.conf.mts",
-		"gate:mr": "npm run lint && npm run build && npm run test:coverage",
+		"gate:mr": "npm run lint && npm run lint:importer-fixtures && npm run build && npm run test:coverage && npm run test:importer:coverage",
 		"gate:submission": "node scripts/check-submission-gate.mjs",
 		"postinstall": "patch-package",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
