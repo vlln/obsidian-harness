@@ -33,7 +33,7 @@ describe("session import architecture boundary", () => {
 		}
 	});
 
-	it("keeps project routing and formal storage writes out of converter", async () => {
+	it("keeps project routing and obsolete import protocols out of converter", async () => {
 		const converter = await readFile(
 			join(
 				root,
@@ -44,8 +44,9 @@ describe("session import architecture boundary", () => {
 		for (const forbidden of [
 			"folderbridge",
 			"PJ_",
-			"session_index.jsonl",
+			".harness-import",
 			"import-receipt.json",
+			"conversionDigest",
 		]) {
 			expect(converter).not.toContain(forbidden);
 		}
