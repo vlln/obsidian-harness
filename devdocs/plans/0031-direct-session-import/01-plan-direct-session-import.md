@@ -2,7 +2,7 @@
 title: Plan-0031-01: Direct Session Import
 description: Remove the unnecessary import protocol and make the companion skill write standard read-only v2 sessions directly.
 type: plan
-status: pending
+status: complete
 created: 2026-07-21T05:30:00Z
 ---
 
