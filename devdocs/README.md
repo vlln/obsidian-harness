@@ -4,7 +4,7 @@
 |------|-----|
 | **当前阶段** | `DEVELOP` Harness Session Importer 实现 |
 | **当前版本** | `v0.3.0` 已发布 |
-| **设计评估** | Spec-0005、AC-0004、ADR-0006、ADR-0007 与 Interface-0001 已冻结；测试基建和独立覆盖率门禁已就绪，可分别实现 converter skill、generic plugin materializer 与只读 import UI |
+| **设计评估** | Spec-0005、AC-0004、ADR-0006、ADR-0007 与 Interface-0001 已冻结；converter companion skill 已完成，下一步实现 generic plugin materializer 与只读 import UI |
 
 ## 子目录
 
