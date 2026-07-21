@@ -2,11 +2,15 @@
 title: ADR-0006: Session Import Skill 与 Materialization 边界
 description: 将外部 harness parser 隔离在同仓库 Agent Skill，以来源无关 bundle 和插件单写者事务完成 v2 session 导入。
 type: adr
-status: accepted
+status: superseded
 created: 2026-07-20T13:46:13Z
 ---
 
 # ADR-0006: Session Import Skill 与 Materialization 边界
+
+> Superseded by [ADR-0008](0008-direct-session-import.md). The bundle,
+> report, receipt, materializer and single-writer constraints described below
+> were not product requirements and are not implemented going forward.
 
 ## 背景
 
