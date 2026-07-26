@@ -2,4 +2,4 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Session Navigator UI and commands | pending | [01-plan-session-navigator-ui.md](01-plan-session-navigator-ui.md) | - |
+| Session Navigator UI and commands | done | [01-plan-session-navigator-ui.md](01-plan-session-navigator-ui.md) | [01-report-session-navigator-ui.md](01-report-session-navigator-ui.md) |

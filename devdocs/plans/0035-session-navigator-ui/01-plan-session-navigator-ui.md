@@ -2,7 +2,7 @@
 title: Plan-0035-01: Session Navigator UI
 description: Replace SessionManagerView with the Codex-style Harness Navigator and add current-entry lifecycle commands while preserving Catalog ownership and Obsidian file semantics.
 type: plan
-status: pending
+status: done
 created: 2026-07-26T10:00:00Z
 ---
 
