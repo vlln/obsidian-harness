@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `DESIGN` 新一轮迭代：v0.4.0 已发布，进入下一轮设计 |
+| **当前阶段** | `TEST_INFRA`：Session Navigator 契约已冻结，评估并补齐组件、视觉回归和性能测试基建 |
 | **当前版本** | `v0.4.0` 刚发布（导入 session 可续聊） |
-| **设计评估** | ADR-0009 已落地：导入产物写入 `acpBinding` 指向原生后端，可续聊，后端不可达时 continuation state 降级。已知增强项：换设备场景用 `session/list` 预检提前降级（另开 plan）。参见 [ADR-0009](adr/0009-imported-session-continuation.md) |
+| **设计评估** | Session Navigator 采用 `.session` 权威元数据 + index 发现 + 内存 Catalog/Runtime Registry 投影；不设独立 Active 分区。参见 [Spec-0006](spec/0006-session-navigator.md)、[AC-0005](ac/0005-session-navigator.md)、[ADR-0010](adr/0010-session-catalog-projection.md) |
 
 ## 子目录
 
