@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `SYSTEM_TEST`：AC-0023 的 DEVELOP 门禁已通过，正在 `develop` 上执行新增的 WDIO 计算样式、主题故障注入与 260/420 px 明暗主题视觉验证 |
+| **当前阶段** | `RELEASE`：AC-0023 的 DEVELOP 与 SYSTEM_TEST 门禁全绿，Navigator 视觉角色层级已在 `develop` 闭环；尚未创建 release 分支或执行发布动作 |
 | **当前版本** | `v0.4.0` 刚发布（导入 session 可续聊） |
 | **设计评估** | Session Navigator 使用 `.session` 权威元数据 + index 发现 + 内存 Catalog/Runtime Registry；复用现有 Vitest/WDIO/CI，不新增测试工具。参见 [Spec-0006](spec/0006-session-navigator.md)、[AC-0005](ac/0005-session-navigator.md)、[ADR-0010](adr/0010-session-catalog-projection.md)、[ADR-0011](adr/0011-session-navigator-test-infra.md) |
 
