@@ -37,4 +37,4 @@
 | 0031 | [0031-direct-session-import](0031-direct-session-import/) | `feat/0031-direct-session-import` | pending |
 | 0032 | [0032-session-runtime-registry](0032-session-runtime-registry/) | `feat/0032-session-runtime-registry` | done |
 | 0033 | [0033-session-index-reconciliation](0033-session-index-reconciliation/) | `feat/0033-session-index-reconciliation` | done |
-| 0034 | [0034-session-catalog](0034-session-catalog/) | `feat/0034-session-catalog` | pending |
+| 0034 | [0034-session-catalog](0034-session-catalog/) | `feat/0034-session-catalog` | done |

@@ -2,7 +2,7 @@
 title: Plan-0034-01: Session Catalog
 description: Build the plugin-lifetime immutable Session Catalog projection with bounded entry reads, event coalescing, runtime/selection merging, and last-good failure recovery.
 type: plan
-status: pending
+status: done
 created: 2026-07-26T09:30:00Z
 ---
 

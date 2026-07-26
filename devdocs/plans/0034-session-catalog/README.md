@@ -2,4 +2,4 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Session Catalog projection | pending | [01-plan-session-catalog.md](01-plan-session-catalog.md) | - |
+| Session Catalog projection | done | [01-plan-session-catalog.md](01-plan-session-catalog.md) | [01-report-session-catalog.md](01-report-session-catalog.md) |
