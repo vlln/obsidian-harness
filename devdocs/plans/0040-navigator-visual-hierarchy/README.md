@@ -2,4 +2,4 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Section labels, Show more and selectable-row hierarchy | pending | [01-plan-navigator-visual-hierarchy.md](01-plan-navigator-visual-hierarchy.md) | pending |
+| Section labels, Show more and selectable-row hierarchy | done | [01-plan-navigator-visual-hierarchy.md](01-plan-navigator-visual-hierarchy.md) | [01-report-navigator-visual-hierarchy.md](01-report-navigator-visual-hierarchy.md) |

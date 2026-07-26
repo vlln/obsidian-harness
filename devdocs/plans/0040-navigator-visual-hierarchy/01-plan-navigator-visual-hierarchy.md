@@ -2,7 +2,7 @@
 title: Plan-0040-01: Navigator Visual Hierarchy
 description: Distinguish static Projects/Recents labels, interactive Show more commands and selectable Project/Session rows with contract-driven typography, color, alignment and hover behavior.
 type: plan
-status: pending
+status: done
 created: 2026-07-26T11:59:42Z
 ---
 
