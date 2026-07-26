@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `TEST_INFRA`：Session Navigator 契约已冻结，评估并补齐组件、视觉回归和性能测试基建 |
+| **当前阶段** | `DESIGN`：修正 Session Navigator 的测试层约束，复用既有 Vitest/WDIO 基建，不引入第二套组件/视觉工具链 |
 | **当前版本** | `v0.4.0` 刚发布（导入 session 可续聊） |
-| **设计评估** | Session Navigator 采用 `.session` 权威元数据 + index 发现 + 内存 Catalog/Runtime Registry 投影；不设独立 Active 分区。参见 [Spec-0006](spec/0006-session-navigator.md)、[AC-0005](ac/0005-session-navigator.md)、[ADR-0010](adr/0010-session-catalog-projection.md) |
+| **设计评估** | 业务架构不变；发现 AC-0005 将“组件测试”写成硬性验证层会迫使项目新增重复测试工具，退回 DESIGN 改为现有 Vitest + WDIO E2E/截图验证。参见 [Spec-0006](spec/0006-session-navigator.md)、[AC-0005](ac/0005-session-navigator.md)、[ADR-0010](adr/0010-session-catalog-projection.md) |
 
 ## 子目录
 
