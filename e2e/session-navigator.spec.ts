@@ -123,7 +123,6 @@ describe("Session Navigator", () => {
 			fixtureEntryIds,
 		);
 		await waitForFixtureCatalog();
-		await browser.setWindowSize(1200, 820);
 		await setNavigatorWidth(420);
 		await browser.$(".agent-client-session-manager").waitForDisplayed();
 	});
