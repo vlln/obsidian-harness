@@ -44,10 +44,11 @@ async function setNavigatorWidth(width: number): Promise<void> {
 		);
 		let element = navigator as HTMLElement | null;
 		while (element && !element.classList.contains("mod-root")) {
-			element.style.boxSizing = "border-box";
-			element.style.width = `${targetWidth}px`;
-			element.style.minWidth = `${targetWidth}px`;
-			element.style.maxWidth = `${targetWidth}px`;
+			const elementWidth =
+				element === navigator ? targetWidth - 16 : targetWidth;
+			element.style.width = `${elementWidth}px`;
+			element.style.minWidth = `${elementWidth}px`;
+			element.style.maxWidth = `${elementWidth}px`;
 			if (
 				element.classList.contains("workspace-leaf") ||
 				element.classList.contains("workspace-tabs") ||
@@ -319,12 +320,13 @@ describe("Session Navigator", () => {
 	});
 
 	it("AC-0021-N-2: exposes the four current-entry commands", async () => {
-		await browser.execute(() => {
-			const menuButton = document.querySelector(
-				'section[aria-label="Recents"] .agent-client-navigator-more',
-			) as HTMLButtonElement;
-			menuButton.click();
-		});
+		const row = await browser.$(
+			'section[aria-label="Recents"] .agent-client-navigator-session-row',
+		);
+		await row.moveTo();
+		const menuButton = await row.$(".agent-client-navigator-more");
+		await menuButton.waitForClickable();
+		await menuButton.click();
 		await browser.$(".menu").waitForDisplayed();
 		const menuText = await browser.$(".menu").getText();
 		expect(menuText).toContain("Open");
