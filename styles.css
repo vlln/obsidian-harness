@@ -9,6 +9,10 @@ If your plugin does not need CSS, delete this file.
 
 /* ===== Session Navigator ===== */
 
+.workspace-tab-header[data-type="agent-client-session-manager"] {
+	display: none;
+}
+
 .agent-client-session-manager {
 	display: flex;
 	flex-direction: column;
