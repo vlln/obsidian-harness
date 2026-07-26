@@ -15,3 +15,4 @@
 | [0007-session-import-test-infra](0007-session-import-test-infra.md) | Session Importer 测试基建 | accepted |
 | [0008-direct-session-import](0008-direct-session-import.md) | Companion Skill 直接生成标准 Session | accepted（只读子决策被 0009 推翻） |
 | [0009-imported-session-continuation](0009-imported-session-continuation.md) | 导入 Session 绑定原生后端并可续聊 | accepted |
+| [0010-session-catalog-projection](0010-session-catalog-projection.md) | Session Catalog Projection | accepted |
