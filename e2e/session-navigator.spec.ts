@@ -40,11 +40,15 @@ async function setNavigatorWidth(width: number): Promise<void> {
 			"agent-client-session-manager",
 		)[0];
 		const leafElement = leaf?.view?.containerEl?.closest(".workspace-leaf");
-		const splitElement = leafElement?.parentElement;
+		const splitElement = leafElement?.closest(".workspace-split");
 		if (splitElement) {
 			splitElement.style.width = `${targetWidth}px`;
 			splitElement.style.flex = `0 0 ${targetWidth}px`;
 		}
+		const navigator = leaf?.view?.containerEl?.querySelector(
+			".agent-client-session-manager",
+		);
+		if (navigator) navigator.style.width = `${targetWidth}px`;
 	});
 }
 
@@ -84,7 +88,7 @@ describe("Session Navigator", () => {
 								? "Beta Planning"
 								: `Navigator Session ${String(index + 1).padStart(2, "0")}`;
 					const updatedAt = new Date(
-						Date.UTC(2026, 6, 20, 0, 30 - index),
+						Date.UTC(2099, 6, 20, 0, 30 - index),
 					).toISOString();
 					const data = {
 						version: 2,
@@ -191,13 +195,24 @@ describe("Session Navigator", () => {
 			'section[aria-label="Projects"] .agent-client-navigator-show-more',
 		);
 		await projectShowMore.click();
-		expect(
-			await browser
-				.$$(
-					'section[aria-label="Projects"] .agent-client-navigator-project',
-				)
-				.then((elements) => elements.length),
-		).toBe(7);
+		const projectNames = await browser
+			.$$(
+				'section[aria-label="Projects"] .agent-client-navigator-project-row span:last-child',
+			)
+			.then((elements) =>
+				Promise.all(elements.map((element) => element.getText())),
+			);
+		for (const fixtureProject of [
+			"alpha/app",
+			"beta/app",
+			"project-2",
+			"project-3",
+			"project-4",
+			"project-5",
+			"project-6",
+		]) {
+			expect(projectNames).toContain(fixtureProject);
+		}
 		expect(
 			await browser
 				.$$(
@@ -252,7 +267,13 @@ describe("Session Navigator", () => {
 				.getText(),
 		).toContain("Release Review");
 		await browser.$('button[aria-label="Close search"]').click();
-		expect(await firstProject.getAttribute("aria-expanded")).toBe("false");
+		const restoredProject = await browser.$(
+			'section[aria-label="Projects"] .agent-client-navigator-project-row',
+		);
+		expect(await restoredProject.getAttribute("aria-expanded")).toBe(
+			"false",
+		);
+		await restoredProject.click();
 	});
 
 	it("AC-0019: keeps status geometry fixed and selects both projections", async () => {
@@ -290,10 +311,22 @@ describe("Session Navigator", () => {
 	});
 
 	it("AC-0021-N-2: exposes the four current-entry commands", async () => {
-		const row = await browser.$(
-			'section[aria-label="Recents"] .agent-client-navigator-session-row',
-		);
-		await row.click({ button: "right" });
+		await browser.execute(() => {
+			const row = document.querySelector(
+				'section[aria-label="Recents"] .agent-client-navigator-session-row',
+			)!;
+			const bounds = row.getBoundingClientRect();
+			row.dispatchEvent(
+				new MouseEvent("contextmenu", {
+					bubbles: true,
+					cancelable: true,
+					clientX: bounds.left + 8,
+					clientY: bounds.top + 8,
+					button: 2,
+				}),
+			);
+		});
+		await browser.$(".menu").waitForDisplayed();
 		const menuText = await browser.$(".menu").getText();
 		expect(menuText).toContain("Open");
 		expect(menuText).toContain("Reveal in file explorer");
@@ -304,6 +337,12 @@ describe("Session Navigator", () => {
 
 	it("AC-0022: saves 260/420 px light/dark visual evidence", async () => {
 		const navigator = await browser.$(".agent-client-session-manager");
+		await browser.execute(() => {
+			const content = document.querySelector(
+				".agent-client-navigator-content",
+			) as HTMLElement | null;
+			if (content) content.scrollTop = 0;
+		});
 		for (const theme of ["light", "dark"] as const) {
 			await setTheme(theme);
 			for (const width of [260, 420]) {

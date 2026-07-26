@@ -153,5 +153,8 @@ describe("session navigator model", () => {
 		expect(styles).toContain(
 			"grid-template-columns: minmax(0, 1fr) 18px 24px",
 		);
+		expect(styles).toContain(
+			".agent-client-session-manager button.agent-client-navigator-project-row",
+		);
 	});
 });
