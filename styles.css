@@ -90,9 +90,9 @@ If your plugin does not need CSS, delete this file.
 	box-shadow: none;
 }
 
-.agent-client-navigator-new-session,
-.agent-client-navigator-project-row,
-.agent-client-navigator-show-more {
+.agent-client-session-manager button.agent-client-navigator-new-session,
+.agent-client-session-manager button.agent-client-navigator-project-row,
+.agent-client-session-manager button.agent-client-navigator-show-more {
 	display: flex;
 	align-items: center;
 	width: 100%;
@@ -103,6 +103,7 @@ If your plugin does not need CSS, delete this file.
 	color: var(--text-normal);
 	font: inherit;
 	text-align: left;
+	appearance: none;
 }
 
 .agent-client-navigator-new-session {
@@ -112,10 +113,10 @@ If your plugin does not need CSS, delete this file.
 	border-radius: 5px;
 }
 
-.agent-client-navigator-new-session:hover,
-.agent-client-navigator-project-row:hover,
+.agent-client-session-manager button.agent-client-navigator-new-session:hover,
+.agent-client-session-manager button.agent-client-navigator-project-row:hover,
 .agent-client-navigator-session-row:hover,
-.agent-client-navigator-show-more:hover {
+.agent-client-session-manager button.agent-client-navigator-show-more:hover {
 	background: var(--background-modifier-hover);
 }
 
