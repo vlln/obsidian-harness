@@ -59,6 +59,72 @@ async function setTheme(theme: "light" | "dark"): Promise<void> {
 	}, theme);
 }
 
+async function getNavigatorRoleStyles() {
+	return browser.execute(() => {
+		const rootElement = document.querySelector(
+			".agent-client-session-manager",
+		)!;
+		const resolveColor = (variable: string) => {
+			const probe = document.createElement("span");
+			probe.style.color = `var(${variable})`;
+			rootElement.appendChild(probe);
+			const color = getComputedStyle(probe).color;
+			probe.remove();
+			return color;
+		};
+		const resolveFontWeight = (variable: string) => {
+			const probe = document.createElement("span");
+			probe.style.fontWeight = `var(${variable})`;
+			rootElement.appendChild(probe);
+			const fontWeight = getComputedStyle(probe).fontWeight;
+			probe.remove();
+			return fontWeight;
+		};
+		const styleOf = (selector: string) => {
+			const element = rootElement.querySelector<HTMLElement>(selector);
+			if (!element) throw new Error(`Missing Navigator element: ${selector}`);
+			const style = getComputedStyle(element);
+			return {
+				backgroundColor: style.backgroundColor,
+				color: style.color,
+				cursor: style.cursor,
+				fontSize: style.fontSize,
+				fontWeight: style.fontWeight,
+				justifyContent: style.justifyContent,
+				role: element.getAttribute("role"),
+				tabIndex: element.tabIndex,
+				tagName: element.tagName,
+			};
+		};
+		return {
+			colors: {
+				faint: resolveColor("--text-faint"),
+				muted: resolveColor("--text-muted"),
+				normal: resolveColor("--text-normal"),
+			},
+			fontWeights: {
+				medium: resolveFontWeight("--font-medium"),
+				semibold: resolveFontWeight("--font-semibold"),
+			},
+			projects: styleOf(
+				'section[aria-label="Projects"] .agent-client-navigator-section-title',
+			),
+			recents: styleOf(
+				'section[aria-label="Recents"] .agent-client-navigator-section-title',
+			),
+			showMore: styleOf(
+				'section[aria-label="Projects"] .agent-client-navigator-show-more',
+			),
+			projectRow: styleOf(
+				'section[aria-label="Projects"] .agent-client-navigator-project-row',
+			),
+			sessionRow: styleOf(
+				".agent-client-navigator-session-row:not(.is-selected)",
+			),
+		};
+	});
+}
+
 describe("Session Navigator", () => {
 	before(async () => {
 		await mkdir(artifacts, { recursive: true });
@@ -200,6 +266,122 @@ describe("Session Navigator", () => {
 				)
 				.isDisplayed(),
 		).toBe(false);
+	});
+
+	it("AC-0023-N-1/B-1/F-1: separates labels, expansion commands and selectable rows", async () => {
+		for (const theme of ["light", "dark"] as const) {
+			await setTheme(theme);
+			for (const width of [260, 420]) {
+				await setNavigatorWidth(width);
+				const styles = await getNavigatorRoleStyles();
+				for (const label of [styles.projects, styles.recents]) {
+					expect(label).toMatchObject({
+						color: styles.colors.faint,
+						cursor: expect.not.stringContaining("pointer"),
+						fontSize: "11px",
+						fontWeight: styles.fontWeights.semibold,
+						role: null,
+						tabIndex: -1,
+						tagName: "DIV",
+					});
+				}
+				expect(styles.showMore).toMatchObject({
+					color: styles.colors.muted,
+					fontSize: "11px",
+					fontWeight: styles.fontWeights.medium,
+					justifyContent: "flex-start",
+					tagName: "BUTTON",
+				});
+				for (const row of [styles.projectRow, styles.sessionRow]) {
+					expect(Number.parseFloat(row.fontSize)).toBeGreaterThan(11);
+					expect(row.color).toBe(styles.colors.normal);
+				}
+			}
+		}
+
+		await setTheme("light");
+		await setNavigatorWidth(420);
+		const projectStatesBefore = await browser.$$(
+			'.agent-client-navigator-project-row[aria-expanded="true"]',
+		);
+		await browser
+			.$(
+				'section[aria-label="Projects"] .agent-client-navigator-section-title',
+			)
+			.click();
+		expect(
+			await browser.$$(
+				'.agent-client-navigator-project-row[aria-expanded="true"]',
+			),
+		).toHaveLength(projectStatesBefore.length);
+
+		const hoverBackground = async (selector: string) => {
+			await browser.$(".agent-client-navigator-header h1").moveTo();
+			const element = await browser.$(selector);
+			const before = await element.getCSSProperty("background-color");
+			await element.moveTo();
+			const after = await element.getCSSProperty("background-color");
+			return { before: before.value, after: after.value };
+		};
+		const sectionHover = await hoverBackground(
+			'section[aria-label="Projects"] .agent-client-navigator-section-title',
+		);
+		expect(sectionHover.after).toBe(sectionHover.before);
+		const showMore = await browser.$(
+			'section[aria-label="Projects"] .agent-client-navigator-show-more',
+		);
+		const showMoreHover = await hoverBackground(
+			'section[aria-label="Projects"] .agent-client-navigator-show-more',
+		);
+		expect(showMoreHover.after).not.toBe(showMoreHover.before);
+		const showMoreColor = await browser.execute(
+			(element) =>
+				getComputedStyle(element as unknown as HTMLElement).color,
+			showMore,
+		);
+		expect(showMoreColor).toBe(
+			(await getNavigatorRoleStyles()).colors.normal,
+		);
+		const sessionHover = await hoverBackground(
+			".agent-client-navigator-session-row:not(.is-selected)",
+		);
+		expect(sessionHover.after).not.toBe(sessionHover.before);
+	});
+
+	it("AC-0023-E-1: preserves non-color hierarchy when theme text roles collapse", async () => {
+		await browser.execute(() => {
+			for (const variable of [
+				"--text-faint",
+				"--text-muted",
+				"--text-normal",
+			]) {
+				document.body.style.setProperty(variable, "rgb(80, 80, 80)");
+			}
+		});
+		try {
+			const styles = await getNavigatorRoleStyles();
+			expect(new Set(Object.values(styles.colors)).size).toBe(1);
+			expect(styles.projects.fontSize).toBe("11px");
+			expect(styles.projects.fontWeight).toBe(
+				styles.fontWeights.semibold,
+			);
+			expect(styles.showMore.fontSize).toBe("11px");
+			expect(styles.showMore.fontWeight).toBe(styles.fontWeights.medium);
+			expect(
+				Number.parseFloat(styles.sessionRow.fontSize),
+			).toBeGreaterThan(11);
+			expect(styles.projects.color).not.toBe("rgba(0,0,0,0)");
+		} finally {
+			await browser.execute(() => {
+				for (const variable of [
+					"--text-faint",
+					"--text-muted",
+					"--text-normal",
+				]) {
+					document.body.style.removeProperty(variable);
+				}
+			});
+		}
 	});
 
 	it("AC-0017-B-2: expands Projects and Recents independently", async () => {

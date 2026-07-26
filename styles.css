@@ -138,10 +138,11 @@ If your plugin does not need CSS, delete this file.
 .agent-client-navigator-section-title {
 	height: 28px;
 	padding: 7px 8px 4px;
-	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
-	font-weight: var(--font-medium);
+	color: var(--text-faint);
+	font-size: 11px;
+	font-weight: var(--font-semibold);
 	line-height: 17px;
+	cursor: default;
 }
 
 .agent-client-navigator-project-row {
@@ -240,12 +241,18 @@ If your plugin does not need CSS, delete this file.
 	opacity: 1;
 }
 
-.agent-client-navigator-show-more {
+.agent-client-session-manager button.agent-client-navigator-show-more {
+	justify-content: flex-start;
 	height: 28px;
 	padding: 0 8px;
 	border-radius: 5px;
 	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
+	font-size: 11px;
+	font-weight: var(--font-medium);
+}
+
+.agent-client-session-manager button.agent-client-navigator-show-more:hover {
+	color: var(--text-normal);
 }
 
 .agent-client-session-manager-empty {

@@ -166,5 +166,32 @@ describe("session navigator model", () => {
 			/\.agent-client-session-manager button\.agent-client-navigator-new-session,[\s\S]*?\{([\s\S]*?)\}/,
 		)?.[1];
 		expect(navigatorButtonReset).toContain("justify-content: flex-start;");
+
+		const sectionLabelRole = styles.match(
+			/\.agent-client-navigator-section-title \{([\s\S]*?)\}/,
+		)?.[1];
+		expect(sectionLabelRole).toContain("font-size: 11px;");
+		expect(sectionLabelRole).toContain("color: var(--text-faint);");
+		expect(sectionLabelRole).toContain(
+			"font-weight: var(--font-semibold);",
+		);
+		expect(sectionLabelRole).toContain("cursor: default;");
+
+		const showMoreRole = [
+			...styles.matchAll(
+				/\.agent-client-session-manager button\.agent-client-navigator-show-more\s*\{([\s\S]*?)\}/g,
+			),
+		].at(-1)?.[1];
+		expect(showMoreRole).toContain("font-size: 11px;");
+		expect(showMoreRole).toContain("color: var(--text-muted);");
+		expect(showMoreRole).toContain("font-weight: var(--font-medium);");
+		expect(showMoreRole).toContain("justify-content: flex-start;");
+
+		const showMoreHoverRole = [
+			...styles.matchAll(
+				/\.agent-client-session-manager button\.agent-client-navigator-show-more:hover\s*\{([\s\S]*?)\}/g,
+			),
+		].at(-1)?.[1];
+		expect(showMoreHoverRole).toContain("color: var(--text-normal);");
 	});
 });
