@@ -44,13 +44,6 @@ async function setNavigatorWidth(width: number): Promise<void> {
 				current.style.width = `${targetWidth}px`;
 				current.style.minWidth = `${targetWidth}px`;
 				current.style.maxWidth = `${targetWidth}px`;
-				if (
-					current.classList.contains("workspace-leaf") ||
-					current.classList.contains("workspace-tabs") ||
-					current.classList.contains("workspace-split")
-				) {
-					current.style.flex = `0 0 ${targetWidth}px`;
-				}
 				current = current.parentElement;
 			}
 		},
@@ -346,6 +339,7 @@ describe("Session Navigator", () => {
 			await setTheme(theme);
 			for (const width of [260, 420]) {
 				await setNavigatorWidth(width);
+				await browser.$(".agent-client-navigator-header h1").moveTo();
 				await browser.pause(100);
 				expect(await navigator.getSize("width")).toBe(width);
 				await navigator.saveScreenshot(
