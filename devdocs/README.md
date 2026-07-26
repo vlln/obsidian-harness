@@ -2,15 +2,16 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE` 导入 session 续聊迭代待发布；SYSTEM_TEST 全绿，等待发布决策 |
-| **当前版本** | `v0.3.0` 已发布，下一版待定 |
-| **设计评估** | ADR-0009 取代 ADR-0008 的"只读、无 binding"约定：导入产物写入指向原生后端会话的 `acpBinding`，E2 手测（pi-acp）验证可续聊；后端不可达时 continuation state 自然降级。Spec-0005 v3 / AC-0004 / Interface-0001 已同步。develop 已合并本迭代，MR/E2E/CLI 端到端全绿，详见 [reports/system-test-imported-session-continuation.md](reports/system-test-imported-session-continuation.md) |
+| **当前阶段** | `RELEASE`：`release/v0.4.0` 正在执行 Session Navigator staging 制品与冒烟验证；尚未替换旧 draft/tag、执行 production 发布或合并 |
+| **当前版本** | `v0.3.0` 为当前公开稳定版；新的 `v0.4.0` 为 Session Navigator 发布候选，取代同版本号下未公开且无运行时变化的旧 draft |
+| **设计评估** | Session Navigator 使用 `.session` 权威元数据 + index 发现 + 内存 Catalog/Runtime Registry；复用现有 Vitest/WDIO/CI，不新增测试工具。参见 [Spec-0006](spec/0006-session-navigator.md)、[AC-0005](ac/0005-session-navigator.md)、[ADR-0010](adr/0010-session-catalog-projection.md)、[ADR-0011](adr/0011-session-navigator-test-infra.md) |
 
 ## 子目录
 
 | 路径 | 用途 |
 |------|------|
 | [vision.md](vision.md) | 全局顶层愿景 |
+| [backlog.md](backlog.md) | 增量迭代需求池 |
 | [spec/](spec/) | Spec 需求规格 |
 | [interface/](interface/) | 接口定义 |
 | [adr/](adr/) | 架构决策记录 |

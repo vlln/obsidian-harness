@@ -7,108 +7,321 @@ If your plugin does not need CSS, delete this file.
 
 */
 
-/* ===== Session Manager ===== */
+/* ===== Session Navigator ===== */
+
+.workspace-tab-header[data-type="agent-client-session-manager"] {
+	display: none;
+}
 
 .agent-client-session-manager {
-	padding: 4px 0;
-}
-
-.agent-client-session-manager-empty {
-	padding: 16px;
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
-	text-align: center;
-}
-
-.agent-client-session-manager .tree-item-self {
 	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding-inline-start: 12px;
-}
-
-.agent-client-session-item-more {
-	flex-shrink: 0;
-	display: flex;
-	align-items: center;
-	opacity: 0;
-	cursor: pointer;
-	color: var(--text-muted);
-	margin-left: auto;
-	/* Reset <button> browser defaults so the icon matches the prior <div> */
-	background: none;
-	border: none;
-	padding: 0;
-	font: inherit;
-}
-
-.agent-client-session-manager
-	.tree-item-self:hover
-	.agent-client-session-item-more {
-	opacity: 1;
-}
-
-.agent-client-session-item-more:hover {
-	color: var(--text-normal);
-}
-
-.agent-client-session-item-more svg {
-	width: 14px;
-	height: 14px;
-}
-
-.agent-client-session-item-text {
+	flex-direction: column;
 	min-width: 0;
-	flex: 1;
-}
-
-.agent-client-session-item-title {
-	font-size: var(--font-ui-small);
-	font-weight: var(--font-semibold);
+	height: 100%;
+	padding: 0 8px 12px;
 	color: var(--text-normal);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	font-size: var(--font-ui-small);
+	letter-spacing: 0;
 }
 
-.agent-client-session-item-agent {
-	font-size: var(--font-ui-smaller);
-	color: var(--text-muted);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.agent-client-session-status-icon {
-	flex-shrink: 0;
+.agent-client-navigator-header {
 	display: flex;
 	align-items: center;
+	gap: 6px;
+	min-height: 44px;
+	padding: 4px 2px 2px 8px;
 }
 
-.agent-client-session-status-icon svg {
-	width: 16px;
-	height: 16px;
+.agent-client-navigator-header h1 {
+	min-width: 0;
+	margin: 0;
+	font-size: 15px;
+	font-weight: var(--font-semibold);
+	line-height: 1.2;
+	letter-spacing: 0;
 }
 
-.agent-client-session-status-ready svg {
+.agent-client-navigator-icon-button,
+.agent-client-navigator-more {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 28px;
+	height: 28px;
+	margin-left: auto;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--text-muted);
+	box-shadow: none;
+}
+
+.agent-client-navigator-icon-button svg,
+.agent-client-navigator-more svg,
+.agent-client-navigator-new-session svg,
+.agent-client-navigator-project-row svg {
+	width: 15px;
+	height: 15px;
+}
+
+.agent-client-navigator-search-leading {
+	display: inline-flex;
+	flex: 0 0 16px;
 	color: var(--text-muted);
 }
 
-.agent-client-session-status-busy svg {
-	color: var(--text-accent);
+.agent-client-navigator-search-leading svg {
+	width: 15px;
+	height: 15px;
+}
+
+.agent-client-navigator-search-input {
+	min-width: 0;
+	height: 28px;
+	flex: 1 1 auto;
+	padding: 3px 4px;
+	border: 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	font-size: var(--font-ui-small);
+}
+
+.agent-client-navigator-search-input:focus {
+	border-bottom-color: var(--interactive-accent);
+	box-shadow: none;
+}
+
+.agent-client-session-manager button.agent-client-navigator-new-session,
+.agent-client-session-manager button.agent-client-navigator-project-row,
+.agent-client-session-manager button.agent-client-navigator-show-more {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	width: 100%;
+	min-width: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-normal);
+	font: inherit;
+	text-align: left;
+	appearance: none;
+}
+
+.agent-client-navigator-new-session {
+	gap: 9px;
+	height: 34px;
+	padding: 0 8px;
+	border-radius: 5px;
+}
+
+.agent-client-session-manager button.agent-client-navigator-new-session:hover,
+.agent-client-session-manager button.agent-client-navigator-project-row:hover,
+.agent-client-navigator-session-row:hover,
+.agent-client-session-manager button.agent-client-navigator-show-more:hover {
+	background: var(--background-modifier-hover);
+}
+
+.agent-client-navigator-content {
+	min-height: 0;
+	overflow: auto;
+	padding-top: 5px;
+}
+
+.agent-client-navigator-content section + section {
+	margin-top: 10px;
+}
+
+.agent-client-navigator-section-title {
+	height: 28px;
+	padding: 7px 8px 4px;
+	color: var(--text-faint);
+	font-size: 11px;
+	font-weight: var(--font-semibold);
+	line-height: 17px;
+	cursor: default;
+}
+
+.agent-client-navigator-project-row {
+	gap: 5px;
+	height: 30px;
+	padding: 0 7px;
+	border-radius: 5px;
+	color: var(--text-muted);
+}
+
+.agent-client-navigator-project-row span:last-child {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.agent-client-navigator-project-sessions {
+	padding-left: 18px;
+}
+
+.agent-client-navigator-session-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 18px 24px;
+	align-items: center;
+	height: 32px;
+	min-width: 0;
+	padding: 0 2px 0 8px;
+	border-radius: 5px;
+	cursor: pointer;
+	outline: none;
+}
+
+.agent-client-navigator-session-row.is-selected {
+	background: var(--background-modifier-active-hover);
+	color: var(--text-normal);
+}
+
+.agent-client-navigator-session-row:focus-visible {
+	box-shadow: inset 0 0 0 1px var(--interactive-accent);
+}
+
+.agent-client-navigator-session-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.agent-client-navigator-status-slot {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 24px;
+}
+
+.agent-client-navigator-status {
+	display: inline-flex;
+}
+
+.agent-client-navigator-status svg {
+	width: 13px;
+	height: 13px;
+}
+
+.agent-client-navigator-status.is-ready {
+	color: var(--text-faint);
+}
+
+.agent-client-navigator-status.is-busy {
+	color: var(--interactive-accent);
 	animation: agent-client-spin 1.5s linear infinite;
 }
 
-.agent-client-session-status-permission svg {
+.agent-client-navigator-status.is-permission {
 	color: var(--color-yellow);
 }
 
-.agent-client-session-status-error svg {
+.agent-client-navigator-status.is-error {
 	color: var(--color-red);
 }
 
-.agent-client-session-status-disconnected svg {
+.agent-client-navigator-status.is-disconnected {
 	color: var(--text-faint);
+}
+
+.agent-client-navigator-more {
+	width: 24px;
+	height: 24px;
+	opacity: 0;
+}
+
+.agent-client-navigator-session-row:hover .agent-client-navigator-more,
+.agent-client-navigator-more:focus-visible {
+	opacity: 1;
+}
+
+.agent-client-session-manager button.agent-client-navigator-show-more {
+	justify-content: flex-start;
+	height: 28px;
+	padding: 0 8px;
+	border-radius: 5px;
+	color: var(--text-muted);
+	font-size: 11px;
+	font-weight: var(--font-medium);
+}
+
+.agent-client-session-manager button.agent-client-navigator-show-more:hover {
+	color: var(--text-normal);
+}
+
+.agent-client-session-manager-empty {
+	padding: 18px 8px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	text-align: center;
+}
+
+.agent-client-navigator-issue {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 30px;
+	margin: 3px 4px 0;
+	padding: 4px 6px;
+	border-top: 1px solid var(--background-modifier-border);
+	border-bottom: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+
+.agent-client-navigator-issue span {
+	min-width: 0;
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.agent-client-navigator-issue button {
+	padding: 2px 5px;
+	background: transparent;
+	color: var(--text-accent);
+	font-size: inherit;
+	box-shadow: none;
+}
+
+.agent-client-navigator-loading {
+	display: grid;
+	gap: 9px;
+	padding: 13px 8px;
+}
+
+.agent-client-navigator-loading span {
+	display: block;
+	width: 72%;
+	height: 8px;
+	border-radius: 3px;
+	background: var(--background-modifier-border);
+}
+
+.agent-client-navigator-loading span:nth-child(2) {
+	width: 54%;
+}
+
+.agent-client-navigator-loading span:nth-child(3) {
+	width: 63%;
+}
+
+.agent-client-session-rename-input {
+	width: 100%;
+}
+
+.agent-client-session-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
 }
 
 @keyframes agent-client-spin {

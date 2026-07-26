@@ -10,3 +10,4 @@
 | [0002](0002-session-lifecycle.md) | Session 生命周期管理 | active |
 | [0003](0003-acp-turn-transcript.md) | ACP Turn Transcript | active |
 | [0004](0004-harness-session-importer.md) | Harness Session Importer Skill | active |
+| [0005](0005-session-navigator.md) | Session Navigator | active |

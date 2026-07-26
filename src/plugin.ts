@@ -27,7 +27,11 @@ import {
 	FloatingViewContainer,
 } from "./ui/FloatingChatView";
 import { FloatingButtonContainer } from "./ui/FloatingButton";
-import { ChatViewRegistry } from "./services/view-registry";
+import {
+	ChatViewRegistry,
+	SessionRuntimeRegistry,
+} from "./services/view-registry";
+import { SessionCatalogService } from "./services/session-catalog";
 import {
 	createSettingsService,
 	type SettingsService,
@@ -54,6 +58,12 @@ import {
 	uniqueNonEmpty,
 } from "./services/session-helpers";
 import { resolveSessionFolderFromFileMenuTarget } from "./services/session-entry-target";
+import { parseSessionFileData } from "./services/session-entry";
+import {
+	isSessionEntryPath,
+	reconcileSessionEntryIndex,
+} from "./services/session-index-lifecycle";
+import { getSessionRenameTarget } from "./services/session-navigator";
 import {
 	AgentEnvVar,
 	GeminiAgentSettings,
@@ -217,6 +227,10 @@ export default class AgentClientPlugin extends Plugin {
 
 	/** Registry for all chat view containers (sidebar + floating) */
 	viewRegistry = new ChatViewRegistry();
+	/** Runtime-only status for every file-backed ChatPanel host. */
+	sessionRuntimeRegistry = new SessionRuntimeRegistry();
+	/** Shared read model for every Session Navigator view. */
+	sessionCatalog!: SessionCatalogService;
 
 	/** Map of viewId to AcpClient for multi-session support */
 	private _acpClients: Map<string, AcpClient> = new Map();
@@ -232,6 +246,43 @@ export default class AgentClientPlugin extends Plugin {
 
 		// Initialize settings store
 		this.settingsService = createSettingsService(this.settings, this);
+		this.sessionCatalog = new SessionCatalogService({
+			getSessionIndex: () => this.settingsService.getSessionIndex(),
+			readSessionEntry: async (entryFile) => {
+				const file = this.app.vault.getAbstractFileByPath(entryFile);
+				if (!(file instanceof TFile)) {
+					throw new Error(`Session file not found: ${entryFile}`);
+				}
+				return this.app.vault.read(file);
+			},
+			getRuntimeSnapshot: this.sessionRuntimeRegistry.getSnapshot,
+			getActiveEntryFile: () =>
+				this.app.workspace.getActiveFile()?.path ?? null,
+			subscribeIndex: (listener) =>
+				this.settingsService.subscribeSessionIndex(listener),
+			subscribeSessionEntries: (listener) => {
+				const notifySessionFile = (file: TAbstractFile) => {
+					if (isSessionEntryPath(file.path)) listener();
+				};
+				const refs = [
+					this.app.vault.on("create", notifySessionFile),
+					this.app.vault.on("modify", notifySessionFile),
+					this.app.vault.on("rename", notifySessionFile),
+					this.app.vault.on("delete", notifySessionFile),
+				];
+				return () => refs.forEach((ref) => this.app.vault.offref(ref));
+			},
+			subscribeRuntime: this.sessionRuntimeRegistry.subscribe,
+			subscribeActiveEntry: (listener) => {
+				const ref = this.app.workspace.on(
+					"active-leaf-change",
+					listener,
+				);
+				return () => this.app.workspace.offref(ref);
+			},
+			onDebugWarning: (issue) =>
+				getLogger().debug(`[SessionCatalog] ${issue.message}`),
+		});
 
 		// Detach stale leaves from a previous plugin instance to prevent
 		// "Attempting to register an existing view type" when Obsidian's
@@ -254,10 +305,10 @@ export default class AgentClientPlugin extends Plugin {
 		this.registerExtensions(["session"], VIEW_TYPE_HARNESS_SESSION);
 
 		const ribbonIconEl = this.addRibbonIcon(
-			"bot-message-square",
-			"Open agent client",
+			"layout-list",
+			"Open session manager",
 			(_evt: MouseEvent) => {
-				void this.activateView();
+				void this.activateSessionManager();
 			},
 		);
 		ribbonIconEl.addClass("agent-client-ribbon-icon");
@@ -337,14 +388,29 @@ export default class AgentClientPlugin extends Plugin {
 		// BR-004: Cascade delete session_index and history when .session file is deleted
 		this.registerEvent(
 			this.app.vault.on("delete", (file) => {
-				if (file.path.endsWith(".session")) {
+				if (isSessionEntryPath(file.path)) {
 					void this.cleanupSessionFile(file.path);
 				}
 			}),
 		);
+
+		const reconcileSessionFile = (file: TAbstractFile) => {
+			if (!(file instanceof TFile) || !isSessionEntryPath(file.path))
+				return;
+			void this.reconcileSessionFileIndex(file);
+		};
+		this.registerEvent(this.app.vault.on("create", reconcileSessionFile));
+		this.registerEvent(
+			this.app.vault.on("rename", (file) => reconcileSessionFile(file)),
+		);
+
+		void this.sessionCatalog.start().catch((error) => {
+			getLogger().warn(`[SessionCatalog] Failed to start: ${error}`);
+		});
 	}
 
 	onunload() {
+		this.sessionCatalog?.dispose();
 		// Unmount floating button
 		this.floatingButton?.unmount();
 		this.floatingButton = null;
@@ -358,6 +424,7 @@ export default class AgentClientPlugin extends Plugin {
 
 		// Clear registry (sidebar views are managed by Obsidian workspace)
 		this.viewRegistry.clear();
+		this.sessionRuntimeRegistry.clear();
 
 		// Disconnect all ACP clients (kill agent processes)
 		for (const [, client] of this._acpClients) {
@@ -1273,6 +1340,118 @@ export default class AgentClientPlugin extends Plugin {
 		await this.app.workspace.getLeaf().openFile(materialized.file);
 	}
 
+	async openNavigatorSession(entryId: string): Promise<void> {
+		const file = this.resolveNavigatorSessionFile(entryId);
+		if (!file) return;
+		await this.app.workspace.getLeaf().openFile(file);
+	}
+
+	async revealNavigatorSession(entryId: string): Promise<void> {
+		const file = this.resolveNavigatorSessionFile(entryId);
+		if (!file) return;
+		const leaf = this.app.workspace.getLeavesOfType("file-explorer")[0];
+		const explorer = leaf?.view as unknown as {
+			revealInFolder?: (target: TFile) => void | Promise<void>;
+		};
+		if (!leaf || typeof explorer.revealInFolder !== "function") {
+			new Notice("File explorer is not open");
+			return;
+		}
+		await explorer.revealInFolder(file);
+		await this.app.workspace.revealLeaf(leaf);
+	}
+
+	async renameNavigatorSession(
+		entryId: string,
+		requestedName: string,
+	): Promise<void> {
+		const file = this.resolveNavigatorSessionFile(entryId);
+		if (!file) return;
+		let target: { entryFile: string; title: string };
+		try {
+			target = getSessionRenameTarget(file.path, requestedName);
+		} catch (error) {
+			new Notice(error instanceof Error ? error.message : String(error));
+			return;
+		}
+		const collision = this.app.vault.getAbstractFileByPath(
+			target.entryFile,
+		);
+		if (collision && collision !== file) {
+			new Notice(`File already exists: ${target.entryFile}`);
+			return;
+		}
+
+		let currentFile = file;
+		try {
+			if (target.entryFile !== file.path) {
+				await this.app.fileManager.renameFile(file, target.entryFile);
+				const renamed = this.app.vault.getAbstractFileByPath(
+					target.entryFile,
+				);
+				if (!(renamed instanceof TFile)) {
+					throw new Error(
+						`Renamed Session not found: ${target.entryFile}`,
+					);
+				}
+				currentFile = renamed;
+			}
+		} catch (error) {
+			new Notice(`[Harness] Failed to rename Session file: ${error}`);
+			return;
+		}
+
+		try {
+			const config = parseSessionFileData(
+				await this.app.vault.read(currentFile),
+			);
+			config.title = target.title;
+			config.updatedAt = new Date().toISOString();
+			await this.app.vault.modify(
+				currentFile,
+				JSON.stringify(config, null, "\t"),
+			);
+			await this.settingsService.reconcileSessionIndex(
+				config,
+				currentFile.path,
+			);
+		} catch (error) {
+			new Notice(
+				`[Harness] Session file renamed, but title update failed: ${error}`,
+			);
+		}
+	}
+
+	async deleteNavigatorSession(entryId: string): Promise<void> {
+		const file = this.resolveNavigatorSessionFile(entryId);
+		if (!file) return;
+		if (!(await this.app.fileManager.promptForDeletion(file))) return;
+		const currentFile = this.resolveNavigatorSessionFile(entryId);
+		if (!currentFile) return;
+		try {
+			await this.app.fileManager.trashFile(currentFile);
+		} catch (error) {
+			new Notice(`[Harness] Failed to delete Session: ${error}`);
+		}
+	}
+
+	private resolveNavigatorSessionFile(entryId: string): TFile | null {
+		const item = this.sessionCatalog
+			.getSnapshot()
+			.items.find((candidate) => candidate.entryId === entryId);
+		if (!item) {
+			new Notice("Session is no longer available");
+			return null;
+		}
+		const file = this.app.vault.getAbstractFileByPath(item.entryFile);
+		if (!(file instanceof TFile)) {
+			new Notice(`Session file not found: ${item.entryFile}`);
+			this.sessionCatalog.refresh().catch(() => {});
+			return null;
+		}
+		return file;
+	}
+
 	/**
 	 * BR-004: Cascade delete session_index entry and history directory
 	 * when a .session file is deleted from the vault.
@@ -1289,6 +1468,29 @@ export default class AgentClientPlugin extends Plugin {
 		} catch (error) {
 			getLogger().warn(
 				`[Harness] Failed to clean up session file ${entryFilePath}: ${error}`,
+			);
+		}
+	}
+
+	private async reconcileSessionFileIndex(file: TFile): Promise<void> {
+		try {
+			const result = await reconcileSessionEntryIndex(
+				file.path,
+				await this.app.vault.read(file),
+				(entry, entryFile) =>
+					this.settingsService.reconcileSessionIndex(
+						entry,
+						entryFile,
+					),
+			);
+			if (result.status === "conflict") {
+				getLogger().warn(
+					`[Harness] Session index conflict for ${result.entry.entryId}: ${result.conflictingEntryFiles.join(", ")}`,
+				);
+			}
+		} catch (error) {
+			getLogger().warn(
+				`[Harness] Failed to reconcile session file ${file.path}: ${error}`,
 			);
 		}
 	}

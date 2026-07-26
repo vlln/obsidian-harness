@@ -16,7 +16,10 @@
  */
 
 import type { ChatInputState } from "../types/chat";
+import type { SessionRuntimeStatus } from "../types/session-catalog";
 import { getLogger } from "../utils/logger";
+
+export type { SessionRuntimeStatus } from "../types/session-catalog";
 
 // ============================================================================
 // Port Types (from chat-view-container.port.ts)
@@ -38,6 +41,98 @@ export type SessionStatus =
 	| "permission"
 	| "error"
 	| "disconnected";
+
+export interface SessionRuntimeSnapshot {
+	statuses: Readonly<Record<string, SessionRuntimeStatus>>;
+}
+
+const SESSION_STATUS_PRIORITY: Record<SessionRuntimeStatus, number> = {
+	disconnected: 0,
+	ready: 1,
+	busy: 2,
+	error: 3,
+	permission: 4,
+};
+
+/** Runtime-only status projection keyed by stable entry and view identities. */
+export class SessionRuntimeRegistry {
+	private readonly viewsByEntry = new Map<
+		string,
+		Map<string, SessionRuntimeStatus>
+	>();
+	private readonly listeners = new Set<() => void>();
+	private snapshotCache: SessionRuntimeSnapshot | null = null;
+
+	setStatus(
+		entryId: string,
+		viewId: string,
+		status: SessionRuntimeStatus,
+	): void {
+		const previous = this.getMergedStatus(entryId);
+		let views = this.viewsByEntry.get(entryId);
+		if (!views) {
+			views = new Map();
+			this.viewsByEntry.set(entryId, views);
+		}
+		if (views.get(viewId) === status) return;
+		views.set(viewId, status);
+		if (previous !== this.getMergedStatus(entryId)) this.notifyChange();
+	}
+
+	remove(entryId: string, viewId: string): void {
+		const views = this.viewsByEntry.get(entryId);
+		if (!views?.has(viewId)) return;
+		const previous = this.getMergedStatus(entryId);
+		views.delete(viewId);
+		if (views.size === 0) this.viewsByEntry.delete(entryId);
+		if (previous !== this.getMergedStatus(entryId)) this.notifyChange();
+	}
+
+	subscribe = (listener: () => void): (() => void) => {
+		this.listeners.add(listener);
+		return () => this.listeners.delete(listener);
+	};
+
+	getSnapshot = (): SessionRuntimeSnapshot => {
+		if (!this.snapshotCache) {
+			const statuses: Record<string, SessionRuntimeStatus> = {};
+			for (const entryId of this.viewsByEntry.keys()) {
+				const status = this.getMergedStatus(entryId);
+				if (status) statuses[entryId] = status;
+			}
+			this.snapshotCache = Object.freeze({
+				statuses: Object.freeze(statuses),
+			});
+		}
+		return this.snapshotCache;
+	};
+
+	clear(): void {
+		this.viewsByEntry.clear();
+		this.snapshotCache = null;
+		this.listeners.clear();
+	}
+
+	private getMergedStatus(entryId: string): SessionRuntimeStatus | null {
+		const views = this.viewsByEntry.get(entryId);
+		if (!views || views.size === 0) return null;
+		let merged: SessionRuntimeStatus = "disconnected";
+		for (const status of views.values()) {
+			if (
+				SESSION_STATUS_PRIORITY[status] >
+				SESSION_STATUS_PRIORITY[merged]
+			) {
+				merged = status;
+			}
+		}
+		return merged;
+	}
+
+	private notifyChange(): void {
+		this.snapshotCache = null;
+		for (const listener of this.listeners) listener();
+	}
+}
 
 /**
  * Reactive snapshot of the view registry for `useSyncExternalStore`.
