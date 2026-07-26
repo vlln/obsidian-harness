@@ -2,7 +2,7 @@
 title: AC-0005: Session Navigator
 description: Codex 风格 Session Navigator 的结构、Catalog 实时性、状态投影、搜索和生命周期操作验收标准。
 type: ac
-status: active
+status: proposed
 created: 2026-07-26T05:39:33Z
 ---
 
@@ -77,3 +77,12 @@ AC-0017 开始。每个验收项分别覆盖正常、边界、异常和失败场
 | AC-0022-B-2 | Catalog 含 500 个有效 Session | 冷打开 Navigator，随后输入搜索并展开 Project | 冷加载在 500 ms 内完成；输入到结果更新在 100 ms 内完成；搜索和展开不产生 vault 写入 | 性能测试 + 写入 spy |
 | AC-0022-E-1 | Obsidian 图标注册表无法解析某个状态图标 | 渲染对应状态 | 状态槽保持尺寸，显示可访问的 fallback；title、菜单和相邻行不位移 | Vitest stub 故障注入 + WDIO 截图审查 |
 | AC-0022-F-1 | 500 个 Session 冷加载超过 500 ms 或被中断 | 等待加载 | 稳定加载骨架保持原尺寸；超时后显示 Retry 和实际失败原因；不短暂显示空 Catalog | Vitest 性能故障注入 + WDIO 截图审查 |
+
+## AC-0023: Navigator 视觉角色层级
+
+| 编号 | 前置条件 | 操作步骤 | 预期结果 | 验证方式 |
+|------|---------|---------|---------|---------|
+| AC-0023-N-1 | Projects 与 Recents 均有条目且显示 Show more | 在明暗主题分别打开 Navigator，并使用 Tab 与点击检查分区标题 | Projects/Recents 的计算样式为 11 px、`--text-faint`、semibold、`cursor != pointer`，且不进入 tab 顺序、无 button/link role、点击无动作；Show more 为 11 px、`--text-muted`、medium；Project/Session 行字号大于 11 px且为 `--text-normal` | WDIO 计算样式与可交互性断言 + 截图审查 |
+| AC-0023-B-1 | 侧栏宽度分别为 260 px 和 420 px | 比较三个视觉角色 | 两种宽度下字号、颜色和字重角色不变；长 Session title 省略但不影响分区标题和 Show more 的位置 | WDIO DOM 几何断言 + 截图审查 |
+| AC-0023-E-1 | 第三方 Obsidian 主题令 `--text-faint`、`--text-muted` 与 `--text-normal` 解析为相同颜色或缺失颜色 | 渲染并依次悬停 Projects 标题、Show more 和 Session 行 | 所有文字仍可见；Projects/Recents 仍以 11 px semibold、Show more 以 11 px medium、Project/Session 行以更大正文区分；Projects 标题无 hover，Show more 与 Session 行仍有各自 hover 背景 | WDIO 主题故障注入 + 计算样式断言 |
+| AC-0023-F-1 | Obsidian 主题为按钮设置默认文字颜色、字重和居中布局 | 渲染 Navigator | Navigator 专用选择器仍使 Show more 保持 11 px、`--text-muted`、medium 和左对齐；不得退化为与 Session 行相同的正文样式 | Vitest CSS 边界断言 + WDIO 计算样式断言 |

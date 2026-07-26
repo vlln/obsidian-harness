@@ -1,9 +1,9 @@
 ---
 title: Spec-0006: Session Navigator
-description: 将现有 SessionManagerView 升级为 Codex 风格的全局 Session 导航器，统一浏览、搜索、创建和打开 vault 中的 Session。
+description: Codex 风格全局 Session 导航器，统一浏览、搜索、创建和管理 vault Session，并区分分区标签、展开命令与可选择行的视觉角色。
 type: spec
-status: active
-version: 1
+status: proposed
+version: 2
 created: 2026-07-26T05:39:33Z
 ---
 
@@ -25,7 +25,7 @@ Session Navigator 是 vault 中 `.session` 文件的实时投影和导航入口�
 
 参考：[Vision](../vision.md)、[Spec-0001](0001-session-entry.md)、
 [Spec-0002](0002-session-lifecycle.md)、[ADR-0003](../adr/0003-session-entry.md)、
-[BL-0001](../backlog.md)。
+[BL-0001](../backlog.md)、[BL-0002](../backlog.md)。
 
 ## 二、用户故事
 
@@ -37,6 +37,7 @@ Session Navigator 是 vault 中 `.session` 文件的实时投影和导航入口�
 | US-023 | Harness 用户 | 在 Session 行右侧看到运行、等待授权或失败状态 | 不改变 Session 所在位置即可判断当前状态 | P0 |
 | US-024 | Harness 用户 | 从导航器创建新的 Session | 以与 Codex GUI 一致的高频入口开始工作 | P1 |
 | US-025 | Harness 用户 | 对 Session 执行打开、在文件列表中显示、重命名和删除操作 | 在保留 vault 文件语义的前提下集中完成常用管理 | P1 |
+| US-026 | Harness 用户 | 一眼区分静态分区标题、列表展开操作和可选择的 Project/Session 行 | 不把结构标签误认为 Session，也不遗漏 Show more 操作 | P1 |
 
 ## 三、模块划分
 
@@ -111,6 +112,7 @@ Project 是导航投影，不新增持久化 Project 实体，也不将 vault �
 | BR-038 | 重命名和删除通过统一生命周期命令执行 | 必须保持 `.session`、index 与 transcript 的既有一致性规则 |
 | BR-039 | 无法解析或缺失的条目不得作为正常 Session 展示 | Navigator 显示可观察的失败摘要和重试入口；不得因单条失败阻断其余列表 |
 | BR-040 | 当前选中状态来自 workspace 活动 FileView | 同一 Session 出现在 Projects 和 Recents 时，两处均使用相同选中态 |
+| BR-041 | Navigator 的静态标签、命令和可选择行必须具有不同视觉角色 | Obsidian 默认按钮样式不得抹平字号、颜色、字重或 hover 差异 |
 
 ## 六、UI 约束
 
@@ -150,6 +152,19 @@ Project 是导航投影，不新增持久化 Project 实体，也不将 vault �
 - 使用 Obsidian CSS variables 适配明暗主题，不硬编码 Codex 的平台窗口外观。
 - 不使用嵌套卡片、渐变、插画、超大字号或大圆角按钮。
 - 在 Obsidian 左侧窄栏和浮动宽栏中，标题、图标和菜单不得重叠。
+
+### 6.5 视觉角色层级
+
+- `Projects` 与 `Recents` 是不可交互的分区标题：使用 11 px、`--text-faint`、
+  `--font-semibold`，不进入 tab 顺序、不声明 button/link role，也不显示 hover 背景或指针反馈。
+- `Show more` 是可交互命令：使用 11 px、`--text-muted`、`--font-medium`；hover 时使用
+  列表 hover 背景并将文字提升为 `--text-normal`；文字与分区内容左侧对齐。
+- Project 与 Session 行是可选择内容：沿用正常 UI 小字号和 `--text-normal`，字号必须大于
+  分区标题及 Show more。
+- 上述角色必须在 260 px 与 420 px、明暗主题下保持一致；共享按钮 reset 的选择器优先级
+  不得覆盖 Show more 的专用文字颜色、字重和左对齐。
+- 第三方主题令 `--text-faint`、`--text-muted` 与 `--text-normal` 解析为相同或缺失颜色时，
+  字号、字重和 hover 背景仍须提供至少两种非颜色区分，文字不得不可见。
 
 ## 七、错误与边界行为
 
@@ -197,3 +212,5 @@ Project 是导航投影，不新增持久化 Project 实体，也不将 vault �
 | Runtime Status | `SessionRuntimeStatus` | 当前设备上打开实例的瞬时状态，不持久化 |
 | Selected Session | `isSelected` | 当前 workspace 活动 FileView 对应的 Session |
 | Session Entry | `SessionFileData` | vault 中作为唯一用户元数据真相的 `.session` 文件 |
+| Section Label | `agent-client-navigator-section-title` | Projects/Recents 静态结构标签，不可交互 |
+| Expansion Command | `agent-client-navigator-show-more` | 展开当前分区剩余条目的可交互命令 |
