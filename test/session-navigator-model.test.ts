@@ -150,6 +150,9 @@ describe("session navigator model", () => {
 		expect(plugin).toContain(".items.find(");
 		expect(plugin).toContain("promptForDeletion");
 		expect(plugin).toContain("trashFile(currentFile)");
+		expect(plugin).toMatch(
+			/this\.addRibbonIcon\(\s*"layout-list",\s*"Open session manager",[\s\S]*?this\.activateSessionManager\(\)/,
+		);
 		expect(styles).toContain(
 			"grid-template-columns: minmax(0, 1fr) 18px 24px",
 		);

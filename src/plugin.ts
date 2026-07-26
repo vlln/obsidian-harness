@@ -305,10 +305,10 @@ export default class AgentClientPlugin extends Plugin {
 		this.registerExtensions(["session"], VIEW_TYPE_HARNESS_SESSION);
 
 		const ribbonIconEl = this.addRibbonIcon(
-			"bot-message-square",
-			"Open agent client",
+			"layout-list",
+			"Open session manager",
 			(_evt: MouseEvent) => {
-				void this.activateView();
+				void this.activateSessionManager();
 			},
 		);
 		ribbonIconEl.addClass("agent-client-ribbon-icon");
