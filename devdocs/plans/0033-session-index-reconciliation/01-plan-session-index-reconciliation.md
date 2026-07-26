@@ -2,7 +2,7 @@
 title: Plan-0033-01: Session Index Reconciliation
 description: Make session index mutations serialized and idempotent, reconcile valid entry create/rename events, and expose index mutation notifications without implementing the Catalog.
 type: plan
-status: pending
+status: done
 created: 2026-07-26T09:00:00Z
 ---
 
