@@ -188,6 +188,18 @@ describe("Session Navigator", () => {
 		expect(snapshot.projectNames).toEqual(
 			expect.arrayContaining(["alpha/app", "beta/app"]),
 		);
+		expect(
+			await browser
+				.$('[aria-label="Open session manager"]')
+				.isDisplayed(),
+		).toBe(true);
+		expect(
+			await browser
+				.$(
+					'.workspace-tab-header[data-type="agent-client-session-manager"]',
+				)
+				.isDisplayed(),
+		).toBe(false);
 	});
 
 	it("AC-0017-B-2: expands Projects and Recents independently", async () => {

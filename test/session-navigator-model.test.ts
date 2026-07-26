@@ -159,6 +159,9 @@ describe("session navigator model", () => {
 		expect(styles).toContain(
 			".agent-client-session-manager button.agent-client-navigator-project-row",
 		);
+		expect(styles).toContain(
+			'.workspace-tab-header[data-type="agent-client-session-manager"]',
+		);
 		const navigatorButtonReset = styles.match(
 			/\.agent-client-session-manager button\.agent-client-navigator-new-session,[\s\S]*?\{([\s\S]*?)\}/,
 		)?.[1];
