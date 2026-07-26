@@ -16,3 +16,4 @@
 | [0008-direct-session-import](0008-direct-session-import.md) | Companion Skill 直接生成标准 Session | accepted（只读子决策被 0009 推翻） |
 | [0009-imported-session-continuation](0009-imported-session-continuation.md) | 导入 Session 绑定原生后端并可续聊 | accepted |
 | [0010-session-catalog-projection](0010-session-catalog-projection.md) | Session Catalog Projection | accepted |
+| [0011-session-navigator-test-infra](0011-session-navigator-test-infra.md) | Session Navigator Test Infrastructure | proposed |
