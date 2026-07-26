@@ -2,7 +2,7 @@
 title: Spec-0006: Session Navigator
 description: Codex 风格全局 Session 导航器，统一浏览、搜索、创建和管理 vault Session，并区分分区标签、展开命令与可选择行的视觉角色。
 type: spec
-status: proposed
+status: active
 version: 2
 created: 2026-07-26T05:39:33Z
 ---

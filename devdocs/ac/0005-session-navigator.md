@@ -2,7 +2,7 @@
 title: AC-0005: Session Navigator
 description: Codex 风格 Session Navigator 的结构、Catalog 实时性、状态投影、搜索和生命周期操作验收标准。
 type: ac
-status: proposed
+status: active
 created: 2026-07-26T05:39:33Z
 ---
 
