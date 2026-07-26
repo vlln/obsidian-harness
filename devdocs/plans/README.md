@@ -36,3 +36,4 @@
 | 0030 | [0030-harness-session-converter](0030-harness-session-converter/) | `feat/0030-harness-session-converter` | done |
 | 0031 | [0031-direct-session-import](0031-direct-session-import/) | `feat/0031-direct-session-import` | pending |
 | 0032 | [0032-session-runtime-registry](0032-session-runtime-registry/) | `feat/0032-session-runtime-registry` | done |
+| 0033 | [0033-session-index-reconciliation](0033-session-index-reconciliation/) | `feat/0033-session-index-reconciliation` | done |

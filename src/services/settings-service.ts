@@ -8,7 +8,7 @@
 
 import type { AgentClientPluginSettings } from "../plugin";
 import type AgentClientPlugin from "../plugin";
-import type { SessionIndexEntry } from "../types/session";
+import type { SessionFileData, SessionIndexEntry } from "../types/session";
 import type {
 	ActiveTurnRecord,
 	TranscriptManifest,
@@ -16,7 +16,12 @@ import type {
 	TurnRecord,
 } from "../types/transcript";
 import { updateDebugMode } from "../utils/logger";
-import { SessionStorage, type TranscriptMetadata } from "./session-storage";
+import {
+	SessionStorage,
+	type SessionIndexListener,
+	type SessionIndexReconciliationResult,
+	type TranscriptMetadata,
+} from "./session-storage";
 
 // ============================================================================
 // Port Types (from settings-access.port.ts)
@@ -87,6 +92,11 @@ export interface ISettingsAccess {
 	appendSessionIndex(entry: SessionIndexEntry): Promise<void>;
 	getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]>;
 	removeSessionIndex(entryId: string): Promise<void>;
+	reconcileSessionIndex(
+		entry: SessionFileData,
+		entryFile: string,
+	): Promise<SessionIndexReconciliationResult>;
+	subscribeSessionIndex(listener: SessionIndexListener): () => void;
 }
 
 /** Listener callback invoked when settings change */
@@ -237,6 +247,17 @@ export class SettingsService implements ISettingsAccess {
 
 	async removeSessionIndex(entryId: string): Promise<void> {
 		return this.sessionStorage.removeSessionIndex(entryId);
+	}
+
+	async reconcileSessionIndex(
+		entry: SessionFileData,
+		entryFile: string,
+	): Promise<SessionIndexReconciliationResult> {
+		return this.sessionStorage.reconcileSessionIndex(entry, entryFile);
+	}
+
+	subscribeSessionIndex(listener: SessionIndexListener): () => void {
+		return this.sessionStorage.subscribeSessionIndex(listener);
 	}
 }
 

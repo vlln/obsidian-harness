@@ -58,6 +58,10 @@ import {
 } from "./services/session-helpers";
 import { resolveSessionFolderFromFileMenuTarget } from "./services/session-entry-target";
 import {
+	isSessionEntryPath,
+	reconcileSessionEntryIndex,
+} from "./services/session-index-lifecycle";
+import {
 	AgentEnvVar,
 	GeminiAgentSettings,
 	ClaudeAgentSettings,
@@ -342,10 +346,20 @@ export default class AgentClientPlugin extends Plugin {
 		// BR-004: Cascade delete session_index and history when .session file is deleted
 		this.registerEvent(
 			this.app.vault.on("delete", (file) => {
-				if (file.path.endsWith(".session")) {
+				if (isSessionEntryPath(file.path)) {
 					void this.cleanupSessionFile(file.path);
 				}
 			}),
+		);
+
+		const reconcileSessionFile = (file: TAbstractFile) => {
+			if (!(file instanceof TFile) || !isSessionEntryPath(file.path))
+				return;
+			void this.reconcileSessionFileIndex(file);
+		};
+		this.registerEvent(this.app.vault.on("create", reconcileSessionFile));
+		this.registerEvent(
+			this.app.vault.on("rename", (file) => reconcileSessionFile(file)),
 		);
 	}
 
@@ -1295,6 +1309,29 @@ export default class AgentClientPlugin extends Plugin {
 		} catch (error) {
 			getLogger().warn(
 				`[Harness] Failed to clean up session file ${entryFilePath}: ${error}`,
+			);
+		}
+	}
+
+	private async reconcileSessionFileIndex(file: TFile): Promise<void> {
+		try {
+			const result = await reconcileSessionEntryIndex(
+				file.path,
+				await this.app.vault.read(file),
+				(entry, entryFile) =>
+					this.settingsService.reconcileSessionIndex(
+						entry,
+						entryFile,
+					),
+			);
+			if (result.status === "conflict") {
+				getLogger().warn(
+					`[Harness] Session index conflict for ${result.entry.entryId}: ${result.conflictingEntryFiles.join(", ")}`,
+				);
+			}
+		} catch (error) {
+			getLogger().warn(
+				`[Harness] Failed to reconcile session file ${file.path}: ${error}`,
 			);
 		}
 	}

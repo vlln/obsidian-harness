@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 
 import type AgentClientPlugin from "../plugin";
-import type { SessionIndexEntry } from "../types/session";
+import type { SessionFileData, SessionIndexEntry } from "../types/session";
 import {
 	TRANSCRIPT_SCHEMA_VERSION,
 	type ActiveTurnRecord,
@@ -30,6 +30,30 @@ export interface TranscriptStorageOptions {
 	sessionsDir: string;
 	now?: () => string;
 	blobThresholdBytes?: number;
+	entryFileExists?: (entryFile: string) => boolean | Promise<boolean>;
+}
+
+export type SessionIndexMutation = Readonly<{
+	type: "upsert" | "remove";
+	entryId: string;
+}>;
+
+export type SessionIndexReconciliationResult =
+	| Readonly<{
+			status: "changed" | "unchanged";
+			entry: SessionIndexEntry;
+	  }>
+	| Readonly<{
+			status: "conflict";
+			entry: SessionIndexEntry;
+			conflictingEntryFiles: readonly string[];
+	  }>;
+
+export type SessionIndexListener = (mutation: SessionIndexMutation) => void;
+
+interface ParsedSessionIndex {
+	entries: SessionIndexEntry[];
+	malformedLines: string[];
 }
 
 export interface TranscriptMetadata {
@@ -176,6 +200,11 @@ export class SessionStorage {
 	private readonly sessionsDir: string;
 	private readonly now: () => string;
 	private readonly blobThresholdBytes: number;
+	private readonly entryFileExists: (
+		entryFile: string,
+	) => boolean | Promise<boolean>;
+	private readonly sessionIndexListeners = new Set<SessionIndexListener>();
+	private sessionIndexMutationTail: Promise<void> = Promise.resolve();
 
 	constructor(pluginOrOptions: AgentClientPlugin | TranscriptStorageOptions) {
 		if ("adapter" in pluginOrOptions) {
@@ -185,11 +214,16 @@ export class SessionStorage {
 			this.blobThresholdBytes =
 				pluginOrOptions.blobThresholdBytes ??
 				DEFAULT_BLOB_THRESHOLD_BYTES;
+			this.entryFileExists =
+				pluginOrOptions.entryFileExists ?? (() => false);
 		} else {
 			this.adapter = pluginOrOptions.app.vault.adapter;
 			this.sessionsDir = `${pluginOrOptions.app.vault.configDir}/plugins/obsidian-harness/sessions`;
 			this.now = () => new Date().toISOString();
 			this.blobThresholdBytes = DEFAULT_BLOB_THRESHOLD_BYTES;
+			this.entryFileExists = (entryFile) =>
+				pluginOrOptions.app.vault.getAbstractFileByPath(entryFile) !==
+				null;
 		}
 	}
 
@@ -561,58 +595,179 @@ export class SessionStorage {
 	}
 
 	async appendSessionIndex(entry: SessionIndexEntry): Promise<void> {
-		await this.ensureSessionsDir();
-		const path = this.sessionIndexPath();
-		const line = `${JSON.stringify(entry)}\n`;
-		if (await this.adapter.exists(path)) {
-			await this.adapter.append(path, line);
-		} else {
-			await this.adapter.write(path, line);
+		const result = await this.enqueueSessionIndexMutation(() =>
+			this.reconcileSessionIndexEntry(entry),
+		);
+		if (result.status === "conflict") {
+			throw new Error(
+				`Session index conflict for ${entry.entryId}: ${result.conflictingEntryFiles.join(", ")}`,
+			);
 		}
 	}
 
 	async getSessionIndex(cwd?: string): Promise<SessionIndexEntry[]> {
+		await this.sessionIndexMutationTail;
+		const { entries } = await this.readSessionIndex();
+		return cwd ? entries.filter((entry) => entry.cwd === cwd) : entries;
+	}
+
+	reconcileSessionIndex(
+		entry: SessionFileData,
+		entryFile: string,
+	): Promise<SessionIndexReconciliationResult> {
+		return this.enqueueSessionIndexMutation(() =>
+			this.reconcileSessionIndexEntry({
+				entryId: entry.entryId,
+				historyId: entry.historyId,
+				cwd: entry.cwd,
+				entryFile,
+			}),
+		);
+	}
+
+	subscribeSessionIndex(listener: SessionIndexListener): () => void {
+		this.sessionIndexListeners.add(listener);
+		return () => this.sessionIndexListeners.delete(listener);
+	}
+
+	async removeSessionIndex(entryId: string): Promise<void> {
+		return this.enqueueSessionIndexMutation(async () => {
+			const path = this.sessionIndexPath();
+			if (!(await this.adapter.exists(path))) return;
+			const parsed = await this.readSessionIndex();
+			const entries = parsed.entries.filter(
+				(entry) => entry.entryId !== entryId,
+			);
+			if (entries.length === parsed.entries.length) return;
+			await this.writeSessionIndex(entries, parsed.malformedLines);
+			this.publishSessionIndexMutation({ type: "remove", entryId });
+		});
+	}
+
+	private enqueueSessionIndexMutation<T>(
+		operation: () => Promise<T>,
+	): Promise<T> {
+		const result = this.sessionIndexMutationTail.then(operation, operation);
+		this.sessionIndexMutationTail = result.then(
+			() => undefined,
+			() => undefined,
+		);
+		return result;
+	}
+
+	private async reconcileSessionIndexEntry(
+		entry: SessionIndexEntry,
+	): Promise<SessionIndexReconciliationResult> {
+		const parsed = await this.readSessionIndex();
+		const matching = parsed.entries.filter(
+			(candidate) => candidate.entryId === entry.entryId,
+		);
+		const alternatePaths = [
+			...new Set(
+				matching
+					.map((candidate) => candidate.entryFile)
+					.filter((entryFile) => entryFile !== entry.entryFile),
+			),
+		];
+		const liveAlternatePaths: string[] = [];
+		for (const entryFile of alternatePaths) {
+			if (await this.entryFileExists(entryFile)) {
+				liveAlternatePaths.push(entryFile);
+			}
+		}
+		if (liveAlternatePaths.length > 0) {
+			return {
+				status: "conflict",
+				entry,
+				conflictingEntryFiles: [
+					...liveAlternatePaths,
+					entry.entryFile,
+				].sort(),
+			};
+		}
+
+		const unchanged =
+			matching.length === 1 &&
+			this.sessionIndexEntriesEqual(matching[0], entry);
+		if (unchanged) return { status: "unchanged", entry };
+
+		const entries = parsed.entries.filter(
+			(candidate) => candidate.entryId !== entry.entryId,
+		);
+		entries.push(entry);
+		await this.writeSessionIndex(entries, parsed.malformedLines);
+		this.publishSessionIndexMutation({
+			type: "upsert",
+			entryId: entry.entryId,
+		});
+		return { status: "changed", entry };
+	}
+
+	private async readSessionIndex(): Promise<ParsedSessionIndex> {
 		const path = this.sessionIndexPath();
-		if (!(await this.adapter.exists(path))) return [];
+		if (!(await this.adapter.exists(path))) {
+			return { entries: [], malformedLines: [] };
+		}
 		const entries: SessionIndexEntry[] = [];
+		const malformedLines: string[] = [];
 		for (const line of (await this.adapter.read(path)).split("\n")) {
 			if (!line.trim()) continue;
 			try {
 				const entry = JSON.parse(line) as SessionIndexEntry;
-				if (
-					entry.entryId &&
-					entry.historyId &&
-					entry.cwd &&
-					entry.entryFile &&
-					(!cwd || entry.cwd === cwd)
-				) {
-					entries.push(entry);
-				}
+				if (this.isSessionIndexEntry(entry)) entries.push(entry);
+				else malformedLines.push(line);
 			} catch {
-				// Preserve historical index behavior: malformed lines are skipped.
+				malformedLines.push(line);
 			}
 		}
-		return entries;
+		return { entries, malformedLines };
 	}
 
-	async removeSessionIndex(entryId: string): Promise<void> {
+	private async writeSessionIndex(
+		entries: readonly SessionIndexEntry[],
+		malformedLines: readonly string[],
+	): Promise<void> {
 		const path = this.sessionIndexPath();
-		if (!(await this.adapter.exists(path))) return;
-		const lines = (await this.adapter.read(path)).split("\n");
-		const filtered = lines.filter((line) => {
-			if (!line.trim()) return false;
+		const lines = [
+			...entries.map((entry) => JSON.stringify(entry)),
+			...malformedLines,
+		];
+		if (lines.length === 0) {
+			if (await this.adapter.exists(path))
+				await this.adapter.remove(path);
+			return;
+		}
+		await this.ensureSessionsDir();
+		await this.adapter.write(path, `${lines.join("\n")}\n`);
+	}
+
+	private isSessionIndexEntry(value: unknown): value is SessionIndexEntry {
+		if (!isRecord(value)) return false;
+		return ["entryId", "historyId", "cwd", "entryFile"].every(
+			(field) =>
+				typeof value[field] === "string" && value[field].length > 0,
+		);
+	}
+
+	private sessionIndexEntriesEqual(
+		left: SessionIndexEntry,
+		right: SessionIndexEntry,
+	): boolean {
+		return (
+			left.entryId === right.entryId &&
+			left.historyId === right.historyId &&
+			left.cwd === right.cwd &&
+			left.entryFile === right.entryFile
+		);
+	}
+
+	private publishSessionIndexMutation(mutation: SessionIndexMutation): void {
+		for (const listener of this.sessionIndexListeners) {
 			try {
-				return (
-					(JSON.parse(line) as SessionIndexEntry).entryId !== entryId
-				);
+				listener(mutation);
 			} catch {
-				return true;
+				// A subscriber cannot roll back a completed index mutation.
 			}
-		});
-		if (filtered.length === 0) {
-			await this.adapter.remove(path);
-		} else {
-			await this.adapter.write(path, `${filtered.join("\n")}\n`);
 		}
 	}
 }

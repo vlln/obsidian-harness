@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { SessionStorage } from "../src/services/session-storage";
+import type { SessionFileData, SessionIndexEntry } from "../src/types/session";
 import { TurnAggregator } from "../src/services/transcript-aggregator";
 import type { TurnRecord } from "../src/types/transcript";
 import { MemoryDataAdapter } from "./support/memory-data-adapter";
@@ -9,7 +10,10 @@ const sessionsDir = "sessions";
 
 function createStorage(
 	adapter: MemoryDataAdapter,
-	options: { blobThresholdBytes?: number } = {},
+	options: {
+		blobThresholdBytes?: number;
+		entryFileExists?: (entryFile: string) => boolean | Promise<boolean>;
+	} = {},
 ) {
 	return new SessionStorage({
 		adapter,
@@ -17,6 +21,35 @@ function createStorage(
 		now: () => "2026-07-20T01:00:00.000Z",
 		...options,
 	});
+}
+
+function createSessionEntry(
+	overrides: Partial<SessionFileData> = {},
+): SessionFileData {
+	return {
+		version: 2,
+		entryId: "entry-1",
+		historyId: "history-1",
+		agentId: "codex",
+		cwd: "/workspace/project",
+		title: "Project session",
+		createdAt: "2026-07-20T00:00:00.000Z",
+		updatedAt: "2026-07-20T01:00:00.000Z",
+		forkedFrom: null,
+		...overrides,
+	};
+}
+
+function asIndexEntry(
+	entry: SessionFileData,
+	entryFile: string,
+): SessionIndexEntry {
+	return {
+		entryId: entry.entryId,
+		historyId: entry.historyId,
+		cwd: entry.cwd,
+		entryFile,
+	};
 }
 
 function createTurn(
@@ -315,6 +348,127 @@ describe("SessionStorage transcript v2", () => {
 		).toEqual(["two"]);
 		await storage.removeSessionIndex("two");
 		expect(await storage.getSessionIndex()).toEqual([]);
+	});
+
+	it("AC-0018-N-1: reconciles one canonical index row and collapses exact duplicates", async () => {
+		const adapter = new MemoryDataAdapter();
+		const entry = createSessionEntry();
+		const indexEntry = asIndexEntry(entry, "Sessions/project.session");
+		adapter.seedFile(
+			"sessions/session_index.jsonl",
+			`${JSON.stringify(indexEntry)}\n${JSON.stringify(indexEntry)}\n`,
+		);
+		const storage = createStorage(adapter, {
+			entryFileExists: (path) => path === indexEntry.entryFile,
+		});
+		const mutations: string[] = [];
+		storage.subscribeSessionIndex((mutation) => {
+			mutations.push(`${mutation.type}:${mutation.entryId}`);
+		});
+
+		await expect(
+			storage.reconcileSessionIndex(entry, indexEntry.entryFile),
+		).resolves.toMatchObject({ status: "changed", entry: indexEntry });
+		expect(await storage.getSessionIndex()).toEqual([indexEntry]);
+		expect(mutations).toEqual(["upsert:entry-1"]);
+
+		await expect(
+			storage.reconcileSessionIndex(entry, indexEntry.entryFile),
+		).resolves.toMatchObject({ status: "unchanged", entry: indexEntry });
+		expect(mutations).toEqual(["upsert:entry-1"]);
+	});
+
+	it("AC-0018-N-1: repairs a rename after the previous entry file no longer exists", async () => {
+		const adapter = new MemoryDataAdapter();
+		const entry = createSessionEntry();
+		const previous = asIndexEntry(entry, "Sessions/old.session");
+		const renamed = asIndexEntry(entry, "Archive/renamed.session");
+		adapter.seedFile(
+			"sessions/session_index.jsonl",
+			`${JSON.stringify(previous)}\n`,
+		);
+		const storage = createStorage(adapter, {
+			entryFileExists: (path) => path === renamed.entryFile,
+		});
+
+		await expect(
+			storage.reconcileSessionIndex(entry, renamed.entryFile),
+		).resolves.toMatchObject({ status: "changed", entry: renamed });
+		expect(await storage.getSessionIndex()).toEqual([renamed]);
+	});
+
+	it("AR-010-10: preserves the index when one entryId points to two live files", async () => {
+		const adapter = new MemoryDataAdapter();
+		const entry = createSessionEntry();
+		const existing = asIndexEntry(entry, "Sessions/existing.session");
+		const incoming = asIndexEntry(entry, "Sessions/incoming.session");
+		const original = `${JSON.stringify(existing)}\n`;
+		adapter.seedFile("sessions/session_index.jsonl", original);
+		const storage = createStorage(adapter, {
+			entryFileExists: () => true,
+		});
+		const listener = vi.fn();
+		storage.subscribeSessionIndex(listener);
+
+		await expect(
+			storage.reconcileSessionIndex(entry, incoming.entryFile),
+		).resolves.toEqual({
+			status: "conflict",
+			entry: incoming,
+			conflictingEntryFiles: [
+				"Sessions/existing.session",
+				"Sessions/incoming.session",
+			],
+		});
+		expect(adapter.getFile("sessions/session_index.jsonl")).toBe(original);
+		expect(listener).not.toHaveBeenCalled();
+	});
+
+	it("serializes concurrent index upserts without losing either entry", async () => {
+		const adapter = new MemoryDataAdapter();
+		const storage = createStorage(adapter);
+		const first = asIndexEntry(
+			createSessionEntry({ entryId: "entry-1", historyId: "history-1" }),
+			"one.session",
+		);
+		const second = asIndexEntry(
+			createSessionEntry({ entryId: "entry-2", historyId: "history-2" }),
+			"two.session",
+		);
+
+		await Promise.all([
+			storage.appendSessionIndex(first),
+			storage.appendSessionIndex(second),
+		]);
+		expect(await storage.getSessionIndex()).toEqual([first, second]);
+	});
+
+	it("does not publish a mutation when the canonical index write fails", async () => {
+		const adapter = new MemoryDataAdapter();
+		const storage = createStorage(adapter);
+		const listener = vi.fn();
+		const unsubscribe = storage.subscribeSessionIndex(listener);
+		adapter.failNext("write", {
+			path: "sessions/session_index.jsonl",
+			error: new Error("index unavailable"),
+		});
+
+		await expect(
+			storage.reconcileSessionIndex(
+				createSessionEntry(),
+				"Sessions/project.session",
+			),
+		).rejects.toThrow("index unavailable");
+		expect(listener).not.toHaveBeenCalled();
+
+		await storage.reconcileSessionIndex(
+			createSessionEntry(),
+			"Sessions/project.session",
+		);
+		expect(listener).toHaveBeenCalledTimes(1);
+		unsubscribe();
+		await storage.removeSessionIndex("entry-1");
+		expect(listener).toHaveBeenCalledTimes(1);
 	});
 
 	it("deletes a transcript directory recursively", async () => {
