@@ -34,31 +34,29 @@ async function waitForFixtureCatalog(): Promise<void> {
 }
 
 async function setNavigatorWidth(width: number): Promise<void> {
-	await browser.execute((targetWidth) => {
-		const app = (window as any).app;
-		const leaf = app.workspace.getLeavesOfType(
-			"agent-client-session-manager",
-		)[0];
-		const navigator = leaf?.view?.containerEl?.querySelector(
-			".agent-client-session-manager",
-		);
-		let element = navigator as HTMLElement | null;
-		while (element && !element.classList.contains("mod-root")) {
-			const elementWidth =
-				element === navigator ? targetWidth - 16 : targetWidth;
-			element.style.width = `${elementWidth}px`;
-			element.style.minWidth = `${elementWidth}px`;
-			element.style.maxWidth = `${elementWidth}px`;
-			if (
-				element.classList.contains("workspace-leaf") ||
-				element.classList.contains("workspace-tabs") ||
-				element.classList.contains("workspace-split")
-			) {
-				element.style.flex = `0 0 ${targetWidth}px`;
+	const navigator = await browser.$(".agent-client-session-manager");
+	await navigator.waitForDisplayed();
+	await browser.execute(
+		(element, targetWidth) => {
+			let current = element as unknown as HTMLElement | null;
+			while (current && !current.classList.contains("mod-root")) {
+				current.style.boxSizing = "border-box";
+				current.style.width = `${targetWidth}px`;
+				current.style.minWidth = `${targetWidth}px`;
+				current.style.maxWidth = `${targetWidth}px`;
+				if (
+					current.classList.contains("workspace-leaf") ||
+					current.classList.contains("workspace-tabs") ||
+					current.classList.contains("workspace-split")
+				) {
+					current.style.flex = `0 0 ${targetWidth}px`;
+				}
+				current = current.parentElement;
 			}
-			element = element.parentElement;
-		}
-	});
+		},
+		navigator,
+		width,
+	);
 }
 
 async function setTheme(theme: "light" | "dark"): Promise<void> {
