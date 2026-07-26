@@ -16,7 +16,10 @@
  */
 
 import type { ChatInputState } from "../types/chat";
+import type { SessionRuntimeStatus } from "../types/session-catalog";
 import { getLogger } from "../utils/logger";
+
+export type { SessionRuntimeStatus } from "../types/session-catalog";
 
 // ============================================================================
 // Port Types (from chat-view-container.port.ts)
@@ -38,8 +41,6 @@ export type SessionStatus =
 	| "permission"
 	| "error"
 	| "disconnected";
-
-export type SessionRuntimeStatus = SessionStatus;
 
 export interface SessionRuntimeSnapshot {
 	statuses: Readonly<Record<string, SessionRuntimeStatus>>;
@@ -117,7 +118,10 @@ export class SessionRuntimeRegistry {
 		if (!views || views.size === 0) return null;
 		let merged: SessionRuntimeStatus = "disconnected";
 		for (const status of views.values()) {
-			if (SESSION_STATUS_PRIORITY[status] > SESSION_STATUS_PRIORITY[merged]) {
+			if (
+				SESSION_STATUS_PRIORITY[status] >
+				SESSION_STATUS_PRIORITY[merged]
+			) {
 				merged = status;
 			}
 		}

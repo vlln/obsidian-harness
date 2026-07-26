@@ -31,6 +31,7 @@ import {
 	ChatViewRegistry,
 	SessionRuntimeRegistry,
 } from "./services/view-registry";
+import { SessionCatalogService } from "./services/session-catalog";
 import {
 	createSettingsService,
 	type SettingsService,
@@ -226,6 +227,8 @@ export default class AgentClientPlugin extends Plugin {
 	viewRegistry = new ChatViewRegistry();
 	/** Runtime-only status for every file-backed ChatPanel host. */
 	sessionRuntimeRegistry = new SessionRuntimeRegistry();
+	/** Shared read model for every Session Navigator view. */
+	sessionCatalog!: SessionCatalogService;
 
 	/** Map of viewId to AcpClient for multi-session support */
 	private _acpClients: Map<string, AcpClient> = new Map();
@@ -241,6 +244,43 @@ export default class AgentClientPlugin extends Plugin {
 
 		// Initialize settings store
 		this.settingsService = createSettingsService(this.settings, this);
+		this.sessionCatalog = new SessionCatalogService({
+			getSessionIndex: () => this.settingsService.getSessionIndex(),
+			readSessionEntry: async (entryFile) => {
+				const file = this.app.vault.getAbstractFileByPath(entryFile);
+				if (!(file instanceof TFile)) {
+					throw new Error(`Session file not found: ${entryFile}`);
+				}
+				return this.app.vault.read(file);
+			},
+			getRuntimeSnapshot: this.sessionRuntimeRegistry.getSnapshot,
+			getActiveEntryFile: () =>
+				this.app.workspace.getActiveFile()?.path ?? null,
+			subscribeIndex: (listener) =>
+				this.settingsService.subscribeSessionIndex(listener),
+			subscribeSessionEntries: (listener) => {
+				const notifySessionFile = (file: TAbstractFile) => {
+					if (isSessionEntryPath(file.path)) listener();
+				};
+				const refs = [
+					this.app.vault.on("create", notifySessionFile),
+					this.app.vault.on("modify", notifySessionFile),
+					this.app.vault.on("rename", notifySessionFile),
+					this.app.vault.on("delete", notifySessionFile),
+				];
+				return () => refs.forEach((ref) => this.app.vault.offref(ref));
+			},
+			subscribeRuntime: this.sessionRuntimeRegistry.subscribe,
+			subscribeActiveEntry: (listener) => {
+				const ref = this.app.workspace.on(
+					"active-leaf-change",
+					listener,
+				);
+				return () => this.app.workspace.offref(ref);
+			},
+			onDebugWarning: (issue) =>
+				getLogger().debug(`[SessionCatalog] ${issue.message}`),
+		});
 
 		// Detach stale leaves from a previous plugin instance to prevent
 		// "Attempting to register an existing view type" when Obsidian's
@@ -361,9 +401,14 @@ export default class AgentClientPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on("rename", (file) => reconcileSessionFile(file)),
 		);
+
+		void this.sessionCatalog.start().catch((error) => {
+			getLogger().warn(`[SessionCatalog] Failed to start: ${error}`);
+		});
 	}
 
 	onunload() {
+		this.sessionCatalog?.dispose();
 		// Unmount floating button
 		this.floatingButton?.unmount();
 		this.floatingButton = null;
