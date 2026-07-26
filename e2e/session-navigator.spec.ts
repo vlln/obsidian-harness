@@ -329,6 +329,17 @@ describe("Session Navigator", () => {
 
 	it("AC-0022: saves 260/420 px light/dark visual evidence", async () => {
 		const navigator = await browser.$(".agent-client-session-manager");
+		const projectRows = await browser.$$(
+			'section[aria-label="Projects"] .agent-client-navigator-project-row',
+		);
+		for (const projectRow of projectRows) {
+			const shouldExpand = (await projectRow.getText()).includes(
+				"alpha/app",
+			);
+			const isExpanded =
+				(await projectRow.getAttribute("aria-expanded")) === "true";
+			if (shouldExpand !== isExpanded) await projectRow.click();
+		}
 		await browser.execute(() => {
 			const content = document.querySelector(
 				".agent-client-navigator-content",
