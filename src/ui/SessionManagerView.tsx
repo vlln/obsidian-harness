@@ -116,7 +116,7 @@ const SessionRow = React.memo(function SessionRow({
 }) {
 	const showMenu = useCallback(
 		(position: { x: number; y: number }) => {
-			const menu = new Menu();
+			const menu = new Menu().setUseNativeMenu(false);
 			menu.addItem((menuItem) =>
 				menuItem
 					.setTitle("Open")
