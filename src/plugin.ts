@@ -27,7 +27,10 @@ import {
 	FloatingViewContainer,
 } from "./ui/FloatingChatView";
 import { FloatingButtonContainer } from "./ui/FloatingButton";
-import { ChatViewRegistry } from "./services/view-registry";
+import {
+	ChatViewRegistry,
+	SessionRuntimeRegistry,
+} from "./services/view-registry";
 import {
 	createSettingsService,
 	type SettingsService,
@@ -217,6 +220,8 @@ export default class AgentClientPlugin extends Plugin {
 
 	/** Registry for all chat view containers (sidebar + floating) */
 	viewRegistry = new ChatViewRegistry();
+	/** Runtime-only status for every file-backed ChatPanel host. */
+	sessionRuntimeRegistry = new SessionRuntimeRegistry();
 
 	/** Map of viewId to AcpClient for multi-session support */
 	private _acpClients: Map<string, AcpClient> = new Map();
@@ -358,6 +363,7 @@ export default class AgentClientPlugin extends Plugin {
 
 		// Clear registry (sidebar views are managed by Obsidian workspace)
 		this.viewRegistry.clear();
+		this.sessionRuntimeRegistry.clear();
 
 		// Disconnect all ACP clients (kill agent processes)
 		for (const [, client] of this._acpClients) {

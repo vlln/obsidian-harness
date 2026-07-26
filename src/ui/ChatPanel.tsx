@@ -754,17 +754,38 @@ export function ChatPanel({
 	// status only depend on this boolean transition, not on per-chunk growth,
 	// so we avoid notifying on every streamed token.
 	const hasMessages = messages.length > 0;
+	const runtimeStatus: SessionStatus = (() => {
+		if (session.state === "error") return "error";
+		if (session.state === "disconnected") return "disconnected";
+		if (agent.hasActivePermission) return "permission";
+		if (isSending || sessionHistory.loading) return "busy";
+		if (session.state === "ready") return "ready";
+		return "busy";
+	})();
+
 	useEffect(() => {
 		plugin.viewRegistry.notifyChange();
+		plugin.sessionRuntimeRegistry.setStatus(
+			sessionEntry.entryId,
+			viewId,
+			runtimeStatus,
+		);
 	}, [
 		plugin.viewRegistry,
-		session.state,
+		plugin.sessionRuntimeRegistry,
+		sessionEntry.entryId,
+		viewId,
+		runtimeStatus,
 		session.sessionId,
-		isSending,
-		agent.hasActivePermission,
-		sessionHistory.loading,
 		hasMessages,
 	]);
+
+	useEffect(
+		() => () => {
+			plugin.sessionRuntimeRegistry.remove(sessionEntry.entryId, viewId);
+		},
+		[plugin.sessionRuntimeRegistry, sessionEntry.entryId, viewId],
+	);
 
 	// ============================================================
 	// Effects - Notify Sidebar Container of Session Title Changes
@@ -978,36 +999,25 @@ export function ChatPanel({
 	const attachedFilesRef = useRef(attachedFiles);
 	const isSessionReadyRef = useRef(isSessionReady);
 	const isSendingRef = useRef(isSending);
-	const sessionStateRef = useRef(session.state);
 	const sessionIdRef = useRef(session.sessionId);
-	const hasActivePermissionRef = useRef(agent.hasActivePermission);
 	const sessionHistoryLoadingRef = useRef(sessionHistory.loading);
+	const sessionStatusRef = useRef(runtimeStatus);
 	const handleSendMessageRef = useRef(handleSendMessage);
 	const canComposeRef = useRef(continuationState.type === "resumable");
 	inputValueRef.current = inputValue;
 	attachedFilesRef.current = attachedFiles;
 	isSessionReadyRef.current = isSessionReady;
 	isSendingRef.current = isSending;
-	sessionStateRef.current = session.state;
 	sessionIdRef.current = session.sessionId;
-	hasActivePermissionRef.current = agent.hasActivePermission;
 	sessionHistoryLoadingRef.current = sessionHistory.loading;
+	sessionStatusRef.current = runtimeStatus;
 	handleSendMessageRef.current = handleSendMessage;
 	canComposeRef.current = continuationState.type === "resumable";
 
 	useEffect(() => {
 		onRegisterCallbacks?.({
 			getDisplayName: () => activeAgentLabel,
-			getSessionStatus: () => {
-				const state = sessionStateRef.current;
-				if (state === "error") return "error";
-				if (state === "disconnected") return "disconnected";
-				if (hasActivePermissionRef.current) return "permission";
-				if (isSendingRef.current || sessionHistoryLoadingRef.current)
-					return "busy";
-				if (state === "ready") return "ready";
-				return "busy";
-			},
+			getSessionStatus: () => sessionStatusRef.current,
 			getSessionTitle: () => computeSessionTitle(messagesRef.current),
 			getSessionId: () => sessionIdRef.current,
 			getInputState: () => ({
