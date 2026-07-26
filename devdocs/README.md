@@ -11,6 +11,7 @@
 | 路径 | 用途 |
 |------|------|
 | [vision.md](vision.md) | 全局顶层愿景 |
+| [backlog.md](backlog.md) | 增量迭代需求池 |
 | [spec/](spec/) | Spec 需求规格 |
 | [interface/](interface/) | 接口定义 |
 | [adr/](adr/) | 架构决策记录 |

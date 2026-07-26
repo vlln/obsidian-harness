@@ -11,3 +11,4 @@
 | [0003](0003-session-history.md) | Session 对话历史恢复 | active |
 | [0004](0004-acp-turn-transcript.md) | ACP Turn Transcript | active |
 | [0005](0005-harness-session-importer.md) | Harness Session Importer Skill | active |
+| [0006](0006-session-navigator.md) | Session Navigator | active |
