@@ -38,3 +38,4 @@
 | 0032 | [0032-session-runtime-registry](0032-session-runtime-registry/) | `feat/0032-session-runtime-registry` | done |
 | 0033 | [0033-session-index-reconciliation](0033-session-index-reconciliation/) | `feat/0033-session-index-reconciliation` | done |
 | 0034 | [0034-session-catalog](0034-session-catalog/) | `feat/0034-session-catalog` | done |
+| 0035 | [0035-session-navigator-ui](0035-session-navigator-ui/) | `feat/0035-session-navigator-ui` | done |

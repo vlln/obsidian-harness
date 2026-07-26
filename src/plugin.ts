@@ -58,10 +58,12 @@ import {
 	uniqueNonEmpty,
 } from "./services/session-helpers";
 import { resolveSessionFolderFromFileMenuTarget } from "./services/session-entry-target";
+import { parseSessionFileData } from "./services/session-entry";
 import {
 	isSessionEntryPath,
 	reconcileSessionEntryIndex,
 } from "./services/session-index-lifecycle";
+import { getSessionRenameTarget } from "./services/session-navigator";
 import {
 	AgentEnvVar,
 	GeminiAgentSettings,
@@ -1336,6 +1338,118 @@ export default class AgentClientPlugin extends Plugin {
 		new Notice(`[Harness] Created ${materialized.file.path}`);
 
 		await this.app.workspace.getLeaf().openFile(materialized.file);
+	}
+
+	async openNavigatorSession(entryId: string): Promise<void> {
+		const file = this.resolveNavigatorSessionFile(entryId);
+		if (!file) return;
+		await this.app.workspace.getLeaf().openFile(file);
+	}
+
+	async revealNavigatorSession(entryId: string): Promise<void> {
+		const file = this.resolveNavigatorSessionFile(entryId);
+		if (!file) return;
+		const leaf = this.app.workspace.getLeavesOfType("file-explorer")[0];
+		const explorer = leaf?.view as unknown as {
+			revealInFolder?: (target: TFile) => void | Promise<void>;
+		};
+		if (!leaf || typeof explorer.revealInFolder !== "function") {
+			new Notice("File explorer is not open");
+			return;
+		}
+		await explorer.revealInFolder(file);
+		await this.app.workspace.revealLeaf(leaf);
+	}
+
+	async renameNavigatorSession(
+		entryId: string,
+		requestedName: string,
+	): Promise<void> {
+		const file = this.resolveNavigatorSessionFile(entryId);
+		if (!file) return;
+		let target: { entryFile: string; title: string };
+		try {
+			target = getSessionRenameTarget(file.path, requestedName);
+		} catch (error) {
+			new Notice(error instanceof Error ? error.message : String(error));
+			return;
+		}
+		const collision = this.app.vault.getAbstractFileByPath(
+			target.entryFile,
+		);
+		if (collision && collision !== file) {
+			new Notice(`File already exists: ${target.entryFile}`);
+			return;
+		}
+
+		let currentFile = file;
+		try {
+			if (target.entryFile !== file.path) {
+				await this.app.fileManager.renameFile(file, target.entryFile);
+				const renamed = this.app.vault.getAbstractFileByPath(
+					target.entryFile,
+				);
+				if (!(renamed instanceof TFile)) {
+					throw new Error(
+						`Renamed Session not found: ${target.entryFile}`,
+					);
+				}
+				currentFile = renamed;
+			}
+		} catch (error) {
+			new Notice(`[Harness] Failed to rename Session file: ${error}`);
+			return;
+		}
+
+		try {
+			const config = parseSessionFileData(
+				await this.app.vault.read(currentFile),
+			);
+			config.title = target.title;
+			config.updatedAt = new Date().toISOString();
+			await this.app.vault.modify(
+				currentFile,
+				JSON.stringify(config, null, "\t"),
+			);
+			await this.settingsService.reconcileSessionIndex(
+				config,
+				currentFile.path,
+			);
+		} catch (error) {
+			new Notice(
+				`[Harness] Session file renamed, but title update failed: ${error}`,
+			);
+		}
+	}
+
+	async deleteNavigatorSession(entryId: string): Promise<void> {
+		const file = this.resolveNavigatorSessionFile(entryId);
+		if (!file) return;
+		if (!(await this.app.fileManager.promptForDeletion(file))) return;
+		const currentFile = this.resolveNavigatorSessionFile(entryId);
+		if (!currentFile) return;
+		try {
+			await this.app.fileManager.trashFile(currentFile);
+		} catch (error) {
+			new Notice(`[Harness] Failed to delete Session: ${error}`);
+		}
+	}
+
+	private resolveNavigatorSessionFile(entryId: string): TFile | null {
+		const item = this.sessionCatalog
+			.getSnapshot()
+			.items.find((candidate) => candidate.entryId === entryId);
+		if (!item) {
+			new Notice("Session is no longer available");
+			return null;
+		}
+		const file = this.app.vault.getAbstractFileByPath(item.entryFile);
+		if (!(file instanceof TFile)) {
+			new Notice(`Session file not found: ${item.entryFile}`);
+			this.sessionCatalog.refresh().catch(() => {});
+			return null;
+		}
+		return file;
 	}
 
 	/**
