@@ -95,6 +95,7 @@ If your plugin does not need CSS, delete this file.
 .agent-client-session-manager button.agent-client-navigator-show-more {
 	display: flex;
 	align-items: center;
+	justify-content: flex-start;
 	width: 100%;
 	min-width: 0;
 	border: 0;

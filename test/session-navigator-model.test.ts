@@ -156,5 +156,9 @@ describe("session navigator model", () => {
 		expect(styles).toContain(
 			".agent-client-session-manager button.agent-client-navigator-project-row",
 		);
+		const navigatorButtonReset = styles.match(
+			/\.agent-client-session-manager button\.agent-client-navigator-new-session,[\s\S]*?\{([\s\S]*?)\}/,
+		)?.[1];
+		expect(navigatorButtonReset).toContain("justify-content: flex-start;");
 	});
 });
