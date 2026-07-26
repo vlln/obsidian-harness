@@ -2,7 +2,7 @@
 title: Plan-0032-01: Session Runtime Registry
 description: Add an entryId/viewId runtime-status registry and register every ChatPanel host without coupling it to view container interfaces.
 type: plan
-status: pending
+status: done
 created: 2026-07-26T05:39:33Z
 ---
 

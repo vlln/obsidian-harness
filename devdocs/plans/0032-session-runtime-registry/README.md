@@ -2,4 +2,4 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Session runtime registry | pending | [01-plan-session-runtime-registry.md](01-plan-session-runtime-registry.md) | — |
+| Session runtime registry | done | [01-plan-session-runtime-registry.md](01-plan-session-runtime-registry.md) | [01-report-session-runtime-registry.md](01-report-session-runtime-registry.md) |
