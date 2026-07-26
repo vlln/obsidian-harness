@@ -14,6 +14,7 @@ export default defineConfig({
 			reportsDirectory: "coverage",
 			thresholds: { lines: 80 },
 			include: [
+				"src/services/session-catalog.ts",
 				"src/services/session-storage.ts",
 				"src/services/transcript-*.ts",
 				"src/services/session-continuation.ts",
