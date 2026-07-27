@@ -1,9 +1,9 @@
 ---
 title: Spec-0007: Session Workspace Experience
-description: Codex-inspired project-aware Session creation, turn navigation and non-redundant Navigator action menus for v0.5.0.
+description: Codex-inspired project-aware Session creation, synchronized turn navigation and non-redundant Navigator action menus through v0.5.1.
 type: spec
-status: active
-version: 1
+status: proposed
+version: 2
 created: 2026-07-27T02:26:04Z
 ---
 
@@ -28,6 +28,9 @@ created: 2026-07-27T02:26:04Z
 [Spec-0001](0001-session-entry.md) 定义并保存在 vault。需求来源为
 [BL-0003](../backlog.md)、[BL-0005](../backlog.md) 和 [BL-0006](../backlog.md)。
 
+`v0.5.1` 在不改变上述数据与模块边界的前提下承接 [BL-0008](../backlog.md)：修复手动滚动时
+current turn 的既有同步语义，并让 Turn 跳转与回到底部动作使用同一个连续平滑滚动协调机制。
+
 ### 1.1 对现行规范的增量关系
 
 本 Spec 激活后按以下范围覆盖现行规则，未列出的上游规则继续有效：
@@ -50,6 +53,7 @@ created: 2026-07-27T02:26:04Z
 | US-032 | Harness 用户 | 从 Project 菜单在系统文件管理器中打开真实工作目录 | 直接查看项目文件，而不是定位 vault 中的 `.session` | P1 |
 | US-033 | Harness 用户 | 从 Project 菜单创建同目录 Session 或复制完整路径 | 快速复用 Project 上下文 | P1 |
 | US-034 | Harness 用户 | Session 菜单只显示不能由行点击直接完成的操作 | 降低重复命令造成的理解成本 | P1 |
+| US-035 | Harness 用户 | 手动浏览长 Session 时让 current turn 跟随 viewport，并连续平滑地回到底部 | 保持导航位置可信且避免虚拟测量造成分段停顿 | P0 |
 
 ## 三、模块划分
 
@@ -61,7 +65,7 @@ created: 2026-07-27T02:26:04Z
 | Session Storage | 初始化 transcript 并维护 index，继续作为创建流程中唯一的存储服务 | `SessionIndexEntry`、`TranscriptManifest` 与 turn records（沿用既有 ownership） | `src/services/session-storage.ts` | P0 |
 | Turn Navigation Projection | 从当前 `ChatMessage[]` 派生用户 turn、纯文本预览和 message index，不读写 transcript | `TurnNavigationItem`（内存投影） | `src/services/turn-navigation.ts` | P0 |
 | Turn Navigator UI | 渲染节点、预览、键盘交互和当前 turn 状态 | 无持久化实体 | `src/ui/TurnNavigator.tsx` | P0 |
-| Virtual Message Navigation | 将 turn 跳转映射到既有 virtualizer，发布滚动锚点并处理 reduced motion | 无持久化实体 | `src/ui/MessageList.tsx` | P0 |
+| Virtual Message Navigation | 将 turn 与回到底部动作映射到既有 virtualizer，发布滚动锚点、合并测量修正并处理 reduced motion | 无持久化实体 | `src/ui/MessageList.tsx` | P0 |
 | Navigator Action Menus | 精简 Session 菜单，渲染 Project 尾部菜单并阻止菜单点击触发展开/折叠 | 无持久化实体 | `src/ui/SessionManagerView.tsx` | P1 |
 
 模块依赖拆为三条无环链：
@@ -142,11 +146,13 @@ metadata 和 Session index；Project 菜单与 turn 导航不产生持久化写�
 |----------|------|
 | BR-051 | 每个 `role=user` 的 ChatMessage 恰好生成一个节点，assistant、tool call 和 plan 不单独生成节点 |
 | BR-052 | preview 合并用户可见文本并压缩空白，最长 160 个字符；仅附件消息使用可读的附件类型摘要，不暴露 base64 或完整资源 URI |
-| BR-053 | 点击或键盘激活节点时，MessageList 以该 item 的 `messageIndex` 滚动到起始位置；普通模式使用短平滑滚动，`prefers-reduced-motion` 下立即跳转 |
+| BR-053 | 点击或键盘激活节点时，MessageList 以该 item 的 `messageIndex` 作为 BR-065 的目标并按 `align=start` 滚动到起始位置；普通模式使用连续平滑滚动，`prefers-reduced-motion` 下立即跳转 |
 | BR-054 | 当前 turn 是位于消息 viewport 上部锚点之前最近的一条用户消息；在第一条之前取第一条，在最后一条之后取最后一条 |
 | BR-055 | active turn 更新按 animation frame 合并，不因 streaming content 的高度变化产生节点抖动或改变 messageId 映射 |
 | BR-056 | 没有用户消息时不显示轨道；消息区容器宽度小于 520 px 时隐藏轨道且不给消息内容预留空白 |
 | BR-057 | Turn Navigator 只在 `.session` FileView 中启用；floating chat 和兼容用旧 ChatView 不显示该轨道 |
+| BR-064 | 回到底部按钮必须把消息容器的最大 scroll offset `max(0, scrollHeight - clientHeight)` 作为 BR-065 的目标，而不是只对齐最后一条消息；按钮沿用既有出现条件，完成后 `scrollTop` 与最大 offset 相差不超过既有 35 px bottom threshold 且按钮隐藏 |
+| BR-065 | `coordinateSmoothMessageScroll` 是 Turn 跳转与回到底部共用的 MessageList-local 协调机制。Turn 目标由 virtualizer 的 index/alignment 解析 offset 并最终精确对齐；底部目标由 BR-064 的实时容器几何解析并最终精确对齐。普通模式执行 1 次原生平滑主滚动，结束后最多执行 1 次基于新测量几何的平滑修正；每阶段至多等待 1.6 s，完整动作至多 3.2 s；reduced motion 下立即对齐。新的用户导航动作、目标消息身份变化、unmount，或 wheel/trackpad、触摸、滚动条拖动和滚动键产生的直接用户滚动输入，必须清理上一动作的 listener/timer 并禁止其末端修正和精确落点；直接用户滚动仍按 BR-054/BR-055 更新 current turn。协调器自身的末端修正不得被视为新的用户导航动作；offset 或测量不可用时只允许 1 次即时回退，不得循环重启 |
 
 ### 5.3 Navigator 菜单
 
@@ -203,6 +209,7 @@ Source folder
 - 节点必须是可聚焦 button，aria-label 至少包含 turn 序号和 preview。
 - 节点 active/hover 过渡为 120-180 ms 的 CSS transition；不引入新的动画库。
 - 轨道隐藏时消息列表恢复原有左边距，任何宽度均不得与消息或滚动条重叠。
+- 回到底部按钮沿用既有外观和出现条件，只复用 BR-064 的滚动协调行为，不新增第二套控件。
 
 ### 6.3 Project 与 Session 行
 
@@ -224,6 +231,7 @@ Source folder
 | clipboard 写入失败 | 显示 Copy path 失败，不执行其他 Project 命令 |
 | turn 目标在点击前因 Session 切换消失 | 忽略旧目标，不跳转到同 index 的其他消息 |
 | virtualizer 无法完成目标测量 | 使用 index estimate 定位并保持 UI 可操作，不进入重复滚动循环 |
+| 回到底部期间目标消息被替换或 MessageList 卸载 | 取消该动作的 listener/timer；不得对旧容器执行迟到修正 |
 
 ## 八、非功能指标
 
@@ -232,7 +240,8 @@ Source folder
 | 数据安全 | 打开或取消创建弹窗的磁盘写入 | 0 次 |
 | 一致性 | 每次成功创建产生的 `.session` / transcript / index | 各 1 份，cwd 一致 |
 | 性能 | 从 500 条 ChatMessage 派生 turn navigation | 16 ms 内 |
-| 交互 | 节点激活到目标进入 viewport | reduced motion 下 100 ms 内；平滑模式 400 ms 内 |
+| 交互 | 消息滚动协调器收敛 | reduced motion 下 100 ms 内；平滑模式每阶段至多 1.6 s、完整动作至多 3.2 s；Turn 目标在主阶段结束时进入 viewport，最终阶段结束时精确对齐 |
+| 交互 | 回到底部的原生平滑滚动调用 | 1 次主滚动，测量变化时最多 1 次末端修正 |
 | 响应式 | 260-1200 px 宿主宽度 | 无水平溢出、菜单/轨道/消息不重叠 |
 | 可访问性 | 创建表单、Project 菜单、turn 节点 | 完整键盘操作、可见焦点、可读 aria-label |
 | 兼容性 | 支持的桌面平台 | macOS、Windows、Linux 使用各自系统文件管理器语义 |
@@ -267,6 +276,7 @@ Source folder
 | Turn navigation item | 一条用户消息对应的导航节点投影 | `TurnNavigationItem` |
 | Turn Navigator | 在 `.session` 消息区左缘呈现 turn 节点、preview 与 active 状态的 UI | `TurnNavigator` |
 | Current turn | viewport 上部锚点之前最近的用户消息 | `activeMessageId` |
+| Smooth message scroll coordinator | Turn 跳转与回到底部共用的有界原生平滑滚动及精确落点机制 | `coordinateSmoothMessageScroll` |
 | Navigator action menu | Session 或 Project 行尾部针对该行目标的命令菜单 | `NavigatorActionMenu` |
 | System file manager | Finder、Windows Explorer 或 Linux 桌面文件管理器 | `openProjectInSystemFileManager` |
 | Vault reveal | 在 Obsidian 文件树中定位 `.session` 入口文件 | `revealNavigatorSession` |
