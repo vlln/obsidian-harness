@@ -44,3 +44,4 @@
 | 0043 | [0043-turn-navigator](0043-turn-navigator/) | `feat/0043-turn-navigator` | done |
 | 0044 | [0044-navigator-actions](0044-navigator-actions/) | `feat/0044-navigator-actions` | done |
 | 0045 | [0045-session-workspace-system-test](0045-session-workspace-system-test/) | `develop` | pending |
+| 0046 | [0046-turn-tooltip-accessibility](0046-turn-tooltip-accessibility/) | `fix/0046-turn-tooltip-accessibility` | done |
