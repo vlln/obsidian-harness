@@ -163,6 +163,20 @@ async function getTurnGeometry() {
 }
 
 describe("v0.5 Session workspace", () => {
+	afterEach(async () => {
+		await browser.execute(() => {
+			document
+				.querySelectorAll<HTMLElement>(".workspace-leaf")
+				.forEach((leaf) => {
+					leaf.style.display = "";
+					delete leaf.dataset.workspaceTurnManual;
+					delete leaf.dataset.workspaceTurnBottom;
+					delete leaf.dataset.workspaceTurnVisual;
+					delete leaf.dataset.workspaceTurnSmooth;
+				});
+		});
+	});
+
 	before(async () => {
 		await mkdir(artifacts, { recursive: true });
 		await mkdir(visualPolishArtifacts, { recursive: true });
@@ -892,6 +906,7 @@ describe("v0.5 Session workspace", () => {
 			const leaf = app.workspace.getLeaf(true);
 			await leaf.openFile(file);
 			leaf.containerEl.dataset.workspaceTurnManual = "true";
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
 		}, longTurnEntryPath);
 		await browser.waitUntil(
 			async () =>
@@ -910,59 +925,92 @@ describe("v0.5 Session workspace", () => {
 			viewport.scrollTop = Math.round(viewport.scrollHeight * 0.6);
 			viewport.dispatchEvent(new Event("scroll"));
 		});
-		await browser.waitUntil(
-			() =>
-				browser.execute(() => {
-					const leaf = document.querySelector<HTMLElement>(
-						'.workspace-leaf[data-workspace-turn-manual="true"]',
-					)!;
-					const viewport = leaf.querySelector<HTMLElement>(
-						".agent-client-chat-view-messages",
-					)!;
-					const viewportTop = viewport.getBoundingClientRect().top;
-					const firstVisible = Array.from(
-						viewport.querySelectorAll<HTMLElement>(
-							".agent-client-virtual-item",
-						),
-					).find(
-						(item) =>
-							item.getBoundingClientRect().bottom > viewportTop,
-					);
-					const messageIndex = Number(firstVisible?.dataset.index);
-					const activeLabel = leaf
-						.querySelector<HTMLElement>(
-							'.agent-client-turn-node[aria-current="step"]',
-						)
-						?.getAttribute("aria-label");
-					const activeOrdinal = Number(
-						activeLabel?.match(/^Turn (\d+):/)?.[1],
-					);
-					return (
-						messageIndex > 2 &&
-						activeOrdinal === Math.floor(messageIndex / 2) + 1
-					);
-				}),
-			{ timeout: 3000, interval: 25 },
-		);
+		let lastSnapshot: Record<string, unknown> | null = null;
+		try {
+			await browser.waitUntil(
+				async () => {
+					lastSnapshot = await browser.execute(() => {
+						const leaf = document.querySelector<HTMLElement>(
+							'.workspace-leaf[data-workspace-turn-manual="true"]',
+						)!;
+						const viewport = leaf.querySelector<HTMLElement>(
+							".agent-client-chat-view-messages",
+						)!;
+						const viewportTop =
+							viewport.getBoundingClientRect().top;
+						const virtualItems = Array.from(
+							viewport.querySelectorAll<HTMLElement>(
+								".agent-client-virtual-item",
+							),
+						);
+						const firstVisible = virtualItems.find(
+							(item) =>
+								item.getBoundingClientRect().bottom >
+								viewportTop,
+						);
+						const messageIndex = Number(
+							firstVisible?.dataset.index,
+						);
+						const activeLabel = leaf
+							.querySelector<HTMLElement>(
+								'.agent-client-turn-node[aria-current="step"]',
+							)
+							?.getAttribute("aria-label");
+						const activeOrdinal = Number(
+							activeLabel?.match(/^Turn (\d+):/)?.[1],
+						);
+						const expectedOrdinal =
+							Math.floor(messageIndex / 2) + 1;
+						return {
+							matches:
+								messageIndex > 2 &&
+								activeOrdinal === expectedOrdinal,
+							scrollTop: viewport.scrollTop,
+							scrollHeight: viewport.scrollHeight,
+							clientHeight: viewport.clientHeight,
+							messageIndex,
+							expectedOrdinal,
+							activeOrdinal,
+							virtualIndexes: virtualItems.map((item) =>
+								Number(item.dataset.index),
+							),
+						};
+					});
+					return lastSnapshot.matches === true;
+				},
+				{ timeout: 3000, interval: 25 },
+			);
+		} catch (error) {
+			throw new Error(
+				`Manual Turn snapshot: ${JSON.stringify(lastSnapshot)}`,
+				{ cause: error },
+			);
+		}
 
 		for (const position of ["start", "end"] as const) {
 			await browser.execute((boundary) => {
 				const viewport = document.querySelector<HTMLElement>(
 					'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-chat-view-messages',
 				)!;
-				viewport.scrollTop = boundary === "start" ? 0 : viewport.scrollHeight;
+				viewport.scrollTop =
+					boundary === "start" ? 0 : viewport.scrollHeight;
 				viewport.dispatchEvent(new Event("scroll"));
 			}, position);
 			await browser.waitUntil(
 				() =>
-					browser.execute((expected) => {
-						const label = document
-							.querySelector<HTMLElement>(
-								'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-turn-node[aria-current="step"]',
-							)
-							?.getAttribute("aria-label");
-						return label?.startsWith(`Turn ${expected}:`) ?? false;
-					}, position === "start" ? 1 : 48),
+					browser.execute(
+						(expected) => {
+							const label = document
+								.querySelector<HTMLElement>(
+									'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-turn-node[aria-current="step"]',
+								)
+								?.getAttribute("aria-label");
+							return (
+								label?.startsWith(`Turn ${expected}:`) ?? false
+							);
+						},
+						position === "start" ? 1 : 48,
+					),
 				{ timeout: 3000, interval: 25 },
 			);
 		}
@@ -971,6 +1019,7 @@ describe("v0.5 Session workspace", () => {
 				'.workspace-leaf[data-workspace-turn-manual="true"]',
 			)!;
 			delete leaf.dataset.workspaceTurnManual;
+			delete leaf.dataset.workspaceTurnVisual;
 		});
 	});
 
@@ -981,6 +1030,7 @@ describe("v0.5 Session workspace", () => {
 			const leaf = app.workspace.getLeaf(true);
 			await leaf.openFile(file);
 			leaf.containerEl.dataset.workspaceTurnBottom = "true";
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
 		}, longTurnEntryPath);
 		await browser.waitUntil(
 			async () =>
@@ -1049,9 +1099,11 @@ describe("v0.5 Session workspace", () => {
 				| undefined;
 			if (original) viewport.scrollTo = original;
 			const smoothCalls = (
-				((window as any).__workspaceBottomCalls ?? []) as ScrollToOptions[]
+				((window as any).__workspaceBottomCalls ??
+					[]) as ScrollToOptions[]
 			).filter((call) => call.behavior === "smooth");
 			delete leaf.dataset.workspaceTurnBottom;
+			delete leaf.dataset.workspaceTurnVisual;
 			return {
 				firstTarget: smoothCalls[0]?.top,
 				smoothCount: smoothCalls.length,
