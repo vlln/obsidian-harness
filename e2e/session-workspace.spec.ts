@@ -620,6 +620,22 @@ describe("v0.5 Session workspace", () => {
 	});
 
 	it("AC-0024-N-4 and AC-0025-N-4/B-1: saves responsive light/dark visual evidence", async () => {
+		if (
+			!(await browser
+				.$(".agent-client-message-list-shell.has-turn-navigator")
+				.isExisting())
+		) {
+			await browser.execute(async (entryPath) => {
+				const app = (window as any).app;
+				const file = app.vault.getAbstractFileByPath(entryPath);
+				await app.workspace.getLeaf(true).openFile(file);
+			}, turnEntryPath);
+			await browser.waitUntil(
+				async () =>
+					(await browser.$$(".agent-client-turn-node")).length === 3,
+				{ timeout: 5000, interval: 50 },
+			);
+		}
 		const shell = await browser.$(
 			".agent-client-message-list-shell.has-turn-navigator",
 		);
