@@ -2,7 +2,7 @@
 title: Plan-0043-01: Per-user-message Turn Navigator
 description: Add the user-message projection, responsive rail UI and virtualized message navigation required by AC-0025.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T03:49:00Z
 ---
 
