@@ -80,6 +80,7 @@ executed against the approved release candidate as follows:
 | Public release | PASS: [v0.5.1](https://github.com/vlln/obsidian-harness-frontend/releases/tag/v0.5.1), published `2026-07-27T10:07:25Z`, latest and non-prerelease |
 | Public download smoke | PASS: all three assets downloaded; hashes and manifest metadata matched staging |
 | Five-minute monitoring | PASS at `2026-07-27T10:13:09Z`; release remained latest/public and all assets remained uploaded with matching digests |
+| `develop` reconciliation | PASS: release completion evidence merged at `c5fb614`; remote release branch deleted |
 
 The workflow repeated the known non-blocking warning that pinned Actions target the deprecated Node 20 action
 runtime and were forced to Node 24. Runtime assets and provenance were unaffected; `BL-0007` already tracks the
@@ -97,4 +98,4 @@ upgrade. No rollback trigger fired, so public `v0.5.1` remains active alongside 
 ## Decision
 
 `[PASS]` Staging, production publication, public download smoke and the five-minute monitoring window all passed.
-The release may be merged back to `develop`; no rollback is required.
+The release was merged back to `develop`; no rollback is required.
