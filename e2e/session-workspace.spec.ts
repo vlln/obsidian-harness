@@ -561,7 +561,10 @@ describe("v0.5 Session workspace", () => {
 		await browser.waitUntil(
 			() =>
 				browser.execute(() => {
-					const viewport = document.querySelector<HTMLElement>(
+					const shell = document.querySelector<HTMLElement>(
+						".agent-client-message-list-shell.has-turn-navigator",
+					)!;
+					const viewport = shell.querySelector<HTMLElement>(
 						".agent-client-chat-view-messages",
 					)!;
 					const message = Array.from(
