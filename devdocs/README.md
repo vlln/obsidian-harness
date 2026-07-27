@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE`：`release/v0.5.0` 已通过干净安装、生产/文档构建、运行时依赖审计、版本一致性与核心 Obsidian 冒烟；等待 production 发布、`main` 合并与 tag 的人工批准 |
-| **当前版本** | `v0.4.0` 为当前公开稳定版，交付 Codex 风格的全局 Session Navigator |
-| **设计评估** | `v0.5.0` 增加 Project-aware Session 创建、Turn Navigator 与 Project/Session 菜单调整；复用现有 Electron host、virtualizer、SessionStorage reconciliation 和 Vitest/WDIO/CI。DEVELOP 证据见 [Report-0042](plans/0042-session-creation/01-report-session-creation.md)、[Report-0043](plans/0043-turn-navigator/01-report-turn-navigator.md) 与 [Report-0044](plans/0044-navigator-actions/01-report-navigator-actions.md)，完整运行时证据见 [Report-0045](plans/0045-session-workspace-system-test/01-report-session-workspace-system-test.md)；不新增业务 ADR。 |
+| **当前阶段** | `DESIGN`：`v0.5.0` 已完成 production 发布、公开资产冒烟与五分钟监控；下一轮增量候选等待从 [backlog](backlog.md) 选择并标记为 `planned` |
+| **当前版本** | `v0.5.0` 为当前公开稳定版，交付 Project-aware Session 创建、Turn Navigator 与聚焦的 Project/Session 操作 |
+| **设计评估** | `v0.5.0` 的设计、DEVELOP、SYSTEM_TEST 与 RELEASE 已闭环；生产证据见 [Release Report v0.5.0](reports/release-v0.5.0.md)。下一轮保持现有 React/ACP/Obsidian 架构边界，候选选择前不修改 active Spec/AC/ADR。 |
 
 ## 子目录
 
