@@ -6,3 +6,4 @@
 |------|------|------|----------|------|
 | BL-0001 | 将现有 SessionManagerView 升级为 Codex 风格的全局 Session 导航器：按 Projects 和 Recents 组织 Session，不设独立 Active 分区，在 Session 行右侧显示运行状态 | done | v0.4.0 | 2026-07-26 用户需求 |
 | BL-0002 | 强化 Session Navigator 的视觉角色层级：静态 Projects/Recents 分区标题、可点击 Show more 操作与 Project/Session 行必须通过字号、颜色、字重和 hover 明确区分 | done | v0.4.0 | 2026-07-26 用户视觉反馈 |
+| BL-0003 | 点击 Navigator 的 New session 时打开 Codex 风格创建弹窗：输入 Project name，可选择一个 Agent 工作目录；未选择时创建并使用 `~/Documents/<project-name>`，`.session` 入口仍保存在 vault，Project 继续由 `cwd` 投影而不新增独立项目实体 | candidate | — | 2026-07-26 用户需求 |
