@@ -15,6 +15,7 @@ export default defineConfig({
 			thresholds: { lines: 80 },
 			include: [
 				"src/services/project-directory.ts",
+				"src/services/session-materialization.ts",
 				"src/services/session-catalog.ts",
 				"src/services/session-navigator.ts",
 				"src/services/session-storage.ts",
