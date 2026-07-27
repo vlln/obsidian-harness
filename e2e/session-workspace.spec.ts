@@ -163,6 +163,20 @@ async function getTurnGeometry() {
 }
 
 describe("v0.5 Session workspace", () => {
+	afterEach(async () => {
+		await browser.execute(() => {
+			document
+				.querySelectorAll<HTMLElement>(".workspace-leaf")
+				.forEach((leaf) => {
+					leaf.style.display = "";
+					delete leaf.dataset.workspaceTurnManual;
+					delete leaf.dataset.workspaceTurnBottom;
+					delete leaf.dataset.workspaceTurnVisual;
+					delete leaf.dataset.workspaceTurnSmooth;
+				});
+		});
+	});
+
 	before(async () => {
 		await mkdir(artifacts, { recursive: true });
 		await mkdir(visualPolishArtifacts, { recursive: true });
@@ -649,7 +663,9 @@ describe("v0.5 Session workspace", () => {
 		await browser.execute(async (entryPath) => {
 			const app = (window as any).app;
 			const file = app.vault.getAbstractFileByPath(entryPath);
-			await app.workspace.getLeaf(true).openFile(file);
+			const leaf = app.workspace.getLeaf(true);
+			await leaf.openFile(file);
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
 		}, turnEntryPath);
 		await browser.waitUntil(
 			async () =>
@@ -671,9 +687,21 @@ describe("v0.5 Session workspace", () => {
 
 		await setTurnViewportWidth(800);
 		const second = await browser.$(
-			'.agent-client-turn-node[aria-label="Turn 2: Second prompt"]',
+			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-label="Turn 2: Second prompt"]',
 		);
 		await second.moveTo();
+		await browser.execute(() => {
+			document
+				.querySelector<HTMLElement>(
+					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-label="Turn 2: Second prompt"]',
+				)
+				?.dispatchEvent(
+					new MouseEvent("mouseover", {
+						bubbles: true,
+						view: window,
+					}),
+				);
+		});
 		await browser.$(".tooltip").waitForDisplayed();
 		expect(await browser.$(".tooltip").getText()).toContain(
 			"Second prompt",
@@ -729,7 +757,7 @@ describe("v0.5 Session workspace", () => {
 		}
 	});
 
-	it("keeps distant Turn navigation continuous across virtual messages", async () => {
+	it("AC-0025 scroll synchronization: keeps distant Turn navigation continuous across virtual messages", async () => {
 		await browser.execute(async (entryPath) => {
 			const app = (window as any).app;
 			const file = app.vault.getAbstractFileByPath(entryPath);
@@ -883,6 +911,241 @@ describe("v0.5 Session workspace", () => {
 		expect(result.smoothCalls).toBeLessThanOrEqual(2);
 		expect(result.activeTrace).toEqual([41]);
 		expect(result.railScrollTop).toBeGreaterThan(0);
+	});
+
+	it("AC-0025 scroll synchronization: follows manual viewport movement", async () => {
+		await browser.execute(async (entryPath) => {
+			const app = (window as any).app;
+			const file = app.vault.getAbstractFileByPath(entryPath);
+			const leaf = app.workspace.getLeaf(true);
+			await leaf.openFile(file);
+			leaf.containerEl.dataset.workspaceTurnManual = "true";
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
+		}, longTurnEntryPath);
+		await browser.waitUntil(
+			async () =>
+				(
+					await browser.$$(
+						'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-turn-node',
+					)
+				).length === 48,
+			{ timeout: 5000, interval: 50 },
+		);
+		await setTurnViewportWidth(520);
+		await browser.execute(() => {
+			const viewport = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-chat-view-messages',
+			)!;
+			viewport.scrollTop = Math.round(viewport.scrollHeight * 0.6);
+			viewport.dispatchEvent(new Event("scroll"));
+		});
+		let lastSnapshot: Record<string, unknown> | null = null;
+		try {
+			await browser.waitUntil(
+				async () => {
+					lastSnapshot = await browser.execute(() => {
+						const leaf = document.querySelector<HTMLElement>(
+							'.workspace-leaf[data-workspace-turn-manual="true"]',
+						)!;
+						const viewport = leaf.querySelector<HTMLElement>(
+							".agent-client-chat-view-messages",
+						)!;
+						const viewportTop =
+							viewport.getBoundingClientRect().top;
+						const virtualItems = Array.from(
+							viewport.querySelectorAll<HTMLElement>(
+								".agent-client-virtual-item",
+							),
+						);
+						const firstVisible = virtualItems.find(
+							(item) =>
+								item.getBoundingClientRect().bottom >
+								viewportTop,
+						);
+						const messageIndex = Number(
+							firstVisible?.dataset.index,
+						);
+						const activeLabel = leaf
+							.querySelector<HTMLElement>(
+								'.agent-client-turn-node[aria-current="step"]',
+							)
+							?.getAttribute("aria-label");
+						const activeOrdinal = Number(
+							activeLabel?.match(/^Turn (\d+):/)?.[1],
+						);
+						const expectedOrdinal =
+							Math.floor(messageIndex / 2) + 1;
+						return {
+							matches:
+								messageIndex > 2 &&
+								activeOrdinal === expectedOrdinal,
+							scrollTop: viewport.scrollTop,
+							scrollHeight: viewport.scrollHeight,
+							clientHeight: viewport.clientHeight,
+							messageIndex,
+							expectedOrdinal,
+							activeOrdinal,
+							virtualIndexes: virtualItems.map((item) =>
+								Number(item.dataset.index),
+							),
+						};
+					});
+					return lastSnapshot.matches === true;
+				},
+				{ timeout: 3000, interval: 25 },
+			);
+		} catch (error) {
+			throw new Error(
+				`Manual Turn snapshot: ${JSON.stringify(lastSnapshot)}`,
+				{ cause: error },
+			);
+		}
+
+		for (const position of ["start", "end"] as const) {
+			await browser.execute((boundary) => {
+				const viewport = document.querySelector<HTMLElement>(
+					'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-chat-view-messages',
+				)!;
+				viewport.scrollTop =
+					boundary === "start" ? 0 : viewport.scrollHeight;
+				viewport.dispatchEvent(new Event("scroll"));
+			}, position);
+			await browser.waitUntil(
+				() =>
+					browser.execute(
+						(expected) => {
+							const label = document
+								.querySelector<HTMLElement>(
+									'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-turn-node[aria-current="step"]',
+								)
+								?.getAttribute("aria-label");
+							return (
+								label?.startsWith(`Turn ${expected}:`) ?? false
+							);
+						},
+						position === "start" ? 1 : 48,
+					),
+				{ timeout: 3000, interval: 25 },
+			);
+		}
+		await browser.execute(() => {
+			const leaf = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-manual="true"]',
+			)!;
+			delete leaf.dataset.workspaceTurnManual;
+			delete leaf.dataset.workspaceTurnVisual;
+		});
+	});
+
+	it("AC-0025 scroll synchronization: coalesces the bottom action against live container geometry", async () => {
+		await browser.execute(async (entryPath) => {
+			const app = (window as any).app;
+			const file = app.vault.getAbstractFileByPath(entryPath);
+			const leaf = app.workspace.getLeaf(true);
+			await leaf.openFile(file);
+			leaf.containerEl.dataset.workspaceTurnBottom = "true";
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
+		}, longTurnEntryPath);
+		await browser.waitUntil(
+			async () =>
+				(
+					await browser.$$(
+						'.workspace-leaf[data-workspace-turn-bottom="true"] .agent-client-turn-node',
+					)
+				).length === 48,
+			{ timeout: 5000, interval: 50 },
+		);
+		await setTurnViewportWidth(520);
+		await browser.execute(() => {
+			const leaf = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-bottom="true"]',
+			)!;
+			const viewport = leaf.querySelector<HTMLElement>(
+				".agent-client-chat-view-messages",
+			)!;
+			viewport.scrollTop = 0;
+			viewport.dispatchEvent(new Event("scroll"));
+			const calls: Array<{
+				options: ScrollToOptions;
+				maxOffset: number;
+			}> = [];
+			const original = viewport.scrollTo.bind(viewport);
+			viewport.scrollTo = ((options: ScrollToOptions) => {
+				calls.push({
+					options: { ...options },
+					maxOffset: Math.max(
+						0,
+						viewport.scrollHeight - viewport.clientHeight,
+					),
+				});
+				original(options);
+			}) as typeof viewport.scrollTo;
+			(window as any).__workspaceBottomCalls = calls;
+			(window as any).__workspaceBottomOriginal = original;
+		});
+		await browser
+			.$(
+				'.workspace-leaf[data-workspace-turn-bottom="true"] .agent-client-scroll-to-bottom',
+			)
+			.waitForDisplayed();
+		await browser
+			.$(
+				'.workspace-leaf[data-workspace-turn-bottom="true"] .agent-client-scroll-to-bottom',
+			)
+			.click();
+		await browser.waitUntil(
+			() =>
+				browser.execute(() => {
+					const viewport = document.querySelector<HTMLElement>(
+						'.workspace-leaf[data-workspace-turn-bottom="true"] .agent-client-chat-view-messages',
+					)!;
+					return (
+						viewport.scrollHeight -
+							viewport.clientHeight -
+							viewport.scrollTop <=
+						35
+					);
+				}),
+			{ timeout: 4000, interval: 25 },
+		);
+		await browser.pause(500);
+		const result = await browser.execute(() => {
+			const leaf = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-bottom="true"]',
+			)!;
+			const viewport = leaf.querySelector<HTMLElement>(
+				".agent-client-chat-view-messages",
+			)!;
+			const original = (window as any).__workspaceBottomOriginal as
+				| typeof viewport.scrollTo
+				| undefined;
+			if (original) viewport.scrollTo = original;
+			const smoothCalls = (
+				((window as any).__workspaceBottomCalls ?? []) as Array<{
+					options: ScrollToOptions;
+					maxOffset: number;
+				}>
+			).filter((call) => call.options.behavior === "smooth");
+			delete leaf.dataset.workspaceTurnBottom;
+			delete leaf.dataset.workspaceTurnVisual;
+			return {
+				firstTarget: smoothCalls[0]?.options.top,
+				firstMaxOffset: smoothCalls[0]?.maxOffset,
+				smoothCount: smoothCalls.length,
+				bottomDistance:
+					viewport.scrollHeight -
+					viewport.clientHeight -
+					viewport.scrollTop,
+				buttonVisible: Boolean(
+					leaf.querySelector(".agent-client-scroll-to-bottom"),
+				),
+			};
+		});
+		expect(result.firstTarget).toBeCloseTo(result.firstMaxOffset, 0);
+		expect(result.smoothCount).toBeGreaterThanOrEqual(1);
+		expect(result.smoothCount).toBeLessThanOrEqual(2);
+		expect(result.bottomDistance).toBeLessThanOrEqual(35);
+		expect(result.buttonVisible).toBe(false);
 	});
 
 	it("release visual review: keeps long Turn rails quiet and scrollable", async () => {

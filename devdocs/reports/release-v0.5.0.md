@@ -2,7 +2,7 @@
 title: RELEASE Report v0.5.0
 description: Obsidian Harness v0.5.0 release verification for Project-aware Session creation, continuous Turn navigation and focused Project/Session actions.
 type: report
-status: draft
+status: complete
 created: 2026-07-27T05:19:24Z
 ---
 
@@ -72,9 +72,35 @@ runtime vulnerabilities. Broad dependency upgrades are outside this release scop
 
 ## Production Verification
 
-Pending explicit human approval and production execution.
+Human approval explicitly covered one-time publication, the `master` merge and the `v0.5.0` tag. Production
+executed against the approved release candidate as follows:
+
+| Gate | Result |
+|------|--------|
+| `master` merge | PASS: `235aaf0`, with a tree identical to release candidate `4ad4417` |
+| Remote tag | PASS: `v0.5.0` points to `235aaf0` |
+| Tag workflow | PASS: run [30246702118](https://github.com/vlln/obsidian-harness-frontend/actions/runs/30246702118), 39 s |
+| Draft inspection | PASS: exactly `main.js`, `manifest.json` and `styles.css`; all sizes and SHA-256 digests matched staging |
+| Build provenance | PASS: downloaded `main.js` and `styles.css` attestations verified for `vlln/obsidian-harness-frontend` |
+| Public release | PASS: [v0.5.0](https://github.com/vlln/obsidian-harness-frontend/releases/tag/v0.5.0), published `2026-07-27T07:37:43Z`, non-prerelease |
+| Public download smoke | PASS: all three assets downloaded; hashes and manifest metadata matched staging |
+| Five-minute monitoring | PASS at `2026-07-27T07:43:13Z`; release remained latest/public and all assets remained uploaded with matching digests |
+
+The workflow emitted one non-blocking warning: pinned Actions currently target the deprecated Node 20 action
+runtime and were forced to Node 24 by GitHub. Runtime assets and provenance were unaffected; follow-up is recorded
+as a backlog candidate. No rollback trigger fired, so public `v0.5.0` remains active alongside `v0.4.0`.
+
+## Retrospective
+
+- Human staging review found two presentation defects after the first system pass: host-dependent Turn rail
+  styling and virtualizer smooth-scroll retargeting. Both were classified as local implementation bugs, fixed on
+  isolated branches and covered by permanent 48-turn runtime checks before the candidate was rebuilt.
+- The candidate was rebuilt twice rather than published with known UI defects. This extended release verification
+  but preserved the rule that `master` receives only a reviewed candidate.
+- Future release checks should wait for asset downloads to complete before hashing and should update pinned GitHub
+  Actions before GitHub removes the Node 20 compatibility path.
 
 ## Decision
 
-`[PENDING]` Staging passed. Production publication, public smoke, monitoring, release-branch merges, tag and
-iteration closeout remain pending.
+`[PASS]` Staging, production publication, public download smoke and the five-minute monitoring window all passed.
+The release may be merged back to `develop`; no rollback is required.
