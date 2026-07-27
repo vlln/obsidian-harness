@@ -663,7 +663,9 @@ describe("v0.5 Session workspace", () => {
 		await browser.execute(async (entryPath) => {
 			const app = (window as any).app;
 			const file = app.vault.getAbstractFileByPath(entryPath);
-			await app.workspace.getLeaf(true).openFile(file);
+			const leaf = app.workspace.getLeaf(true);
+			await leaf.openFile(file);
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
 		}, turnEntryPath);
 		await browser.waitUntil(
 			async () =>
@@ -1042,7 +1044,7 @@ describe("v0.5 Session workspace", () => {
 			{ timeout: 5000, interval: 50 },
 		);
 		await setTurnViewportWidth(520);
-		const initialBottom = await browser.execute(() => {
+		await browser.execute(() => {
 			const leaf = document.querySelector<HTMLElement>(
 				'.workspace-leaf[data-workspace-turn-bottom="true"]',
 			)!;
@@ -1051,15 +1053,23 @@ describe("v0.5 Session workspace", () => {
 			)!;
 			viewport.scrollTop = 0;
 			viewport.dispatchEvent(new Event("scroll"));
-			const calls: ScrollToOptions[] = [];
+			const calls: Array<{
+				options: ScrollToOptions;
+				maxOffset: number;
+			}> = [];
 			const original = viewport.scrollTo.bind(viewport);
 			viewport.scrollTo = ((options: ScrollToOptions) => {
-				calls.push({ ...options });
+				calls.push({
+					options: { ...options },
+					maxOffset: Math.max(
+						0,
+						viewport.scrollHeight - viewport.clientHeight,
+					),
+				});
 				original(options);
 			}) as typeof viewport.scrollTo;
 			(window as any).__workspaceBottomCalls = calls;
 			(window as any).__workspaceBottomOriginal = original;
-			return Math.max(0, viewport.scrollHeight - viewport.clientHeight);
 		});
 		await browser
 			.$(
@@ -1099,13 +1109,16 @@ describe("v0.5 Session workspace", () => {
 				| undefined;
 			if (original) viewport.scrollTo = original;
 			const smoothCalls = (
-				((window as any).__workspaceBottomCalls ??
-					[]) as ScrollToOptions[]
-			).filter((call) => call.behavior === "smooth");
+				((window as any).__workspaceBottomCalls ?? []) as Array<{
+					options: ScrollToOptions;
+					maxOffset: number;
+				}>
+			).filter((call) => call.options.behavior === "smooth");
 			delete leaf.dataset.workspaceTurnBottom;
 			delete leaf.dataset.workspaceTurnVisual;
 			return {
-				firstTarget: smoothCalls[0]?.top,
+				firstTarget: smoothCalls[0]?.options.top,
+				firstMaxOffset: smoothCalls[0]?.maxOffset,
 				smoothCount: smoothCalls.length,
 				bottomDistance:
 					viewport.scrollHeight -
@@ -1116,7 +1129,7 @@ describe("v0.5 Session workspace", () => {
 				),
 			};
 		});
-		expect(result.firstTarget).toBeCloseTo(initialBottom, 0);
+		expect(result.firstTarget).toBeCloseTo(result.firstMaxOffset, 0);
 		expect(result.smoothCount).toBeGreaterThanOrEqual(1);
 		expect(result.smoothCount).toBeLessThanOrEqual(2);
 		expect(result.bottomDistance).toBeLessThanOrEqual(35);

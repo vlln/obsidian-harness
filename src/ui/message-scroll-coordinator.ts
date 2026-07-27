@@ -54,6 +54,7 @@ export interface MessageScrollCoordinator {
 	coordinateSmoothMessageScroll(request: MessageScrollRequest): void;
 	cancel(): void;
 	cancelIfTargetChanged(): void;
+	isActive(): boolean;
 }
 
 interface ActiveScroll {
@@ -203,6 +204,7 @@ export function createMessageScrollCoordinator(
 	return {
 		coordinateSmoothMessageScroll,
 		cancel,
+		isActive: () => active !== null,
 		cancelIfTargetChanged: () => {
 			if (!active) return;
 			try {

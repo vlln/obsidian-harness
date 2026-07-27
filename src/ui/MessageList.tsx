@@ -216,11 +216,17 @@ export function MessageList({
 			return;
 		}
 		const container = containerRef.current;
-		const anchor = getVirtualMessageAnchorIndex(
-			container ? virtualizer : null,
-			container?.scrollTop ?? 0,
-			messageCountRef.current,
-		);
+		const isAtEnd =
+			container &&
+			container.scrollTop + container.clientHeight >=
+				container.scrollHeight - 35;
+		const anchor = isAtEnd
+			? messageCountRef.current - 1
+			: getVirtualMessageAnchorIndex(
+					container ? virtualizer : null,
+					container?.scrollTop ?? 0,
+					messageCountRef.current,
+				);
 		setActiveTurnMessageId(
 			getActiveTurnMessageId(currentTurnItems, anchor),
 		);
@@ -379,7 +385,9 @@ export function MessageList({
 
 		const handleScroll = () => {
 			checkIfAtBottom();
-			scheduleActiveTurnUpdate();
+			if (!messageScrollCoordinatorRef.current?.isActive()) {
+				scheduleActiveTurnUpdate();
+			}
 		};
 		const cancelPendingScroll = () => {
 			messageScrollCoordinatorRef.current?.cancel();
