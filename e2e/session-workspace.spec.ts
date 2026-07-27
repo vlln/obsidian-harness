@@ -77,6 +77,19 @@ async function waitForNotice(text: string): Promise<void> {
 
 async function setTurnViewportWidth(width: number): Promise<void> {
 	await browser.execute((targetWidth) => {
+		// Obsidian exposes Electron in the test renderer; resize the isolated
+		// test window so wide host matrices are measured instead of clipped.
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const { remote } = require("electron") as {
+			remote: {
+				getCurrentWindow(): {
+					setSize(width: number, height: number): void;
+				};
+			};
+		};
+		remote
+			.getCurrentWindow()
+			.setSize(Math.max(targetWidth + 420, 900), 900);
 		const shell = document.querySelector<HTMLElement>(
 			".agent-client-message-list-shell.has-turn-navigator",
 		);
@@ -84,9 +97,9 @@ async function setTurnViewportWidth(width: number): Promise<void> {
 		shell.style.width = `${targetWidth}px`;
 		shell.style.minWidth = `${targetWidth}px`;
 		shell.style.maxWidth = `${targetWidth}px`;
-		shell.style.flex = `0 0 ${targetWidth}px`;
+		shell.style.alignSelf = "flex-start";
 	}, width);
-	await browser.pause(50);
+	await browser.pause(100);
 }
 
 async function setTheme(theme: "light" | "dark"): Promise<void> {
@@ -610,11 +623,22 @@ describe("v0.5 Session workspace", () => {
 		const shell = await browser.$(
 			".agent-client-message-list-shell.has-turn-navigator",
 		);
+		await browser.execute(() => {
+			document
+				.querySelectorAll<HTMLElement>(".notice")
+				.forEach((notice) => notice.remove());
+		});
 		for (const theme of ["light", "dark"] as const) {
 			await setTheme(theme);
 			for (const width of [260, 519, 520, 800, 1200]) {
 				await setTurnViewportWidth(width);
-				await browser.pause(50);
+				await browser.execute(() => {
+					const viewport = document.querySelector<HTMLElement>(
+						".agent-client-message-list-shell.has-turn-navigator .agent-client-chat-view-messages",
+					);
+					if (viewport) viewport.scrollTop = 0;
+				});
+				await browser.pause(600);
 				await shell.saveScreenshot(
 					path.join(artifacts, `turn-${width}-${theme}.png`),
 				);
