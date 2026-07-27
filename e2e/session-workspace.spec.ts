@@ -61,6 +61,20 @@ async function clickMenuItem(title: string): Promise<void> {
 	}, title);
 }
 
+async function waitForNotice(text: string): Promise<void> {
+	await browser.waitUntil(
+		() =>
+			browser.execute(
+				(expected) =>
+					Array.from(
+						document.querySelectorAll<HTMLElement>(".notice"),
+					).some((notice) => notice.innerText.includes(expected)),
+				text,
+			),
+		{ timeout: 2000 },
+	);
+}
+
 async function setTurnViewportWidth(width: number): Promise<void> {
 	await browser.execute((targetWidth) => {
 		const shell = document.querySelector<HTMLElement>(
@@ -297,8 +311,12 @@ describe("v0.5 Session workspace", () => {
 		await modal.waitForDisplayed();
 		const name = await browser.$("#agent-client-project-name");
 		await browser.waitUntil(
-			async () =>
-				(await browser.getActiveElement()).elementId === name.elementId,
+			() =>
+				browser.execute(
+					() =>
+						document.activeElement?.id ===
+						"agent-client-project-name",
+				),
 			{ timeout: 2000 },
 		);
 		const uniqueName = `harness-e2e-${Date.now()}`;
@@ -459,13 +477,7 @@ describe("v0.5 Session workspace", () => {
 		});
 		await openProjectMenu("click");
 		await clickMenuItem("Open in system file manager");
-		await browser.waitUntil(
-			async () =>
-				(await browser.$(".notice").getText()).includes(
-					"Project folder is unavailable",
-				),
-			{ timeout: 2000 },
-		);
+		await waitForNotice("Project folder is unavailable");
 		const missingCalls = await browser.execute(() => {
 			const plugin = (window as any).app.plugins.plugins[
 				"obsidian-harness"
@@ -499,13 +511,7 @@ describe("v0.5 Session workspace", () => {
 		});
 		await openProjectMenu("click");
 		await clickMenuItem("Open in system file manager");
-		await browser.waitUntil(
-			async () =>
-				(await browser.$(".notice").getText()).includes(
-					"system host denied",
-				),
-			{ timeout: 2000 },
-		);
+		await waitForNotice("system host denied");
 
 		await browser.execute(() => {
 			const plugin = (window as any).app.plugins.plugins[
@@ -515,13 +521,7 @@ describe("v0.5 Session workspace", () => {
 		});
 		await openProjectMenu("click");
 		await clickMenuItem("Copy path");
-		await browser.waitUntil(
-			async () =>
-				(await browser.$(".notice").getText()).includes(
-					"clipboard host denied",
-				),
-			{ timeout: 2000 },
-		);
+		await waitForNotice("clipboard host denied");
 	});
 
 	it("AC-0025-N-1/N-2/N-4/B-1/B-4: renders, previews and navigates user turns", async () => {
@@ -535,13 +535,13 @@ describe("v0.5 Session workspace", () => {
 				(await browser.$$(".agent-client-turn-node")).length === 3,
 			{ timeout: 5000, interval: 50 },
 		);
-		const labels = await browser
-			.$$(".agent-client-turn-node")
-			.then((nodes) =>
-				Promise.all(
-					nodes.map((node) => node.getAttribute("aria-label")),
+		const labels = await browser.execute(() =>
+			Array.from(
+				document.querySelectorAll<HTMLElement>(
+					".agent-client-turn-node",
 				),
-			);
+			).map((node) => node.getAttribute("aria-label")),
+		);
 		expect(labels).toEqual([
 			"Turn 1: First prompt",
 			"Turn 2: Second prompt",
