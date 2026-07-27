@@ -99,6 +99,7 @@ export function MessageList({
 	const [isAtBottom, setIsAtBottom] = useState(true);
 	const isAtBottomRef = useRef(true);
 	const prevIsSendingRef = useRef(false);
+	const hasMessages = messages.length > 0;
 	// Last measured height per message id. Used to keep the virtualizer's total
 	// size stable while the tab is hidden (display:none) so scrollTop isn't
 	// clamped to 0 and the position survives a tab switch. (#321)
@@ -374,6 +375,7 @@ export function MessageList({
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
+		const ownerDocument = container.ownerDocument;
 
 		const handleScroll = () => {
 			checkIfAtBottom();
@@ -399,11 +401,20 @@ export function MessageList({
 		view.registerDomEvent(container, "wheel", cancelPendingScroll);
 		view.registerDomEvent(container, "touchstart", cancelPendingScroll);
 		view.registerDomEvent(container, "pointerdown", cancelPendingScroll);
-		view.registerDomEvent(container.ownerDocument, "keydown", handleScrollKey);
+		view.registerDomEvent(ownerDocument, "keydown", handleScrollKey);
 
 		// Initial check
 		checkIfAtBottom();
-	}, [view, checkIfAtBottom, scheduleActiveTurnUpdate]);
+
+		return () => {
+			container.removeEventListener("scroll", handleScroll);
+			container.removeEventListener("wheel", cancelPendingScroll);
+			container.removeEventListener("touchstart", cancelPendingScroll);
+			container.removeEventListener("pointerdown", cancelPendingScroll);
+			ownerDocument.removeEventListener("keydown", handleScrollKey);
+			messageScrollCoordinatorRef.current?.cancel();
+		};
+	}, [view, checkIfAtBottom, scheduleActiveTurnUpdate, hasMessages]);
 
 	// ============================================================
 	// Render
