@@ -2,7 +2,7 @@
 title: Plan-0052-01: Turn Scroll System-Test Selector
 description: Fix the new WDIO scenarios so the shared viewport-width helper isolates their marked workspace leaf.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T09:38:12Z
 ---
 
