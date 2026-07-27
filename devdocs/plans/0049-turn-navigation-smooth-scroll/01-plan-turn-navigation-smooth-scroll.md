@@ -2,7 +2,7 @@
 title: Plan-0049-01: Turn Navigation Smooth Scroll
 description: Remove per-user-message pauses by preventing virtual measurement corrections from restarting an in-flight native smooth scroll.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T06:51:11Z
 ---
 
