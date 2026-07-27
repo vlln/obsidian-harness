@@ -20,6 +20,7 @@
 ### Fixed
 - **Turn accessibility names**: Preserved each Turn ordinal and preview in its accessible name after Obsidian tooltip registration.
 - **Narrow Session workspace layout**: Prevented hidden Turn rails from collapsing message content into an implicit grid column.
+- **Turn rail visual isolation**: Removed Obsidian host button chrome, hid independent long-rail scrollbars and kept distant active markers visible without affecting message scrolling.
 
 ## [0.4.0] — 2026-07-26
 

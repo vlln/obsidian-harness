@@ -14,8 +14,8 @@ created: 2026-07-27T05:19:24Z
 |-------|--------|
 | Version | `v0.5.0` |
 | Release branch | `release/v0.5.0` |
-| Source commit | `19b2981` (`develop`, SYSTEM_TEST complete) |
-| Version preparation | `3ba9512` |
+| Source commit | `9382ed6` (`develop`, SYSTEM_TEST complete plus accepted staging visual fix) |
+| Version preparation | `a41aeaa` |
 | Strategy | One-time public GitHub Release after draft asset verification |
 | Previous public stable | `v0.4.0` |
 | Rollback | Keep public `v0.4.0` available; do not publish on any staging/draft mismatch, or withdraw `v0.5.0` if production smoke fails |
@@ -34,7 +34,7 @@ Staging ran from an isolated `release/v0.5.0` worktree with a clean dependency i
 | Documentation build | PASS |
 | Runtime dependency audit | PASS: 0 vulnerabilities |
 | Version consistency | PASS: package, manifest and versions map report `0.5.0`; minimum Obsidian version `1.11.4` |
-| Release smoke | PASS: 2/2; Project-aware creation modal and Turn navigation render and interact in Obsidian |
+| Release smoke | PASS: 3/3; Project-aware creation modal, Turn navigation and 48-turn hidden-scrollbar behavior render and interact in Obsidian |
 
 The complete development toolchain reports 4 moderate and 33 high findings in transitive development/build/E2E
 dependencies. They are excluded from the three Obsidian runtime assets; `npm audit --omit=dev` reports zero
@@ -44,9 +44,9 @@ runtime vulnerabilities. Broad dependency upgrades are outside this release scop
 
 | Asset | Bytes | SHA-256 |
 |-------|------:|---------|
-| `main.js` | 851354 | `1091019faa1fbe826241ce19e32fda365f96e1ec87b56cb9b7a6f8496d8d2f8f` |
+| `main.js` | 851852 | `38a62ef523e0c81422f9ef8b82b3f5e3b2a9bfe17d8b7d5459c1b3f33511cfcb` |
 | `manifest.json` | 301 | `56fe079fb4e67dbad6995ee1fee4ad9cfbe7afc45e02996408663f7ab30049d2` |
-| `styles.css` | 66305 | `bf099bce5613acdc6ce0bd445e9b461acaa925eb27a81110e8bbc48876ff1f26` |
+| `styles.css` | 67085 | `7fbac7335b3e44c1b98c6ee1a721bd117b8db48f4d1f1a42c964a4b35b0d046c` |
 
 ## Production Decision Contract
 
@@ -67,6 +67,7 @@ runtime vulnerabilities. Broad dependency upgrades are outside this release scop
 - [Session workspace SYSTEM_TEST Report](../plans/0045-session-workspace-system-test/01-report-session-workspace-system-test.md)
 - [Turn accessibility fix Report](../plans/0046-turn-tooltip-accessibility/01-report-turn-tooltip-accessibility.md)
 - [Turn responsive layout fix Report](../plans/0047-turn-navigator-responsive-layout/01-report-turn-navigator-responsive-layout.md)
+- [Turn visual polish Report](../plans/0048-turn-navigator-visual-polish/01-report-turn-navigator-visual-polish.md)
 
 ## Production Verification
 
