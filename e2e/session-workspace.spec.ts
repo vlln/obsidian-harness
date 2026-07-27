@@ -687,9 +687,21 @@ describe("v0.5 Session workspace", () => {
 
 		await setTurnViewportWidth(800);
 		const second = await browser.$(
-			'.agent-client-turn-node[aria-label="Turn 2: Second prompt"]',
+			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-label="Turn 2: Second prompt"]',
 		);
 		await second.moveTo();
+		await browser.execute(() => {
+			document
+				.querySelector<HTMLElement>(
+					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-label="Turn 2: Second prompt"]',
+				)
+				?.dispatchEvent(
+					new MouseEvent("mouseover", {
+						bubbles: true,
+						view: window,
+					}),
+				);
+		});
 		await browser.$(".tooltip").waitForDisplayed();
 		expect(await browser.$(".tooltip").getText()).toContain(
 			"Second prompt",
