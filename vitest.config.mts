@@ -14,10 +14,12 @@ export default defineConfig({
 			reportsDirectory: "coverage",
 			thresholds: { lines: 80 },
 			include: [
+				"src/services/project-directory.ts",
 				"src/services/session-catalog.ts",
 				"src/services/session-navigator.ts",
 				"src/services/session-storage.ts",
 				"src/services/transcript-*.ts",
+				"src/services/turn-navigation.ts",
 				"src/services/session-continuation.ts",
 				"src/services/session-import*.ts",
 				"src/types/session-import.ts",

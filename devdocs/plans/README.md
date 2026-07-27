@@ -39,3 +39,4 @@
 | 0033 | [0033-session-index-reconciliation](0033-session-index-reconciliation/) | `feat/0033-session-index-reconciliation` | done |
 | 0034 | [0034-session-catalog](0034-session-catalog/) | `feat/0034-session-catalog` | done |
 | 0035 | [0035-session-navigator-ui](0035-session-navigator-ui/) | `feat/0035-session-navigator-ui` | done |
+| 0041 | [0041-session-workspace-test-infra-audit](0041-session-workspace-test-infra-audit/) | `test/0041-session-workspace-test-infra-audit` | done |

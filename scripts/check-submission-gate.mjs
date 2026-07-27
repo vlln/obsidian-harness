@@ -51,7 +51,13 @@ async function main() {
 			acFilePath ? readFile(acFilePath, "utf8") : Promise.resolve(""),
 		]);
 	if (acFilePath) {
-		requiredAc = [...new Set(acFile.match(/AC-\d{4}-[NBEF]-\d+/g) ?? [])];
+		requiredAc = [
+			...new Set(
+				[...acFile.matchAll(/^\|\s*(AC-\d{4}-[NBEF]-\d+)\s*\|/gm)].map(
+					(match) => match[1],
+				),
+			),
+		];
 		if (requiredAc.length === 0) {
 			throw new Error(`no AC scenarios found in ${acFilePath}`);
 		}
