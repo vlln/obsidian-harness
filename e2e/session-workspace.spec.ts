@@ -77,6 +77,9 @@ async function waitForNotice(text: string): Promise<void> {
 
 async function setTurnViewportWidth(width: number): Promise<void> {
 	await browser.execute((targetWidth) => {
+		const app = (window as any).app;
+		app.workspace.leftSplit?.collapse();
+		app.workspace.rightSplit?.collapse();
 		// Obsidian exposes Electron in the test renderer; resize the isolated
 		// test window so wide host matrices are measured instead of clipped.
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
