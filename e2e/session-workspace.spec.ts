@@ -892,6 +892,7 @@ describe("v0.5 Session workspace", () => {
 			const leaf = app.workspace.getLeaf(true);
 			await leaf.openFile(file);
 			leaf.containerEl.dataset.workspaceTurnManual = "true";
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
 		}, longTurnEntryPath);
 		await browser.waitUntil(
 			async () =>
@@ -971,6 +972,7 @@ describe("v0.5 Session workspace", () => {
 				'.workspace-leaf[data-workspace-turn-manual="true"]',
 			)!;
 			delete leaf.dataset.workspaceTurnManual;
+			delete leaf.dataset.workspaceTurnVisual;
 		});
 	});
 
@@ -981,6 +983,7 @@ describe("v0.5 Session workspace", () => {
 			const leaf = app.workspace.getLeaf(true);
 			await leaf.openFile(file);
 			leaf.containerEl.dataset.workspaceTurnBottom = "true";
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
 		}, longTurnEntryPath);
 		await browser.waitUntil(
 			async () =>
@@ -1052,6 +1055,7 @@ describe("v0.5 Session workspace", () => {
 				((window as any).__workspaceBottomCalls ?? []) as ScrollToOptions[]
 			).filter((call) => call.behavior === "smooth");
 			delete leaf.dataset.workspaceTurnBottom;
+			delete leaf.dataset.workspaceTurnVisual;
 			return {
 				firstTarget: smoothCalls[0]?.top,
 				smoothCount: smoothCalls.length,
