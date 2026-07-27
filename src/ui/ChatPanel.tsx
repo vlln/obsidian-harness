@@ -117,6 +117,8 @@ export interface ChatPanelProps {
 	viewHost?: IChatViewHost;
 	/** External container element for focus tracking (floating uses parent's container) */
 	containerEl?: HTMLElement | null;
+	/** Enable per-user-message navigation for .session FileViews only. */
+	showTurnNavigator?: boolean;
 }
 
 // ============================================================================
@@ -161,6 +163,7 @@ export function ChatPanel({
 	onFloatingHeaderMouseDown,
 	viewHost: viewHostProp,
 	containerEl: containerElProp,
+	showTurnNavigator = false,
 }: ChatPanelProps) {
 	// ============================================================
 	// Platform Check
@@ -1131,6 +1134,7 @@ export function ChatPanel({
 			terminalClient={terminalClientRef.current}
 			onApprovePermission={agent.approvePermission}
 			hasActivePermission={agent.hasActivePermission}
+			showTurnNavigator={showTurnNavigator}
 		/>
 	);
 

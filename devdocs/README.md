@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE`：`release/v0.4.0` 正在执行 Session Navigator staging 制品与冒烟验证；尚未替换旧 draft/tag、执行 production 发布或合并 |
-| **当前版本** | `v0.3.0` 为当前公开稳定版；新的 `v0.4.0` 为 Session Navigator 发布候选，取代同版本号下未公开且无运行时变化的旧 draft |
-| **设计评估** | Session Navigator 使用 `.session` 权威元数据 + index 发现 + 内存 Catalog/Runtime Registry；复用现有 Vitest/WDIO/CI，不新增测试工具。参见 [Spec-0006](spec/0006-session-navigator.md)、[AC-0005](ac/0005-session-navigator.md)、[ADR-0010](adr/0010-session-catalog-projection.md)、[ADR-0011](adr/0011-session-navigator-test-infra.md) |
+| **当前阶段** | `RELEASE`：`release/v0.5.0` 已通过干净安装、生产/文档构建、运行时依赖审计、版本一致性与核心 Obsidian 冒烟；等待 production 发布、`main` 合并与 tag 的人工批准 |
+| **当前版本** | `v0.4.0` 为当前公开稳定版，交付 Codex 风格的全局 Session Navigator |
+| **设计评估** | `v0.5.0` 增加 Project-aware Session 创建、Turn Navigator 与 Project/Session 菜单调整；复用现有 Electron host、virtualizer、SessionStorage reconciliation 和 Vitest/WDIO/CI。DEVELOP 证据见 [Report-0042](plans/0042-session-creation/01-report-session-creation.md)、[Report-0043](plans/0043-turn-navigator/01-report-turn-navigator.md) 与 [Report-0044](plans/0044-navigator-actions/01-report-navigator-actions.md)，完整运行时证据见 [Report-0045](plans/0045-session-workspace-system-test/01-report-session-workspace-system-test.md)；不新增业务 ADR。 |
 
 ## 子目录
 

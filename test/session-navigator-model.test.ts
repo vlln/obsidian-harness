@@ -194,4 +194,44 @@ describe("session navigator model", () => {
 		].at(-1)?.[1];
 		expect(showMoreHoverRole).toContain("color: var(--text-normal);");
 	});
+
+	it("AC-0026-N-1/N-2/B-1: exposes distinct Session and Project menus", async () => {
+		const [view, plugin, styles] = await Promise.all([
+			readFile(join(root, "src/ui/SessionManagerView.tsx"), "utf8"),
+			readFile(join(root, "src/plugin.ts"), "utf8"),
+			readFile(join(root, "styles.css"), "utf8"),
+		]);
+		const sessionRow = view.slice(
+			view.indexOf("const SessionRow"),
+			view.indexOf("const ProjectRow"),
+		);
+		const projectRow = view.slice(
+			view.indexOf("const ProjectRow"),
+			view.indexOf("function SessionManagerComponent"),
+		);
+
+		expect(sessionRow).not.toContain('.setTitle("Open")');
+		for (const title of ["Reveal in file explorer", "Rename", "Delete"]) {
+			expect(sessionRow).toContain(`.setTitle("${title}")`);
+		}
+		expect(sessionRow).toContain('event.key === "Enter"');
+		expect(sessionRow).toContain('event.key === " "');
+
+		for (const title of [
+			"New session here",
+			"Open in system file manager",
+			"Copy path",
+		]) {
+			expect(projectRow).toContain(`.setTitle("${title}")`);
+		}
+		expect(projectRow).not.toContain('.setTitle("Rename")');
+		expect(projectRow).not.toContain('.setTitle("Delete")');
+		expect(projectRow).toContain(
+			'className="agent-client-navigator-project-row-shell"',
+		);
+		expect(projectRow).toContain("restoreMenuFocus(menu, focusTarget)");
+		expect(plugin).toContain("shell.openPath(cwd)");
+		expect(plugin).toContain("navigator.clipboard.writeText(text)");
+		expect(styles).toContain("grid-template-columns: minmax(0, 1fr) 24px;");
+	});
 });
