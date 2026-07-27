@@ -2,7 +2,7 @@
 title: Plan-0053-01: MessageList Scroll Listener
 description: Rebind MessageList scroll tracking after history restore replaces the empty-state scroll container.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T09:46:00Z
 ---
 
