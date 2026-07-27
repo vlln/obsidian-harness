@@ -2,7 +2,7 @@
 title: Plan-0051-01: Turn Scroll System Test
 description: Execute the v0.5.1 message-scroll synchronization regression once in the packaged plugin on develop.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T09:35:00Z
 ---
 

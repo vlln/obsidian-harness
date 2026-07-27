@@ -98,4 +98,5 @@ reported separately rather than represented as executed.
 
 ## SYSTEM_TEST Evidence
 
-Pending execution on `develop` under a separate SYSTEM_TEST Plan.
+[Report-0051](../0051-turn-scroll-system-test/01-report-turn-scroll-system-test.md) records the real-Obsidian
+failure classifications, complete 9/9 failed-layer pass and 4/4 post-merge `develop` confirmation.
