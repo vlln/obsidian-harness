@@ -2,7 +2,7 @@
 title: Plan-0042-01: Project-aware Session Creation
 description: Add Project directory rules, a Codex-style creation modal and serialized materialization compensation for AC-0024.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T03:22:00Z
 ---
 
