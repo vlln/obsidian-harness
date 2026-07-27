@@ -66,7 +66,13 @@ import {
 	reconcileSessionEntryIndex,
 } from "./services/session-index-lifecycle";
 import { getSessionRenameTarget } from "./services/session-navigator";
-import { type ProjectDirectoryHost } from "./services/project-directory";
+import {
+	copyProjectPath,
+	ensureProjectDirectory,
+	openProjectDirectory,
+	type ProjectActionHost,
+	type ProjectDirectoryHost,
+} from "./services/project-directory";
 import {
 	materializeSession,
 	SessionEntryLifecycleQueue,
@@ -1236,6 +1242,48 @@ export default class AgentClientPlugin extends Plugin {
 		};
 	}
 
+	private createProjectActionHost(): ProjectActionHost {
+		return {
+			isDirectory: async (cwd) => {
+				try {
+					return (await stat(cwd)).isDirectory();
+				} catch {
+					return false;
+				}
+			},
+			openDirectory: async (cwd) => {
+				// eslint-disable-next-line @typescript-eslint/no-require-imports -- electron is provided by Obsidian's desktop runtime
+				const electron = require("electron") as {
+					shell?: { openPath(path: string): Promise<string> };
+					remote?: {
+						shell?: { openPath(path: string): Promise<string> };
+					};
+				};
+				const shell = electron.shell ?? electron.remote?.shell;
+				if (!shell) {
+					throw new Error("System file manager is unavailable");
+				}
+				const issue = await shell.openPath(cwd);
+				if (issue) throw new Error(issue);
+			},
+			writeClipboard: async (text) => {
+				if (!navigator.clipboard?.writeText) {
+					throw new Error("Clipboard is unavailable");
+				}
+				await navigator.clipboard.writeText(text);
+			},
+		};
+	}
+
+	private showProjectActionFailure(
+		action: string,
+		cwd: string,
+		error: unknown,
+	): void {
+		const detail = error instanceof Error ? error.message : String(error);
+		new Notice(`[Harness] ${action} failed for ${cwd}: ${detail}`);
+	}
+
 	private async pickProjectDirectory(
 		defaultPath?: string,
 	): Promise<string | null> {
@@ -1275,6 +1323,35 @@ export default class AgentClientPlugin extends Plugin {
 				await this.createAndOpenSessionFile({ cwd: target.cwd });
 			},
 		}).open();
+	}
+
+	async createNavigatorSessionInProject(cwd: string): Promise<void> {
+		try {
+			await ensureProjectDirectory(cwd, this.createProjectActionHost());
+			this.openSessionCreationModal(cwd);
+		} catch (error) {
+			this.showProjectActionFailure("New session", cwd, error);
+		}
+	}
+
+	async openNavigatorProjectDirectory(cwd: string): Promise<void> {
+		try {
+			await openProjectDirectory(cwd, this.createProjectActionHost());
+		} catch (error) {
+			this.showProjectActionFailure(
+				"Open in system file manager",
+				cwd,
+				error,
+			);
+		}
+	}
+
+	async copyNavigatorProjectPath(cwd: string): Promise<void> {
+		try {
+			await copyProjectPath(cwd, this.createProjectActionHost());
+		} catch (error) {
+			this.showProjectActionFailure("Copy path", cwd, error);
+		}
 	}
 
 	private async ensureVaultFolder(folderPath: string): Promise<void> {

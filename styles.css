@@ -119,7 +119,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 .agent-client-session-manager button.agent-client-navigator-new-session:hover,
-.agent-client-session-manager button.agent-client-navigator-project-row:hover,
+.agent-client-navigator-project-row-shell:hover,
 .agent-client-navigator-session-row:hover,
 .agent-client-session-manager button.agent-client-navigator-show-more:hover {
 	background: var(--background-modifier-hover);
@@ -149,8 +149,25 @@ If your plugin does not need CSS, delete this file.
 	gap: 5px;
 	height: 30px;
 	padding: 0 7px;
-	border-radius: 5px;
+	border-radius: 5px 0 0 5px;
 	color: var(--text-muted);
+}
+
+.agent-client-navigator-project-row-shell {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 24px;
+	align-items: center;
+	min-width: 0;
+	border-radius: 5px;
+}
+
+.agent-client-session-manager button.agent-client-navigator-project-row:hover {
+	background: transparent;
+}
+
+.agent-client-session-manager
+	button.agent-client-navigator-project-row:focus-visible {
+	box-shadow: inset 0 0 0 1px var(--interactive-accent);
 }
 
 .agent-client-navigator-project-row span:last-child {
@@ -237,6 +254,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 .agent-client-navigator-session-row:hover .agent-client-navigator-more,
+.agent-client-navigator-project-row-shell:hover .agent-client-navigator-more,
 .agent-client-navigator-more:focus-visible {
 	opacity: 1;
 }
