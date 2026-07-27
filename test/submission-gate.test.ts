@@ -8,7 +8,12 @@ const script = fileURLToPath(
 );
 const acFile = `${root}/devdocs/ac/0003-acp-turn-transcript.md`;
 
-function runGate(report: string, coverage: string, pythonCoverage?: string) {
+function runGate(
+	report: string,
+	coverage: string,
+	pythonCoverage?: string,
+	acFilePath = acFile,
+) {
 	const pythonArgs = pythonCoverage
 		? [
 				"--python-coverage",
@@ -26,7 +31,7 @@ function runGate(report: string, coverage: string, pythonCoverage?: string) {
 			"--coverage",
 			`${root}/test/fixtures/gates/${coverage}`,
 			"--ac-file",
-			acFile,
+			acFilePath,
 			"--min-lines",
 			"80",
 			...pythonArgs,
@@ -77,5 +82,16 @@ describe("submission gate", () => {
 		expect(result.stderr).toContain(
 			"Python line coverage 41% is below 85%",
 		);
+	});
+
+	it("discovers only AC definition rows and ignores referenced scenarios", () => {
+		const result = runGate(
+			"referenced-ac-report.txt",
+			"coverage-pass.json",
+			undefined,
+			`${root}/test/fixtures/gates/ac-with-references.md`,
+		);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toContain("PASS (2 AC scenarios, 91% lines)");
 	});
 });
