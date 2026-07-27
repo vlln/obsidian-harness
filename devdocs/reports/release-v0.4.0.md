@@ -2,7 +2,7 @@
 title: RELEASE Report v0.4.0
 description: Obsidian Harness v0.4.0 release verification for the global Session Navigator, inline runtime status and compact visual hierarchy.
 type: report
-status: draft
+status: complete
 created: 2026-07-26T12:35:50Z
 ---
 
@@ -15,6 +15,8 @@ created: 2026-07-26T12:35:50Z
 | Version | `v0.4.0` |
 | Release branch | `release/v0.4.0` |
 | Source commit | `f2cecdf` (`develop`, SYSTEM_TEST complete) |
+| Release preparation | `cec8a16` |
+| Production commit and tag | `269fedf` (`master`, `v0.4.0`) |
 | Strategy | One-time public GitHub Release after draft asset verification |
 | Previous public stable | `v0.3.0` |
 | Rollback | Keep public `v0.3.0` available; do not publish on any staging/draft mismatch, or withdraw `v0.4.0` if production smoke fails |
@@ -70,9 +72,38 @@ of the three Obsidian plugin release assets and does not define a plugin version
 
 ## Production Verification
 
-Pending explicit human approval and production execution.
+Production execution followed explicit human approval of the merge, tag and publication gates.
+
+| Gate | Result |
+|------|--------|
+| Release merge | PASS: `release/v0.4.0` merged to `master` as `269fedf` |
+| Version tag | PASS: `v0.4.0` points to `269fedf` |
+| Tag workflow | PASS: [run 30203381481](https://github.com/vlln/obsidian-harness-frontend/actions/runs/30203381481), commit `269fedf` |
+| GitHub Release | PASS: [v0.4.0](https://github.com/vlln/obsidian-harness-frontend/releases/tag/v0.4.0), published `2026-07-26T14:27:36Z`, public latest, non-draft and non-prerelease |
+| Public asset set | PASS: exactly `main.js`, `manifest.json` and `styles.css` |
+| Public artifact integrity | PASS: all bytes and SHA-256 values match the staging table |
+| Public manifest | PASS: plugin `obsidian-harness`, version `0.4.0`, minimum Obsidian `1.11.4` |
+| Production smoke | PASS: 1/1; publicly downloaded `main.js` renders Harness, New session, 5 Projects and 12 Recents without Active |
+| Observation window | PASS: final check at `2026-07-27T01:42:52Z`, more than 5 minutes after publication; release metadata, downloads and digests remained healthy |
+| Rollback | Not triggered |
+
+The first post-publication download check appeared to show a hash mismatch because the files were read while
+`gh release download` was still writing them. The release was conservatively returned to draft, and no invalid
+artifact was left public. After waiting for download completion and using fresh downloads, all three files matched
+the staging hashes; the release was republished and the full observation check passed. This is classified as a
+verification-race false alarm, not a build or release artifact defect.
+
+## Retrospective
+
+- Versioning: the earlier unpublished `v0.4.0` draft contained no plugin runtime change, so it was replaced rather
+  than skipping the Session Navigator release to `v0.5.0`.
+- Scope: the session importer remains a companion skill and is not part of the Obsidian plugin runtime or its three
+  release assets.
+- Process improvement: artifact checks must wait for the download process to exit, then hash files from a fresh
+  directory. The false-alarm handling above records the evidence; no product backlog item is required.
 
 ## Decision
 
-[PENDING] Staging passed. Production publication, public smoke, monitoring, release-branch merges, tag and
-iteration closeout remain pending.
+[PASS] Staging, production publication, public smoke and the declared monitoring window passed. `v0.4.0` is the
+current public stable release. The release can be merged back to `develop`, the project can advance to DESIGN, and
+the release branch can be deleted after both merge targets contain this completed report.
