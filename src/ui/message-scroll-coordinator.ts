@@ -21,6 +21,22 @@ export interface VirtualItemForOffsetLookup {
 	getVirtualItemForOffset(offset: number): { index: number } | undefined;
 }
 
+export interface AnimationFrameRef {
+	current: number | null;
+}
+
+export function scheduleCoalescedAnimationFrame(
+	frameRef: AnimationFrameRef,
+	requestFrame: (callback: () => void) => number,
+	callback: () => void,
+): void {
+	if (frameRef.current !== null) return;
+	frameRef.current = requestFrame(() => {
+		frameRef.current = null;
+		callback();
+	});
+}
+
 export interface MessageScrollRequest {
 	resolveOffset(): number | undefined;
 	commitExact(): void;

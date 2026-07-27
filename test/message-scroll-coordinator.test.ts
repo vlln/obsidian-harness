@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	createMessageScrollCoordinator,
 	getVirtualMessageAnchorIndex,
+	scheduleCoalescedAnimationFrame,
 	type MessageScrollContainer,
 } from "../src/ui/message-scroll-coordinator";
 
@@ -57,6 +58,28 @@ afterEach(() => {
 });
 
 describe("message scroll coordinator", () => {
+	it("AC-0025-B-3: coalesces active updates to one callback per frame", () => {
+		const frameRef = { current: null as number | null };
+		const queued: Array<() => void> = [];
+		const callback = vi.fn();
+		const requestFrame = (next: () => void) => {
+			queued.push(next);
+			return queued.length;
+		};
+
+		scheduleCoalescedAnimationFrame(frameRef, requestFrame, callback);
+		scheduleCoalescedAnimationFrame(frameRef, requestFrame, callback);
+		scheduleCoalescedAnimationFrame(frameRef, requestFrame, callback);
+		expect(queued).toHaveLength(1);
+
+		queued.shift()?.();
+		expect(callback).toHaveBeenCalledTimes(1);
+		expect(frameRef.current).toBeNull();
+
+		scheduleCoalescedAnimationFrame(frameRef, requestFrame, callback);
+		expect(queued).toHaveLength(1);
+	});
+
 	it("AC-0025-N-2/B-4: derives the anchor from the actual scroll offset", () => {
 		const offsets: number[] = [];
 		const virtualizer = {

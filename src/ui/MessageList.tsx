@@ -19,6 +19,7 @@ import { TurnNavigator } from "./TurnNavigator";
 import {
 	createMessageScrollCoordinator,
 	getVirtualMessageAnchorIndex,
+	scheduleCoalescedAnimationFrame,
 	type MessageScrollCoordinator,
 } from "./message-scroll-coordinator";
 
@@ -225,11 +226,11 @@ export function MessageList({
 	}, [virtualizer]);
 
 	const scheduleActiveTurnUpdate = useCallback(() => {
-		if (activeTurnFrameRef.current !== null) return;
-		activeTurnFrameRef.current = window.requestAnimationFrame(() => {
-			activeTurnFrameRef.current = null;
-			updateActiveTurn();
-		});
+		scheduleCoalescedAnimationFrame(
+			activeTurnFrameRef,
+			(callback) => window.requestAnimationFrame(callback),
+			updateActiveTurn,
+		);
 	}, [updateActiveTurn]);
 
 	useEffect(() => {

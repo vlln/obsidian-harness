@@ -150,7 +150,7 @@ describe("turn navigation projection", () => {
 		expect(messageList).toContain("coordinateSmoothMessageScroll");
 		expect(scrollCoordinator).toContain("catch {");
 		expect(scrollCoordinator).toContain("cancelIfTargetChanged");
-		expect(messageList).toContain("activeTurnFrameRef.current !== null");
+		expect(messageList).toContain("scheduleCoalescedAnimationFrame");
 		expect(styles).toContain("grid-template-columns: 34px minmax(0, 1fr)");
 		expect(styles).toContain("@container (max-width: 519px)");
 		expect(styles).toContain("width: 24px;");
