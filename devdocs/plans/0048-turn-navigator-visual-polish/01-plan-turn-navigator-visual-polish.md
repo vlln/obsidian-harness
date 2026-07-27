@@ -2,7 +2,7 @@
 title: Plan-0048-01: Turn Navigator Visual Polish
 description: Correct host-themed Turn button chrome and replace visible overflow scrollbars with a quiet auto-follow rail.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T05:34:05Z
 ---
 
@@ -48,7 +48,7 @@ The normal and overflow references establish one quiet component language:
 - 28 px visual rail with unchanged 24 px button hit targets.
 - Invisible button chrome: no border, fill, shadow or host minimum sizing.
 - 5 px faint idle dots and a 3 x 12 px rounded active marker.
-- No connector line; spacing alone communicates turn sequence.
+- A faint continuous connector preserves AC-0025-N-1 without competing with the markers.
 - Hidden scrollbar with a short top/bottom mask to indicate clipped overflow.
 - Theme colors only; no fixed light/dark surface colors in the implementation.
 

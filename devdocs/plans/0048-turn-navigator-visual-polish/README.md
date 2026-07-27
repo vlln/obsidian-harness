@@ -2,7 +2,7 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Remove host button chrome and hide long-rail scrollbars without losing navigation | pending | [01-plan-turn-navigator-visual-polish.md](01-plan-turn-navigator-visual-polish.md) | [01-report-turn-navigator-visual-polish.md](01-report-turn-navigator-visual-polish.md) |
+| Remove host button chrome and hide long-rail scrollbars without losing navigation | done | [01-plan-turn-navigator-visual-polish.md](01-plan-turn-navigator-visual-polish.md) | [01-report-turn-navigator-visual-polish.md](01-report-turn-navigator-visual-polish.md) |
 
 ## Artifacts
 
