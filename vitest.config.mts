@@ -14,6 +14,7 @@ export default defineConfig({
 			reportsDirectory: "coverage",
 			thresholds: { lines: 80 },
 			include: [
+				"src/ui/message-scroll-coordinator.ts",
 				"src/services/project-directory.ts",
 				"src/services/session-materialization.ts",
 				"src/services/session-catalog.ts",

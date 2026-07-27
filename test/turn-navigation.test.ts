@@ -122,12 +122,23 @@ describe("turn navigation projection", () => {
 	});
 
 	it("AC-0025-E-1/E-2/F-1: confines and guards navigator wiring", async () => {
-		const [sessionView, chatView, floatingView, messageList, styles] =
+		const [
+			sessionView,
+			chatView,
+			floatingView,
+			messageList,
+			scrollCoordinator,
+			styles,
+		] =
 			await Promise.all([
 				readFile(join(root, "src/ui/HarnessSessionView.tsx"), "utf8"),
 				readFile(join(root, "src/ui/ChatView.tsx"), "utf8"),
 				readFile(join(root, "src/ui/FloatingChatView.tsx"), "utf8"),
 				readFile(join(root, "src/ui/MessageList.tsx"), "utf8"),
+				readFile(
+					join(root, "src/ui/message-scroll-coordinator.ts"),
+					"utf8",
+				),
 				readFile(join(root, "styles.css"), "utf8"),
 			]);
 
@@ -135,8 +146,11 @@ describe("turn navigation projection", () => {
 		expect(chatView).not.toContain("showTurnNavigator");
 		expect(floatingView).not.toContain("showTurnNavigator");
 		expect(messageList).toContain("isCurrentTurnNavigationTarget");
-		expect(messageList).toContain("catch {");
-		expect(messageList).toContain("activeTurnFrameRef.current !== null");
+		expect(messageList).toContain("getVirtualMessageAnchorIndex");
+		expect(messageList).toContain("coordinateSmoothMessageScroll");
+		expect(scrollCoordinator).toContain("catch {");
+		expect(scrollCoordinator).toContain("cancelIfTargetChanged");
+		expect(messageList).toContain("scheduleCoalescedAnimationFrame");
 		expect(styles).toContain("grid-template-columns: 34px minmax(0, 1fr)");
 		expect(styles).toContain("@container (max-width: 519px)");
 		expect(styles).toContain("width: 24px;");

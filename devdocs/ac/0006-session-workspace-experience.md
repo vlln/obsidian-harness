@@ -1,6 +1,6 @@
 ---
 title: AC-0006: Session Workspace Experience
-description: Project-aware Session creation, per-user-message turn navigation and Navigator action menu refinements for v0.5.0.
+description: Project-aware Session creation, synchronized per-user-message turn navigation and Navigator action menu refinements through v0.5.1.
 type: ac
 status: active
 created: 2026-07-27T02:47:58Z
@@ -44,16 +44,20 @@ v2 transcript：本地身份为 `historyId`，manifest 精确路径为 `sessions
 | 编号 | 前置条件 | 操作步骤 | 预期结果 | 验证方式 |
 |------|---------|---------|---------|---------|
 | AC-0025-N-1 | `.session` FileView 含 3 条 user message、assistant/tool/plan 消息，宿主宽度 800 px | 打开 Session；依次 hover 和键盘 focus 各节点 | MessageList 左缘恰好显示 3 个固定点击区域的可聚焦 button 节点和连续细线；顺序与 user message 一致；非 user 消息不生成节点；aria-label 含 turn 序号和纯文本 preview | Vitest projection + WDIO E2E + 可访问性/几何断言 |
-| AC-0025-N-2 | 三个 user message 的 index 已知 | 点击第二节点，再用键盘激活第三节点并滚动消息区 | 两次均将对应 messageId 的 user message 起始位置带入 viewport；active 节点按 viewport 上部锚点之前最近的 user message 更新；不得跳到同 index 的其他消息 | WDIO E2E + virtualizer spy |
-| AC-0025-N-3 | 分别启用和关闭 `prefers-reduced-motion` | 激活同一远距离节点 | 普通模式使用 120-180 ms 节点过渡且目标 400 ms 内进入 viewport；reduced motion 立即跳转且 100 ms 内进入 viewport | 假时钟 + WDIO 动画/几何断言 |
-| AC-0025-N-4 | 明暗主题下轨道有 active 节点，preview 含长文本，宿主宽度 520、800、1200 px | 依次 hover、focus 节点并滚动消息 | active 同时以尺寸和主题色区别；hover/focus preview 不遮挡当前节点且不越出 viewport；轨道显示与滚动不改变 InputArea 宽度；各宽度下轨道、消息和滚动条不重叠 | WDIO 计算样式/DOM 几何断言 + 截图审查 |
+| AC-0025-N-2 | 三个 user message 的 index 已知 | 点击第二节点，再用键盘激活第三节点并滚动消息区 | 两次均将对应 messageId 的 user message 起始位置带入 viewport 并最终按 `align=start` 精确落点；active 节点按 viewport 上部锚点之前最近的 user message 更新；不得跳到同 index 的其他消息 | WDIO E2E + virtualizer spy |
+| AC-0025-N-3 | 分别启用和关闭 `prefers-reduced-motion` | 激活同一远距离节点；再从顶部点击回到底部 | 普通模式下两类动作都调用同一个 `coordinateSmoothMessageScroll` 入口，各使用 1 次原生平滑主滚动、最多 1 次平滑修正；末端修正保持同一 action identity，不触发该动作的 cleanup、重新启动主滚动或重置 3.2 s 总时限；每阶段在 1.6 s 内结束，Turn 目标在主阶段进入 viewport 并在完整动作 3.2 s 内按 `align=start` 精确落点；reduced motion 的 Turn 立即跳转且 100 ms 内进入 viewport | MessageList coordinator invocation/action identity spy + 代码审查 + 假时钟 + WDIO 动画/几何断言 |
+| AC-0025-N-4 | 明暗主题下轨道有 active 节点，preview 含长文本，宿主宽度 520、800、1200 px | 依次 hover、focus 节点并滚动消息 | 每个键盘 focus 节点有可见焦点；active 同时以尺寸和主题色区别，active/hover 使用 120-180 ms CSS transition；hover/focus preview 不遮挡当前节点且不越出 viewport；轨道显示与滚动不改变 InputArea 宽度；各宽度下轨道、消息和滚动条不重叠 | WDIO 计算样式/可见焦点/DOM 几何断言 + 截图审查 |
+| AC-0025-N-5 | 普通动态效果下，长 Session 已滚动到顶部且回到底部按钮可见，消息高度在滚动期间完成测量 | 记录 message viewport 的原生平滑滚动调用、每次调用时的容器几何并点击回到底部 | 主平滑滚动的 target 等于点击时 `max(0, scrollHeight - clientHeight)`；只有最终实时最大 offset 与当前位置相差超过 1 px 时才执行第 2 次末端平滑修正，每阶段在 1.6 s 内结束且完整动作不超过 3.2 s；最终 `scrollHeight - clientHeight - scrollTop <= 35`、按钮隐藏且原生平滑调用总数不超过 2 | WDIO E2E + scrollTo spy + DOM 几何/时限断言 |
 | AC-0025-B-1 | 分别准备 0 条 user message；宿主宽度 260、519、520、800、1200 px | 渲染 MessageList | 0 条 user message 时不显示轨道；260/519 px 时隐藏且消息恢复原左边距；520 px 及以上允许显示；所有宽度下 InputArea 宽度不变，无水平溢出或消息/滚动条重叠 | Vitest + WDIO DOM 几何断言 + 截图审查 |
 | AC-0025-B-2 | user message 含超过 160 字符的混合文本和仅附件内容 | 查看节点 preview | 文本合并空白并截断到最多 160 字符；仅附件消息显示可读类型摘要；DOM、aria-label 和 tooltip 均不含 base64 或完整资源 URI | Projection 单元测试 + WDIO DOM 断言 |
 | AC-0025-B-3 | `.session` 含 500 条 ChatMessage，streaming 导致消息高度连续变化 | 滚动并持续接收 chunks | projection 在 16 ms 内完成；active 更新按 animation frame 合并；节点数量与 messageId 映射不抖动 | 性能测试 + 假 RAF 单元测试 |
 | AC-0025-B-4 | viewport 可滚动到第一条 user message 之前和最后一条之后 | 分别滚动到两个边界 | 第一条之前 active 为第一条 user message；最后一条之后 active 为最后一条 user message | WDIO E2E + active messageId 断言 |
+| AC-0025-B-5 | 分别处于已到底部状态和 `prefers-reduced-motion: reduce` 且未到底部状态 | 检查按钮；在 reduced motion 场景点击回到底部 | 已到底部时不显示按钮且不发起滚动；reduced motion 下只执行一次到实时 `max(0, scrollHeight - clientHeight)` 的即时容器滚动，不调用原生平滑滚动，最终 bottom distance 不超过 35 px 且按钮隐藏 | WDIO E2E + motion media/scroll spy + DOM 几何断言 |
 | AC-0025-E-1 | 用户已聚焦一个 turn 节点 | 点击前切换到另一 Session，使原 messageId 消失；随后激活新 Session 中一个已知 messageId 的节点 | 旧导航请求被忽略且不得跳到新 Session 的相同 index；后续请求将新 Session 的已知 messageId 滚动到 viewport 起始位置 | 并发 E2E |
 | AC-0025-E-2 | 同一消息数据分别渲染在 floating chat、旧 ChatView 和 `.session` FileView | 打开三个宿主 | 只有 `.session` FileView 显示 Turn Navigator；其他宿主不给消息区预留轨道空白 | WDIO E2E + DOM 几何断言 |
+| AC-0025-E-3 | Turn 或回到底部平滑滚动尚未结束 | 分别启动另一个 Turn/回到底部动作；用 wheel/trackpad、触摸、滚动条拖动和滚动键直接滚动；另行替换当前 Session 消息或卸载 MessageList；再触发旧动作已排队的 scrollend/timeout | 新导航先清理旧动作且只有新目标允许修正和精确落点；每种直接输入都取消旧动作并继续按实际 viewport 更新 active messageId；目标变化或卸载时旧动作的 listener 和 timer 均已清理；被取消的动作均不执行迟到修正或 exact landing，不把 viewport 拉回旧目标 | WDIO 输入/E2E + 假时钟组件测试 + listener/scroll spy |
 | AC-0025-F-1 | virtualizer 的一个目标测量失败或返回不可用尺寸，另一个节点可正常测量 | 依次激活失败节点和正常节点 | 失败节点使用该 index 的 estimate 尝试一次定位且不进入重复滚动循环，active 不错误指向其他 messageId；随后正常节点完成滚动并成为 active | Vitest 故障注入 + WDIO E2E |
+| AC-0025-F-2 | 回到底部目标的容器几何读取抛错或返回不可用值 | 点击回到底部，随后恢复正常几何并再次从顶部点击 | 首次只执行一次即时 bottom fallback，不调用原生平滑滚动或进入重试循环，MessageList 保持可操作；后续正常动作满足 AC-0025-N-5 | Vitest 故障注入 + WDIO E2E |
 
 ## AC-0026: Navigator action menus
 
