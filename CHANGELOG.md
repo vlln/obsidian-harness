@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-07-27
+
+### Fixed
+- **Turn viewport synchronization**: Manual message scrolling now updates the active Turn from the visible viewport, including after a restored transcript replaces the initial empty view.
+- **Continuous bottom scrolling**: The scroll-to-bottom command now uses the same bounded smooth-scroll coordinator as Turn navigation, without pausing at intermediate user messages or exposing transient active states.
+
 ## [0.5.0] — 2026-07-26
 
 ### Added
