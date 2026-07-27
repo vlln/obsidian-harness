@@ -106,4 +106,4 @@ verification-race false alarm, not a build or release artifact defect.
 
 [PASS] Staging, production publication, public smoke and the declared monitoring window passed. `v0.4.0` is the
 current public stable release. The release can be merged back to `develop`, the project can advance to DESIGN, and
-the release branch can be deleted after both merge targets contain this completed report.
+the release branch can be deleted after this completed report is merged back to `develop`.
