@@ -43,3 +43,4 @@
 | 0042 | [0042-session-creation](0042-session-creation/) | `feat/0042-session-creation` | done |
 | 0043 | [0043-turn-navigator](0043-turn-navigator/) | `feat/0043-turn-navigator` | done |
 | 0044 | [0044-navigator-actions](0044-navigator-actions/) | `feat/0044-navigator-actions` | done |
+| 0045 | [0045-session-workspace-system-test](0045-session-workspace-system-test/) | `develop` | pending |
