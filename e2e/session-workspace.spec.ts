@@ -94,6 +94,21 @@ async function setTurnViewportWidth(width: number): Promise<void> {
 			".agent-client-message-list-shell.has-turn-navigator",
 		);
 		if (!shell) throw new Error("Turn Navigator shell is unavailable");
+		const leaf = shell.closest<HTMLElement>(".workspace-leaf");
+		const rootSplit = leaf?.closest<HTMLElement>(
+			".workspace-split.mod-root",
+		);
+		if (leaf && rootSplit) {
+			rootSplit
+				.querySelectorAll<HTMLElement>(".workspace-leaf")
+				.forEach((candidate) => {
+					candidate.style.display =
+						candidate === leaf ? "flex" : "none";
+				});
+			leaf.style.flex = "1 1 auto";
+			leaf.style.width = "100%";
+			leaf.style.maxWidth = "none";
+		}
 		shell.style.width = `${targetWidth}px`;
 		shell.style.minWidth = `${targetWidth}px`;
 		shell.style.maxWidth = `${targetWidth}px`;
