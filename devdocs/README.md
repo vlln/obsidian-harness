@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `DEVELOP`：`v0.5.1` 增量测试基建检查无缺口，正在实现 Turn 滚动同步与共享协调器 |
+| **当前阶段** | `DEVELOP`：新 UI helper 已纳入 V8 allowlist 并通过增量 coverage 自证，继续实现 Turn 滚动同步与共享协调器 |
 | **当前版本** | `v0.5.0` 为当前公开稳定版，交付 Project-aware Session 创建、Turn Navigator 与聚焦的 Project/Session 操作 |
 | **设计评估** | `v0.5.1` 复用既有 React/ACP/Obsidian 架构，只为 MessageList 增加共享滚动协调规则；Spec-0007 v2 与 AC-0006 已经独立审查并获人类确认。 |
 
