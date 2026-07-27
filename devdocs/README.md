@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `DESIGN`：Session Navigator 的 `v0.4.0` 迭代已完成发布闭环；下一轮增量迭代候选尚未选定 |
+| **当前阶段** | `TEST_INFRA`：`v0.5.0` Session Workspace Experience 契约已冻结，正在执行既有测试基建的增量适用性检查 |
 | **当前版本** | `v0.4.0` 为当前公开稳定版，交付 Codex 风格的全局 Session Navigator |
-| **设计评估** | Session Navigator 使用 `.session` 权威元数据 + index 发现 + 内存 Catalog/Runtime Registry；复用现有 Vitest/WDIO/CI，不新增测试工具。参见 [Spec-0006](spec/0006-session-navigator.md)、[AC-0005](ac/0005-session-navigator.md)、[ADR-0010](adr/0010-session-catalog-projection.md)、[ADR-0011](adr/0011-session-navigator-test-infra.md) |
+| **设计评估** | `v0.5.0` 增加 Project-aware Session 创建、Turn Navigator 与 Project/Session 菜单调整；复用现有 Electron host、virtualizer、SessionStorage reconciliation 和 Vitest/WDIO/CI，无新增技术选型 ADR。参见 [Spec-0007](spec/0007-session-workspace-experience.md)、[AC-0006](ac/0006-session-workspace-experience.md)、[ADR-0010](adr/0010-session-catalog-projection.md)、[ADR-0011](adr/0011-session-navigator-test-infra.md) |
 
 ## 子目录
 
