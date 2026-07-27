@@ -23,6 +23,7 @@ import { TurnNavigator } from "./TurnNavigator";
 // total size, which clamps scrollTop to 0 and loses the position. Riding out
 // this window keeps total stable so the scroll position is preserved. (#321)
 const SHOW_SETTLE_MS = 500;
+const TURN_SCROLL_SETTLE_TIMEOUT_MS = 1600;
 
 /**
  * Props for MessageList component
@@ -95,6 +96,7 @@ export function MessageList({
 	const wasHiddenRef = useRef(false);
 	const settleUntilRef = useRef(0);
 	const activeTurnFrameRef = useRef<number | null>(null);
+	const turnNavigationCleanupRef = useRef<(() => void) | null>(null);
 	const turnItems = useMemo(
 		() => (showTurnNavigator ? deriveTurnNavigation(messages) : []),
 		[messages, showTurnNavigator],
@@ -224,6 +226,8 @@ export function MessageList({
 				window.cancelAnimationFrame(activeTurnFrameRef.current);
 				activeTurnFrameRef.current = null;
 			}
+			turnNavigationCleanupRef.current?.();
+			turnNavigationCleanupRef.current = null;
 		},
 		[],
 	);
@@ -231,9 +235,100 @@ export function MessageList({
 	const navigateToTurn = useCallback(
 		(item: TurnNavigationItem) => {
 			if (!isCurrentTurnNavigationTarget(messages, item)) return;
+			turnNavigationCleanupRef.current?.();
+			turnNavigationCleanupRef.current = null;
 			const reducedMotion = window.matchMedia(
 				"(prefers-reduced-motion: reduce)",
 			).matches;
+			if (!reducedMotion) {
+				const container = containerRef.current;
+				const offsetInfo = virtualizer.getOffsetForIndex(
+					item.messageIndex,
+					"start",
+				);
+				if (container && offsetInfo) {
+					// Let the browser run one uninterrupted animation. Once target
+					// messages are measured, allow one short correction before the
+					// virtualizer commits the exact final alignment.
+					let cancelled = false;
+					let correctionStarted = false;
+					let timeoutId: number | null = null;
+					const disarm = () => {
+						container.removeEventListener("scrollend", settle);
+						if (timeoutId !== null) {
+							window.clearTimeout(timeoutId);
+							timeoutId = null;
+						}
+					};
+					const cleanup = () => {
+						cancelled = true;
+						disarm();
+					};
+					const arm = () => {
+						container.addEventListener("scrollend", settle, {
+							once: true,
+						});
+						timeoutId = window.setTimeout(
+							settle,
+							TURN_SCROLL_SETTLE_TIMEOUT_MS,
+						);
+					};
+					const settle = () => {
+						disarm();
+						if (cancelled) return;
+						if (!isCurrentTurnNavigationTarget(messages, item)) {
+							cleanup();
+							turnNavigationCleanupRef.current = null;
+							return;
+						}
+						const exactOffset = virtualizer.getOffsetForIndex(
+							item.messageIndex,
+							"start",
+						)?.[0];
+						if (
+							!correctionStarted &&
+							exactOffset !== undefined &&
+							Math.abs(exactOffset - container.scrollTop) > 1
+						) {
+							correctionStarted = true;
+							arm();
+							try {
+								container.scrollTo({
+									top: exactOffset,
+									behavior: "smooth",
+								});
+								return;
+							} catch {
+								disarm();
+							}
+						}
+						try {
+							virtualizer.scrollToIndex(item.messageIndex, {
+								align: "start",
+							});
+						} catch {
+							// The target is already visible; cleanup must still complete.
+						}
+						turnNavigationCleanupRef.current = null;
+					};
+
+					turnNavigationCleanupRef.current = cleanup;
+					arm();
+					isAtBottomRef.current = false;
+					setIsAtBottom(false);
+					try {
+						container.scrollTo({
+							top: offsetInfo[0],
+							behavior: "smooth",
+						});
+						setActiveTurnMessageId(item.messageId);
+						return;
+					} catch {
+						cleanup();
+						turnNavigationCleanupRef.current = null;
+					}
+				}
+			}
 			try {
 				virtualizer.scrollToIndex(item.messageIndex, {
 					align: "start",

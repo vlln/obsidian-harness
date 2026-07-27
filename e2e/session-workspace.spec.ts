@@ -729,6 +729,162 @@ describe("v0.5 Session workspace", () => {
 		}
 	});
 
+	it("keeps distant Turn navigation continuous across virtual messages", async () => {
+		await browser.execute(async (entryPath) => {
+			const app = (window as any).app;
+			const file = app.vault.getAbstractFileByPath(entryPath);
+			const leaf = app.workspace.getLeaf(true);
+			await leaf.openFile(file);
+			leaf.containerEl.dataset.workspaceTurnSmooth = "true";
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
+		}, longTurnEntryPath);
+		await browser.waitUntil(
+			async () =>
+				(
+					await browser.$$(
+						'.workspace-leaf[data-workspace-turn-smooth="true"] .agent-client-turn-node',
+					)
+				).length === 48,
+			{ timeout: 5000, interval: 50 },
+		);
+		await setTurnViewportWidth(520);
+		await browser.execute(() => {
+			const leaf = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-smooth="true"]',
+			)!;
+			leaf.querySelector<HTMLElement>(
+				".agent-client-chat-view-messages",
+			)!.scrollTop = 0;
+			leaf.querySelector<HTMLElement>(
+				".agent-client-turn-navigator",
+			)!.scrollTop = 0;
+		});
+		await browser.pause(100);
+		await browser.execute(() => {
+			const leaf = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-smooth="true"]',
+			)!;
+			const viewport = leaf.querySelector<HTMLElement>(
+				".agent-client-chat-view-messages",
+			)!;
+			const rail = leaf.querySelector<HTMLElement>(
+				".agent-client-turn-navigator",
+			)!;
+			const scrollCalls: Array<{
+				behavior: ScrollBehavior | undefined;
+			}> = [];
+			const originalScrollTo = viewport.scrollTo.bind(viewport);
+			viewport.scrollTo = ((
+				...args: Parameters<HTMLElement["scrollTo"]>
+			) => {
+				const options = args[0];
+				if (typeof options === "object") {
+					scrollCalls.push({
+						behavior: options.behavior,
+					});
+				}
+				originalScrollTo(...args);
+			}) as typeof viewport.scrollTo;
+
+			const activeTrace: number[] = [];
+			const observer = new MutationObserver(() => {
+				const active = rail.querySelector<HTMLElement>(
+					'.agent-client-turn-node[aria-current="step"]',
+				);
+				const ordinal = Number(
+					active
+						?.getAttribute("aria-label")
+						?.match(/^Turn (\d+):/)?.[1],
+				);
+				if (
+					Number.isFinite(ordinal) &&
+					activeTrace[activeTrace.length - 1] !== ordinal
+				) {
+					activeTrace.push(ordinal);
+				}
+			});
+			observer.observe(rail, {
+				attributes: true,
+				subtree: true,
+				attributeFilter: ["aria-current"],
+			});
+			(window as any).__workspaceTurnSmoothCalls = scrollCalls;
+			(window as any).__workspaceTurnSmoothActiveTrace = activeTrace;
+			(window as any).__workspaceTurnSmoothObserver = observer;
+			(window as any).__workspaceTurnSmoothOriginalScrollTo =
+				originalScrollTo;
+			rail.querySelectorAll<HTMLButtonElement>(
+				".agent-client-turn-node",
+			)[40].click();
+		});
+		await browser.waitUntil(
+			() =>
+				browser.execute(() => {
+					const leaf = document.querySelector<HTMLElement>(
+						'.workspace-leaf[data-workspace-turn-smooth="true"]',
+					)!;
+					const viewport = leaf.querySelector<HTMLElement>(
+						".agent-client-chat-view-messages",
+					)!;
+					const target = Array.from(
+						viewport.querySelectorAll<HTMLElement>(
+							".agent-client-virtual-item",
+						),
+					).find((message) =>
+						message.innerText.includes("Long prompt 41"),
+					);
+					if (!target) return false;
+					const viewportRect = viewport.getBoundingClientRect();
+					const targetRect = target.getBoundingClientRect();
+					return (
+						targetRect.top >= viewportRect.top &&
+						targetRect.top < viewportRect.bottom
+					);
+				}),
+			{ timeout: 4000, interval: 25 },
+		);
+		await browser.pause(500);
+		const result = await browser.execute(() => {
+			const leaf = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-smooth="true"]',
+			)!;
+			const viewport = leaf.querySelector<HTMLElement>(
+				".agent-client-chat-view-messages",
+			)!;
+			const originalScrollTo = (window as any)
+				.__workspaceTurnSmoothOriginalScrollTo as
+				| typeof viewport.scrollTo
+				| undefined;
+			if (originalScrollTo) viewport.scrollTo = originalScrollTo;
+			const observer = (window as any).__workspaceTurnSmoothObserver as
+				| MutationObserver
+				| undefined;
+			observer?.disconnect();
+			const calls = [
+				...((window as any).__workspaceTurnSmoothCalls ?? []),
+			] as Array<{
+				behavior: ScrollBehavior | undefined;
+			}>;
+			const rail = leaf.querySelector<HTMLElement>(
+				".agent-client-turn-navigator",
+			)!;
+			delete leaf.dataset.workspaceTurnSmooth;
+			delete leaf.dataset.workspaceTurnVisual;
+			return {
+				smoothCalls: calls.filter((call) => call.behavior === "smooth")
+					.length,
+				activeTrace: [
+					...((window as any).__workspaceTurnSmoothActiveTrace ?? []),
+				] as number[],
+				railScrollTop: rail.scrollTop,
+			};
+		});
+		expect(result.smoothCalls).toBeGreaterThanOrEqual(1);
+		expect(result.smoothCalls).toBeLessThanOrEqual(2);
+		expect(result.activeTrace).toEqual([41]);
+		expect(result.railScrollTop).toBeGreaterThan(0);
+	});
+
 	it("release visual review: keeps long Turn rails quiet and scrollable", async () => {
 		await browser.execute(async (entryPath) => {
 			const app = (window as any).app;
