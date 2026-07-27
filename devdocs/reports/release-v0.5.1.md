@@ -2,7 +2,7 @@
 title: RELEASE Report v0.5.1
 description: Obsidian Harness v0.5.1 release verification for synchronized manual and bottom message scrolling.
 type: report
-status: draft
+status: complete
 created: 2026-07-27T10:05:00Z
 ---
 
@@ -67,9 +67,34 @@ runtime vulnerabilities. Broad dependency upgrades remain outside this patch sco
 
 ## Production Verification
 
-Pending production publication and monitoring.
+Human approval explicitly covered one-time publication, the `master` merge and the `v0.5.1` tag. Production
+executed against the approved release candidate as follows:
+
+| Gate | Result |
+|------|--------|
+| `master` merge | PASS: `91537c3`, with a tree identical to release candidate `d7c0c3c` |
+| Remote tag | PASS: `v0.5.1` points to `91537c3` |
+| Tag workflow | PASS: run [30256679792](https://github.com/vlln/obsidian-harness-frontend/actions/runs/30256679792), 30 s |
+| Draft inspection | PASS: exactly `main.js`, `manifest.json` and `styles.css`; all sizes and SHA-256 digests matched staging |
+| Build provenance | PASS: downloaded `main.js` and `styles.css` attestations verified for `vlln/obsidian-harness-frontend` |
+| Public release | PASS: [v0.5.1](https://github.com/vlln/obsidian-harness-frontend/releases/tag/v0.5.1), published `2026-07-27T10:07:25Z`, latest and non-prerelease |
+| Public download smoke | PASS: all three assets downloaded; hashes and manifest metadata matched staging |
+| Five-minute monitoring | PASS at `2026-07-27T10:13:09Z`; release remained latest/public and all assets remained uploaded with matching digests |
+
+The workflow repeated the known non-blocking warning that pinned Actions target the deprecated Node 20 action
+runtime and were forced to Node 24. Runtime assets and provenance were unaffected; `BL-0007` already tracks the
+upgrade. No rollback trigger fired, so public `v0.5.1` remains active alongside `v0.5.0`.
+
+## Retrospective
+
+- Focused patch scope kept staging to the three changed scrolling behaviors while reusing the full DEVELOP and
+  SYSTEM_TEST evidence already accepted on `develop`.
+- The restored-message listener regression found during SYSTEM_TEST is permanently covered in the same public
+  candidate; no production-only correction was required.
+- Release operations stayed in isolated worktrees, so pre-existing importer and visual-artifact changes in the
+  primary worktree were not included in commits or release assets.
 
 ## Decision
 
-`[PENDING]` Staging passed. Production workflow, draft inspection, public download smoke, monitoring and branch
-reconciliation remain pending.
+`[PASS]` Staging, production publication, public download smoke and the five-minute monitoring window all passed.
+The release may be merged back to `develop`; no rollback is required.

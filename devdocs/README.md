@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE`：v0.5.1 隔离 staging 全绿且已获发布授权；准备合并 `master`、创建 tag 并验证 workflow draft，公开发布后仍需下载 smoke 与监控 |
-| **当前版本** | `v0.5.0` 为当前公开稳定版，交付 Project-aware Session 创建、Turn Navigator 与聚焦的 Project/Session 操作 |
-| **设计评估** | `v0.5.1` 复用既有 React/ACP/Obsidian 架构，只为 MessageList 增加共享滚动协调规则；Spec-0007 v2 与 AC-0006 已经独立审查并获人类确认。 |
+| **当前阶段** | `DESIGN`：`v0.5.1` 已完成 production 发布、公开资产冒烟与五分钟监控；下一轮增量候选等待从 [backlog](backlog.md) 选择并标记为 `planned` |
+| **当前版本** | `v0.5.1` 为当前公开稳定版，修复手动滚动的 Turn 同步与回到底部的连续平滑滚动 |
+| **设计评估** | `v0.5.1` 的设计、DEVELOP、SYSTEM_TEST 与 RELEASE 已闭环；生产证据见 [Release Report v0.5.1](reports/release-v0.5.1.md)。下一轮保持现有 React/ACP/Obsidian 架构边界，候选选择前不修改 active Spec/AC/ADR。 |
 
 ## 子目录
 

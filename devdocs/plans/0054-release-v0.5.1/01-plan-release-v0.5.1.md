@@ -2,7 +2,7 @@
 title: Plan-0054-01: Release v0.5.1
 description: Stage, publish and verify the Turn viewport synchronization patch release.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T10:02:03Z
 ---
 
