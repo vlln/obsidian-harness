@@ -100,9 +100,13 @@ async function setTurnViewportWidth(width: number): Promise<void> {
 		remote
 			.getCurrentWindow()
 			.setSize(Math.max(targetWidth + 420, 900), 900);
-		const shell = document.querySelector<HTMLElement>(
-			".agent-client-message-list-shell.has-turn-navigator",
-		);
+		const shell =
+			document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+			) ??
+			document.querySelector<HTMLElement>(
+				".agent-client-message-list-shell.has-turn-navigator",
+			);
 		if (!shell) throw new Error("Turn Navigator shell is unavailable");
 		const leaf = shell.closest<HTMLElement>(".workspace-leaf");
 		const rootSplit = leaf?.closest<HTMLElement>(
@@ -729,18 +733,25 @@ describe("v0.5 Session workspace", () => {
 		await browser.execute(async (entryPath) => {
 			const app = (window as any).app;
 			const file = app.vault.getAbstractFileByPath(entryPath);
-			await app.workspace.getLeaf(true).openFile(file);
+			const leaf = app.workspace.getLeaf(true);
+			await leaf.openFile(file);
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
 		}, turnEntryPath);
 		await browser.waitUntil(
 			async () =>
-				(await browser.$$(".agent-client-turn-node")).length === 3,
+				(
+					await browser.$$(
+						'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+					)
+				).length === 3,
 			{ timeout: 5000, interval: 50 },
 		);
 		await setTurnViewportWidth(520);
+		await browser.pause(100);
 		const chrome = await browser.execute(() => {
 			const buttons = Array.from(
 				document.querySelectorAll<HTMLElement>(
-					".agent-client-turn-node",
+					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
 				),
 			);
 			const idle = buttons.find(
@@ -763,8 +774,19 @@ describe("v0.5 Session workspace", () => {
 				idleMarker: [idleMarker.width, idleMarker.height],
 				activeMarker: [activeMarker.width, activeMarker.height],
 				connectorContent: connector.content,
+				connectorOpacity: connector.opacity,
 			};
 		});
+		const normalShell = await browser.$(
+			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+		);
+		for (const theme of ["light", "dark"] as const) {
+			await setTheme(theme);
+			await browser.pause(100);
+			await normalShell.saveScreenshot(
+				path.join(visualPolishArtifacts, `runtime-normal-${theme}.png`),
+			);
+		}
 		await browser.execute(async (entryPath) => {
 			const app = (window as any).app;
 			const file = app.vault.getAbstractFileByPath(entryPath);
@@ -772,13 +794,17 @@ describe("v0.5 Session workspace", () => {
 		}, longTurnEntryPath);
 		await browser.waitUntil(
 			async () =>
-				(await browser.$$(".agent-client-turn-node")).length === 48,
+				(
+					await browser.$$(
+						'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+					)
+				).length === 48,
 			{ timeout: 5000, interval: 50 },
 		);
 		await setTurnViewportWidth(520);
 		const overflow = await browser.execute(() => {
 			const rail = document.querySelector<HTMLElement>(
-				".agent-client-turn-navigator",
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
 			)!;
 			const style = getComputedStyle(rail);
 			const webkitScrollbar = getComputedStyle(
@@ -795,18 +821,18 @@ describe("v0.5 Session workspace", () => {
 		});
 		await browser.execute(() => {
 			const rail = document.querySelector<HTMLElement>(
-				".agent-client-turn-navigator",
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
 			)!;
 			rail.scrollTop = 0;
 			const buttons = document.querySelectorAll<HTMLButtonElement>(
-				".agent-client-turn-node",
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
 			);
 			buttons[40].click();
 		});
 		await browser.pause(1500);
 		const followState = await browser.execute(() => {
 			const active = document.querySelector<HTMLElement>(
-				'.agent-client-turn-node[aria-current="step"]',
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-current="step"]',
 			);
 			const ordinal = Number(
 				active?.getAttribute("aria-label")?.match(/^Turn (\d+):/)?.[1],
@@ -814,9 +840,56 @@ describe("v0.5 Session workspace", () => {
 			return {
 				activeOrdinal: ordinal,
 				railScrollTop: document.querySelector<HTMLElement>(
-					".agent-client-turn-navigator",
+					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
 				)!.scrollTop,
 			};
+		});
+		const overflowShell = await browser.$(
+			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+		);
+		for (const theme of ["light", "dark"] as const) {
+			await setTheme(theme);
+			await browser.pause(100);
+			await overflowShell.saveScreenshot(
+				path.join(
+					visualPolishArtifacts,
+					`runtime-overflow-${theme}.png`,
+				),
+			);
+		}
+		await browser.execute(() => {
+			const leaf = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-visual="true"]',
+			);
+			if (leaf) delete leaf.dataset.workspaceTurnVisual;
+			document
+				.querySelectorAll<HTMLElement>(
+					".workspace-split.mod-root .workspace-leaf",
+				)
+				.forEach((candidate) => {
+					for (const property of [
+						"display",
+						"flex",
+						"width",
+						"max-width",
+					]) {
+						candidate.style.removeProperty(property);
+					}
+				});
+			document
+				.querySelectorAll<HTMLElement>(
+					".agent-client-message-list-shell",
+				)
+				.forEach((shell) => {
+					for (const property of [
+						"width",
+						"min-width",
+						"max-width",
+						"align-self",
+					]) {
+						shell.style.removeProperty(property);
+					}
+				});
 		});
 		expect({
 			chrome,
@@ -835,7 +908,8 @@ describe("v0.5 Session workspace", () => {
 				boxShadow: "none",
 				idleMarker: ["5px", "5px"],
 				activeMarker: ["3px", "12px"],
-				connectorContent: "none",
+				connectorContent: '""',
+				connectorOpacity: "0.55",
 			},
 			overflow: {
 				hasOverflow: true,
