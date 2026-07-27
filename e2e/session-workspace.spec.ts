@@ -144,6 +144,7 @@ async function getTurnGeometry() {
 			shellWidth: shellRect.width,
 			railDisplay: getComputedStyle(rail).display,
 			messageOffset: messageRect.left - shellRect.left,
+			messageWidth: messageRect.width,
 			gridTemplateColumns: getComputedStyle(shell).gridTemplateColumns,
 			overflowX: shell.scrollWidth - shell.clientWidth,
 		};
@@ -624,6 +625,7 @@ describe("v0.5 Session workspace", () => {
 				shellWidth: width,
 				railDisplay: "none",
 				messageOffset: 0,
+				messageWidth: width,
 				overflowX: 0,
 			});
 		}
@@ -633,6 +635,7 @@ describe("v0.5 Session workspace", () => {
 			expect(geometry.shellWidth).toBe(width);
 			expect(geometry.railDisplay).not.toBe("none");
 			expect(geometry.messageOffset).toBe(34);
+			expect(geometry.messageWidth).toBe(width - 34);
 			expect(geometry.overflowX).toBe(0);
 		}
 	});
