@@ -43,6 +43,10 @@ export const TurnNavigator = React.memo(function TurnNavigator({
 								setTooltip(element, item.preview, {
 									placement: "right",
 								});
+								element.setAttribute(
+									"aria-label",
+									`Turn ${item.ordinal}: ${item.preview}`,
+								);
 							}
 						}}
 						onClick={() => onNavigate(item)}
