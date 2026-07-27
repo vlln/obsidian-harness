@@ -308,7 +308,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 			<button
 				type="button"
 				className="agent-client-navigator-new-session"
-				onClick={() => void plugin.createSessionFile()}
+				onClick={() => plugin.openSessionCreationModal()}
 			>
 				<ObsidianIcon name="square-pen" />
 				<span>New session</span>

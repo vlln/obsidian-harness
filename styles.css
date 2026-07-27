@@ -320,8 +320,74 @@ If your plugin does not need CSS, delete this file.
 .agent-client-session-modal-actions {
 	display: flex;
 	justify-content: flex-end;
+	flex-wrap: wrap;
 	gap: 8px;
 	margin-top: 16px;
+}
+
+.agent-client-session-creation-modal {
+	width: min(520px, calc(100vw - 32px));
+}
+
+.agent-client-session-creation-field {
+	display: grid;
+	min-width: 0;
+	gap: 6px;
+	margin-top: 14px;
+}
+
+.agent-client-session-creation-field label,
+.agent-client-session-creation-label {
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-medium);
+	color: var(--text-normal);
+}
+
+.agent-client-session-creation-name {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.agent-client-session-creation-location,
+.agent-client-session-creation-source {
+	min-width: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+}
+
+.agent-client-session-creation-location {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.agent-client-session-creation-source {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 28px;
+	align-items: center;
+	gap: 6px;
+}
+
+.agent-client-session-creation-source > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.agent-client-session-creation-source > button {
+	width: 28px;
+	height: 28px;
+}
+
+.agent-client-session-creation-issue {
+	min-height: 18px;
+	margin-top: 6px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-error);
+	overflow-wrap: anywhere;
 }
 
 @keyframes agent-client-spin {

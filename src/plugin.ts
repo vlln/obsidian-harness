@@ -8,10 +8,12 @@ import {
 	normalizePath,
 	FileSystemAdapter,
 	Menu,
+	Platform,
 } from "obsidian";
 import { existsSync } from "fs";
+import { mkdir, stat } from "fs/promises";
 import { homedir } from "os";
-import { join } from "path";
+import { dirname, join, posix, win32 } from "path";
 import * as semver from "semver";
 import { ChatView, VIEW_TYPE_CHAT } from "./ui/ChatView";
 import {
@@ -64,6 +66,12 @@ import {
 	reconcileSessionEntryIndex,
 } from "./services/session-index-lifecycle";
 import { getSessionRenameTarget } from "./services/session-navigator";
+import { type ProjectDirectoryHost } from "./services/project-directory";
+import {
+	materializeSession,
+	SessionEntryLifecycleQueue,
+} from "./services/session-materialization";
+import { SessionCreationModal } from "./ui/SessionCreationModal";
 import {
 	AgentEnvVar,
 	GeminiAgentSettings,
@@ -71,7 +79,7 @@ import {
 	CodexAgentSettings,
 	CustomAgentSettings,
 } from "./types/agent";
-import type { SessionFileData, SessionIndexEntry } from "./types/session";
+import type { SessionFileData } from "./types/session";
 import { initializeLogger, getLogger } from "./utils/logger";
 
 const PLUGIN_RELEASE_REPO = "vlln/obsidian-harness-frontend";
@@ -222,6 +230,7 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 };
 
 export default class AgentClientPlugin extends Plugin {
+	private readonly sessionEntryLifecycle = new SessionEntryLifecycleQueue();
 	settings: AgentClientPluginSettings;
 	settingsService!: SettingsService;
 
@@ -1198,6 +1207,76 @@ export default class AgentClientPlugin extends Plugin {
 			: "";
 	}
 
+	private getProjectPlatform(): NodeJS.Platform {
+		if (Platform.isWin) return "win32";
+		if (Platform.isMacOS) return "darwin";
+		return "linux";
+	}
+
+	private createProjectDirectoryHost(): ProjectDirectoryHost {
+		const path = Platform.isWin ? win32 : posix;
+		return {
+			homedir,
+			path,
+			pathExists: async (target) => {
+				try {
+					await stat(target);
+					return true;
+				} catch {
+					return false;
+				}
+			},
+			isDirectory: async (target) => {
+				try {
+					return (await stat(target)).isDirectory();
+				} catch {
+					return false;
+				}
+			},
+		};
+	}
+
+	private async pickProjectDirectory(
+		defaultPath?: string,
+	): Promise<string | null> {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports -- electron is provided by Obsidian's desktop runtime
+		const { remote } = require("electron") as {
+			remote: {
+				dialog: {
+					showOpenDialog(options: {
+						properties: string[];
+						title: string;
+						defaultPath?: string;
+					}): Promise<{ canceled: boolean; filePaths: string[] }>;
+				};
+			};
+		};
+		const result = await remote.dialog.showOpenDialog({
+			properties: ["openDirectory"],
+			title: "Select Project folder",
+			defaultPath,
+		});
+		return result.canceled ? null : (result.filePaths[0] ?? null);
+	}
+
+	openSessionCreationModal(initialSourceDirectory?: string): void {
+		const host = this.createProjectDirectoryHost();
+		new SessionCreationModal(this.app, {
+			host,
+			platform: this.getProjectPlatform(),
+			initialSourceDirectory,
+			pickDirectory: (defaultPath) =>
+				this.pickProjectDirectory(defaultPath),
+			onCreate: async (target) => {
+				if (target.needsCreate) {
+					await mkdir(dirname(target.cwd), { recursive: true });
+					await mkdir(target.cwd);
+				}
+				await this.createAndOpenSessionFile({ cwd: target.cwd });
+			},
+		}).open();
+	}
+
 	private async ensureVaultFolder(folderPath: string): Promise<void> {
 		const normalized = normalizePath(folderPath).replace(/^\/+|\/+$/g, "");
 		if (!normalized) return;
@@ -1237,6 +1316,11 @@ export default class AgentClientPlugin extends Plugin {
 		title?: string;
 		forkedFrom?: string | null;
 	}): Promise<{ file: TFile; config: SessionFileData }> {
+		const folder =
+			options?.folder !== undefined
+				? normalizePath(options.folder).replace(/^\/+|\/+$/g, "")
+				: this.getDefaultSessionFolder();
+		await this.ensureVaultFolder(folder);
 		const entryId = crypto.randomUUID();
 		const historyId = crypto.randomUUID();
 		const cwd = options?.cwd ?? this.getVaultRootPath();
@@ -1253,14 +1337,6 @@ export default class AgentClientPlugin extends Plugin {
 			forkedFrom: options?.forkedFrom ?? null,
 		};
 
-		const content = JSON.stringify(config, null, "\t");
-
-		const folder =
-			options?.folder !== undefined
-				? normalizePath(options.folder).replace(/^\/+|\/+$/g, "")
-				: this.getDefaultSessionFolder();
-		await this.ensureVaultFolder(folder);
-
 		const fileName = `session-${entryId.slice(0, 8)}.session`;
 		const filePath = normalizePath(
 			folder ? `${folder}/${fileName}` : fileName,
@@ -1271,29 +1347,46 @@ export default class AgentClientPlugin extends Plugin {
 			throw new Error(`File already exists: ${filePath}`);
 		}
 
-		const file = await this.app.vault.create(filePath, content);
-		await this.settingsService.initializeTranscript(historyId, {
-			agentId: config.agentId,
-			cwd,
-			title: config.title,
-			createdAt,
-		});
-
-		const indexEntry: SessionIndexEntry = {
+		const materialized = await this.sessionEntryLifecycle.run(
 			entryId,
-			historyId,
-			cwd,
-			entryFile: filePath,
-		};
-		try {
-			await this.settingsService.appendSessionIndex(indexEntry);
-		} catch (error) {
-			getLogger().warn(
-				`[Harness] Failed to update session_index.jsonl: ${error}`,
-			);
-		}
-
-		return { file, config };
+			async () => {
+				try {
+					return await materializeSession(config, filePath, {
+						initializeTranscript: async (entry) => {
+							await this.settingsService.initializeTranscript(
+								historyId,
+								{
+									agentId: entry.agentId,
+									cwd: entry.cwd,
+									title: entry.title,
+									createdAt: entry.createdAt,
+								},
+							);
+						},
+						createEntry: (entry) =>
+							this.app.vault.create(
+								filePath,
+								JSON.stringify(entry, null, "\t"),
+							),
+						confirmIndex: (entry) =>
+							this.settingsService.appendSessionIndex(entry),
+						deleteEntry: (entry) => {
+							// eslint-disable-next-line obsidianmd/prefer-file-manager-trash-file -- failed materialization is unpublished and must be compensated exactly
+							return this.app.vault.delete(entry, true);
+						},
+						deleteTranscript: (id) =>
+							this.settingsService.deleteTranscript(id),
+						removeIndex: (id) =>
+							this.settingsService.removeSessionIndex(id),
+						refreshCatalog: () => this.sessionCatalog.refresh(),
+					});
+				} catch (error) {
+					this.sessionEntryLifecycle.suppress(entryId);
+					throw error;
+				}
+			},
+		);
+		return { file: materialized.entry, config: materialized.config };
 	}
 
 	async writeSessionConfig(
@@ -1327,16 +1420,20 @@ export default class AgentClientPlugin extends Plugin {
 		cwd?: string;
 		folder?: string;
 	}): Promise<void> {
-		let materialized: { file: TFile; config: SessionFileData };
 		try {
-			materialized = await this.materializeSessionFile(options);
+			await this.createAndOpenSessionFile(options);
 		} catch (error) {
 			new Notice(`[Harness] Failed to create session file: ${error}`);
-			return;
 		}
+	}
 
+	private async createAndOpenSessionFile(options?: {
+		agentId?: string;
+		cwd?: string;
+		folder?: string;
+	}): Promise<void> {
+		const materialized = await this.materializeSessionFile(options);
 		new Notice(`[Harness] Created ${materialized.file.path}`);
-
 		await this.app.workspace.getLeaf().openFile(materialized.file);
 	}
 
@@ -1461,9 +1558,10 @@ export default class AgentClientPlugin extends Plugin {
 			const entries = await this.settingsService.getSessionIndex();
 			const entry = entries.find((e) => e.entryFile === entryFilePath);
 			if (!entry) return;
-
-			await this.settingsService.removeSessionIndex(entry.entryId);
-			await this.settingsService.deleteTranscript(entry.historyId);
+			await this.sessionEntryLifecycle.run(entry.entryId, async () => {
+				await this.settingsService.removeSessionIndex(entry.entryId);
+				await this.settingsService.deleteTranscript(entry.historyId);
+			});
 			getLogger().log(`[Harness] Cleaned up session: ${entry.entryId}`);
 		} catch (error) {
 			getLogger().warn(
@@ -1474,15 +1572,29 @@ export default class AgentClientPlugin extends Plugin {
 
 	private async reconcileSessionFileIndex(file: TFile): Promise<void> {
 		try {
-			const result = await reconcileSessionEntryIndex(
-				file.path,
-				await this.app.vault.read(file),
-				(entry, entryFile) =>
-					this.settingsService.reconcileSessionIndex(
-						entry,
-						entryFile,
-					),
+			const content = await this.app.vault.read(file);
+			const entry = parseSessionFileData(content);
+			const result = await this.sessionEntryLifecycle.run(
+				entry.entryId,
+				async () => {
+					if (this.sessionEntryLifecycle.isSuppressed(entry.entryId))
+						return null;
+					const current = this.app.vault.getAbstractFileByPath(
+						file.path,
+					);
+					if (!(current instanceof TFile)) return null;
+					return reconcileSessionEntryIndex(
+						file.path,
+						content,
+						(candidate, entryFile) =>
+							this.settingsService.reconcileSessionIndex(
+								candidate,
+								entryFile,
+							),
+					);
+				},
 			);
+			if (!result) return;
 			if (result.status === "conflict") {
 				getLogger().warn(
 					`[Harness] Session index conflict for ${result.entry.entryId}: ${result.conflictingEntryFiles.join(", ")}`,
