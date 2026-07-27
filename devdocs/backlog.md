@@ -10,3 +10,4 @@
 | BL-0005 | Session 打开后在消息区左缘显示 Codex 风格的 turn 导航轨道：每个节点对应一条用户消息，悬停可预览消息摘要，点击可平滑跳转到对应消息，滚动时高亮当前 turn；窄视图下不得遮挡消息内容 | done | v0.5.0 | 2026-07-26 用户需求 |
 | BL-0006 | 精简 Navigator 行尾菜单：移除 Session 菜单中与点击行重复的 Open；为 Project 行增加菜单，提供 New session here、Open in system file manager 和 Copy path。Project 是 `cwd` 投影，不提供 Rename/Delete；系统文件管理器动作不得与 Session 的 Obsidian 文件树 Reveal 混淆 | done | v0.5.0 | 2026-07-26 用户需求 |
 | BL-0007 | 更新 release workflow 使用的 pinned GitHub Actions，消除 Node 20 action runtime 弃用警告并验证 provenance/release 行为不变 | candidate | — | v0.5.0 发布复盘 |
+| BL-0008 | 修复 Turn Navigator 的滚动同步：手动滚动消息区时更新当前 turn；回到底部按钮复用连续平滑滚动协调器，避免虚拟测量导致分段停顿 | planned | v0.5.1 | 2026-07-27 用户反馈 |
