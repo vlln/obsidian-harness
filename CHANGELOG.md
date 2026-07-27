@@ -6,17 +6,19 @@
 
 ## [Unreleased]
 
-## [0.4.0] — 2026-07-21
+## [0.4.0] — 2026-07-26
 
 ### Added
-- **Harness session importer skill**: A companion `harness-session-importer` skill converts an explicitly selected Claude Code, Codex, Pi Agent, or Kimi Code session directly into a standard read-only v2 Obsidian Harness session — preserving prompts, assistant messages, thoughts, tool calls/results, ordering, and turn status. Large tool output is stored as content-addressed blobs without truncation.
-- **Resumable imported sessions**: Imported `.session` entries now carry an `acpBinding` pointing at the native backend session id and its ACP agent, so opening an imported session and continuing it resumes the real backend context (verified end-to-end with pi-acp).
+- **Global Session Navigator**: Added a Codex-style sidebar that discovers vault sessions through the shared Catalog and organizes them into Projects and Recents without a separate Active section.
+- **Session search and lifecycle commands**: Added cross-field Session search, independent Show more controls, Project expansion, New session, and Open, Reveal, Rename, and Delete actions.
+- **Inline runtime status**: Session rows now reserve a stable right-side status slot for ready, working, permission, error, and disconnected states.
 
 ### Changed
-- **Direct conversion over import protocol**: Replaced the unshipped inspect/report/bundle staging protocol, plugin materializer, receipts, and confirmation UI with a single direct conversion command. The plugin remains the only reader of its own v2 format; private harness schemas stay confined to the companion skill.
+- **Single sidebar entry point**: The left ribbon Session Manager action replaces Open Chat Client, and the duplicate workspace-tab button has been removed.
+- **Navigator visual hierarchy**: Projects and Recents are quiet static labels, Show more is a distinct compact command, and Project/Session rows retain stronger selectable-row typography across narrow and wide sidebars.
 
 ### Fixed
-- **Graceful degradation when the backend is unreachable**: When an imported session's native backend is unconfigured, its working directory is missing, or the native session was deleted (e.g. on another device), the local transcript still renders and continuation degrades to a clear backend-unavailable state instead of crashing or losing history.
+- **Obsidian button-theme compatibility**: Scoped Navigator selectors preserve left alignment, muted command styling, row geometry, and hover behavior when host or third-party themes override default button and text roles.
 
 ## [0.3.0] — 2026-07-20
 
