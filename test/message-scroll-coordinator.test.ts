@@ -129,6 +129,25 @@ describe("message scroll coordinator", () => {
 		expect(vi.getTimerCount()).toBe(0);
 	});
 
+	it("AC-0025-N-5: skips correction when live error is at most one pixel", () => {
+		const container = new FakeScrollContainer();
+		const coordinator = createCoordinator(container);
+		let offset = 400;
+		let commits = 0;
+
+		coordinator.coordinateSmoothMessageScroll({
+			resolveOffset: () => offset,
+			commitExact: () => commits++,
+			isCurrent: () => true,
+			reducedMotion: false,
+		});
+		offset = 400.5;
+		container.dispatchScrollEnd();
+
+		expect(container.calls).toHaveLength(1);
+		expect(commits).toBe(1);
+	});
+
 	it("AC-0025-B-5/F-2: lands immediately for reduced motion or invalid geometry", () => {
 		const container = new FakeScrollContainer();
 		const coordinator = createCoordinator(container);
@@ -209,5 +228,30 @@ describe("message scroll coordinator", () => {
 
 		expect(staleCommits).toBe(0);
 		expect(recoveredCommits).toBe(1);
+	});
+
+	it("AC-0025-E-3: removes listeners from the action's original container", () => {
+		const first = new FakeScrollContainer();
+		const second = new FakeScrollContainer();
+		let currentContainer: FakeScrollContainer = first;
+		const coordinator = createMessageScrollCoordinator({
+			getContainer: () => currentContainer,
+			setTimer: (callback, delay) =>
+				setTimeout(callback, delay) as unknown as number,
+			clearTimer: (timer) => clearTimeout(timer),
+		});
+
+		coordinator.coordinateSmoothMessageScroll({
+			resolveOffset: () => 300,
+			commitExact: () => undefined,
+			isCurrent: () => true,
+			reducedMotion: false,
+		});
+		expect(first.listenerCount).toBe(1);
+
+		currentContainer = second;
+		coordinator.cancel();
+		expect(first.listenerCount).toBe(0);
+		expect(second.listenerCount).toBe(0);
 	});
 });
