@@ -1082,12 +1082,13 @@ If your plugin does not need CSS, delete this file.
 }
 
 @container (max-width: 519px) {
-	.agent-client-message-list-shell.has-turn-navigator {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
 	.agent-client-turn-navigator {
 		display: none;
+	}
+
+	.agent-client-message-list-shell.has-turn-navigator
+		> .agent-client-chat-view-messages {
+		grid-column: 1 / -1;
 	}
 }
 
