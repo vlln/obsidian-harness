@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **当前阶段** | `RELEASE`：已获 v0.5.1 发布授权；`release/v0.5.1` 正在执行隔离 staging，production 仅在候选资产与运行时证据通过后进行 |
+| **当前阶段** | `RELEASE`：v0.5.1 隔离 staging 全绿且已获发布授权；准备合并 `master`、创建 tag 并验证 workflow draft，公开发布后仍需下载 smoke 与监控 |
 | **当前版本** | `v0.5.0` 为当前公开稳定版，交付 Project-aware Session 创建、Turn Navigator 与聚焦的 Project/Session 操作 |
 | **设计评估** | `v0.5.1` 复用既有 React/ACP/Obsidian 架构，只为 MessageList 增加共享滚动协调规则；Spec-0007 v2 与 AC-0006 已经独立审查并获人类确认。 |
 
