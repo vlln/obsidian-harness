@@ -2,7 +2,7 @@
 title: AC-0006: Session Workspace Experience
 description: Project-aware Session creation, synchronized per-user-message turn navigation and Navigator action menu refinements through v0.5.1.
 type: ac
-status: proposed
+status: active
 created: 2026-07-27T02:47:58Z
 ---
 
