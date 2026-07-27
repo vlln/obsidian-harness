@@ -82,7 +82,8 @@ async function getNavigatorRoleStyles() {
 		};
 		const styleOf = (selector: string) => {
 			const element = rootElement.querySelector<HTMLElement>(selector);
-			if (!element) throw new Error(`Missing Navigator element: ${selector}`);
+			if (!element)
+				throw new Error(`Missing Navigator element: ${selector}`);
 			const style = getComputedStyle(element);
 			return {
 				backgroundColor: style.backgroundColor,
@@ -504,7 +505,7 @@ describe("Session Navigator", () => {
 		expect(geometry.busyTitles).toBe(2);
 	});
 
-	it("AC-0021-N-2: exposes the four current-entry commands", async () => {
+	it("AC-0026-N-1: keeps Open on the row and exposes three Session commands", async () => {
 		const row = await browser.$(
 			'section[aria-label="Recents"] .agent-client-navigator-session-row',
 		);
@@ -514,7 +515,7 @@ describe("Session Navigator", () => {
 		await menuButton.click();
 		await browser.$(".menu").waitForDisplayed();
 		const menuText = await browser.$(".menu").getText();
-		expect(menuText).toContain("Open");
+		expect(menuText).not.toMatch(/(^|\n)Open($|\n)/);
 		expect(menuText).toContain("Reveal in file explorer");
 		expect(menuText).toContain("Rename");
 		expect(menuText).toContain("Delete");
