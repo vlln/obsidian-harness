@@ -13,6 +13,12 @@ export interface ProjectDirectoryHost {
 	pathExists(path: string): Promise<boolean>;
 }
 
+export interface ProjectActionHost {
+	isDirectory(cwd: string): Promise<boolean>;
+	openDirectory(cwd: string): Promise<void>;
+	writeClipboard(text: string): Promise<void>;
+}
+
 export class ProjectDirectoryValidationError extends Error {}
 
 const WINDOWS_RESERVED_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
@@ -106,4 +112,28 @@ export async function resolveSelectedProjectTarget(
 		);
 	}
 	return { kind: "selected", cwd, needsCreate: false };
+}
+
+export async function ensureProjectDirectory(
+	cwd: string,
+	host: Pick<ProjectActionHost, "isDirectory">,
+): Promise<void> {
+	if (!(await host.isDirectory(cwd))) {
+		throw new Error(`Project folder is unavailable: ${cwd}`);
+	}
+}
+
+export async function openProjectDirectory(
+	cwd: string,
+	host: Pick<ProjectActionHost, "isDirectory" | "openDirectory">,
+): Promise<void> {
+	await ensureProjectDirectory(cwd, host);
+	await host.openDirectory(cwd);
+}
+
+export async function copyProjectPath(
+	cwd: string,
+	host: Pick<ProjectActionHost, "writeClipboard">,
+): Promise<void> {
+	await host.writeClipboard(cwd);
 }

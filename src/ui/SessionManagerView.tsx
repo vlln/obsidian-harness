@@ -18,6 +18,7 @@ import {
 } from "../services/session-navigator";
 import type {
 	SessionCatalogItem,
+	SessionProjectGroup,
 	SessionRuntimeStatus,
 } from "../types/session-catalog";
 
@@ -57,6 +58,27 @@ const STATUS_PRESENTATION: Record<
 	error: { icon: "circle-x", label: "Session error" },
 	disconnected: { icon: "circle-off", label: "Disconnected" },
 };
+
+interface MenuPosition {
+	x: number;
+	y: number;
+}
+
+function getMenuPosition(event: React.MouseEvent<HTMLElement>): MenuPosition {
+	if (event.clientX || event.clientY) {
+		return { x: event.clientX, y: event.clientY };
+	}
+	const rect = event.currentTarget.getBoundingClientRect();
+	return { x: rect.right, y: rect.bottom };
+}
+
+function restoreMenuFocus(menu: Menu, target: HTMLElement | null): void {
+	menu.onHide(() => {
+		window.requestAnimationFrame(() => {
+			if (target?.isConnected) target.focus();
+		});
+	});
+}
 
 class RenameSessionModal extends Modal {
 	constructor(
@@ -114,17 +136,10 @@ const SessionRow = React.memo(function SessionRow({
 	item: SessionCatalogItem;
 	plugin: AgentClientPlugin;
 }) {
+	const moreButtonRef = useRef<HTMLButtonElement>(null);
 	const showMenu = useCallback(
-		(position: { x: number; y: number }) => {
+		(position: MenuPosition, focusTarget: HTMLElement | null) => {
 			const menu = new Menu().setUseNativeMenu(false);
-			menu.addItem((menuItem) =>
-				menuItem
-					.setTitle("Open")
-					.setIcon("arrow-up-right")
-					.onClick(
-						() => void plugin.openNavigatorSession(item.entryId),
-					),
-			);
 			menu.addItem((menuItem) =>
 				menuItem
 					.setTitle("Reveal in file explorer")
@@ -152,6 +167,7 @@ const SessionRow = React.memo(function SessionRow({
 						() => void plugin.deleteNavigatorSession(item.entryId),
 					),
 			);
+			restoreMenuFocus(menu, focusTarget);
 			menu.showAtPosition(position);
 		},
 		[item.entryId, item.title, plugin],
@@ -179,7 +195,7 @@ const SessionRow = React.memo(function SessionRow({
 			}}
 			onContextMenu={(event) => {
 				event.preventDefault();
-				showMenu({ x: event.clientX, y: event.clientY });
+				showMenu(getMenuPosition(event), moreButtonRef.current);
 			}}
 		>
 			<span
@@ -198,16 +214,117 @@ const SessionRow = React.memo(function SessionRow({
 				)}
 			</span>
 			<button
+				ref={moreButtonRef}
 				type="button"
 				className="agent-client-navigator-more clickable-icon"
 				aria-label={`Actions for ${item.title}`}
 				onClick={(event) => {
 					event.stopPropagation();
-					showMenu({ x: event.clientX, y: event.clientY });
+					showMenu(getMenuPosition(event), event.currentTarget);
 				}}
 			>
 				<ObsidianIcon name="ellipsis" />
 			</button>
+		</div>
+	);
+});
+
+const ProjectRow = React.memo(function ProjectRow({
+	project,
+	collapsed,
+	onToggle,
+	plugin,
+}: {
+	project: SessionProjectGroup;
+	collapsed: boolean;
+	onToggle: () => void;
+	plugin: AgentClientPlugin;
+}) {
+	const moreButtonRef = useRef<HTMLButtonElement>(null);
+	const showMenu = useCallback(
+		(position: MenuPosition, focusTarget: HTMLElement | null) => {
+			const menu = new Menu().setUseNativeMenu(false);
+			menu.addItem((menuItem) =>
+				menuItem
+					.setTitle("New session here")
+					.setIcon("square-pen")
+					.onClick(
+						() =>
+							void plugin.createNavigatorSessionInProject(
+								project.cwd,
+							),
+					),
+			);
+			menu.addItem((menuItem) =>
+				menuItem
+					.setTitle("Open in system file manager")
+					.setIcon("external-link")
+					.onClick(
+						() =>
+							void plugin.openNavigatorProjectDirectory(
+								project.cwd,
+							),
+					),
+			);
+			menu.addItem((menuItem) =>
+				menuItem
+					.setTitle("Copy path")
+					.setIcon("copy")
+					.onClick(
+						() => void plugin.copyNavigatorProjectPath(project.cwd),
+					),
+			);
+			restoreMenuFocus(menu, focusTarget);
+			menu.showAtPosition(position);
+		},
+		[plugin, project.cwd],
+	);
+
+	return (
+		<div className="agent-client-navigator-project">
+			<div
+				className="agent-client-navigator-project-row-shell"
+				onContextMenu={(event) => {
+					event.preventDefault();
+					showMenu(getMenuPosition(event), moreButtonRef.current);
+				}}
+			>
+				<button
+					type="button"
+					className="agent-client-navigator-project-row"
+					aria-expanded={!collapsed}
+					onClick={onToggle}
+				>
+					<ObsidianIcon
+						name={collapsed ? "chevron-right" : "chevron-down"}
+					/>
+					<ObsidianIcon name="folder" />
+					<span title={project.cwd}>{project.displayName}</span>
+				</button>
+				<button
+					ref={moreButtonRef}
+					type="button"
+					className="agent-client-navigator-more clickable-icon"
+					aria-label={`Actions for ${project.displayName}`}
+					onClick={(event) => {
+						event.stopPropagation();
+						showMenu(getMenuPosition(event), event.currentTarget);
+					}}
+				>
+					<ObsidianIcon name="ellipsis" />
+				</button>
+			</div>
+			{!collapsed && (
+				<div className="agent-client-navigator-project-sessions">
+					{project.sessions.map((item) => (
+						<SessionRow
+							key={item.entryId}
+							item={item}
+							plugin={plugin}
+						/>
+					))}
+				</div>
+			)}
 		</div>
 	);
 });
@@ -371,66 +488,34 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 										project.cwd,
 									);
 									return (
-										<div
+										<ProjectRow
 											key={project.cwd}
-											className="agent-client-navigator-project"
-										>
-											<button
-												type="button"
-												className="agent-client-navigator-project-row"
-												aria-expanded={!collapsed}
-												onClick={() =>
-													setCollapsedProjects(
-														(current) => {
-															const next =
-																new Set(
-																	current,
-																);
-															if (
-																next.has(
-																	project.cwd,
-																)
+											project={project}
+											collapsed={collapsed}
+											plugin={plugin}
+											onToggle={() =>
+												setCollapsedProjects(
+													(current) => {
+														const next = new Set(
+															current,
+														);
+														if (
+															next.has(
+																project.cwd,
 															)
-																next.delete(
-																	project.cwd,
-																);
-															else
-																next.add(
-																	project.cwd,
-																);
-															return next;
-														},
-													)
-												}
-											>
-												<ObsidianIcon
-													name={
-														collapsed
-															? "chevron-right"
-															: "chevron-down"
-													}
-												/>
-												<ObsidianIcon name="folder" />
-												<span title={project.cwd}>
-													{project.displayName}
-												</span>
-											</button>
-											{!collapsed && (
-												<div className="agent-client-navigator-project-sessions">
-													{project.sessions.map(
-														(item) => (
-															<SessionRow
-																key={
-																	item.entryId
-																}
-																item={item}
-																plugin={plugin}
-															/>
-														),
-													)}
-												</div>
-											)}
-										</div>
+														)
+															next.delete(
+																project.cwd,
+															);
+														else
+															next.add(
+																project.cwd,
+															);
+														return next;
+													},
+												)
+											}
+										/>
 									);
 								})}
 								{visible.hasMoreProjects && (
