@@ -2,7 +2,7 @@
 title: Plan-0046-01: Preserve Turn Tooltip Accessibility Name
 description: Fix the SYSTEM_TEST regression where Obsidian tooltip registration overwrites the Turn node ordinal in aria-label.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T04:53:40Z
 ---
 
