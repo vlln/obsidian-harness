@@ -1022,6 +1022,25 @@ If your plugin does not need CSS, delete this file.
 	gap: 2px;
 	padding: 22px 0 18px;
 	overflow-y: auto;
+	scrollbar-width: none;
+	-webkit-mask-image: linear-gradient(
+		to bottom,
+		transparent 0,
+		black 14px,
+		black calc(100% - 14px),
+		transparent 100%
+	);
+	mask-image: linear-gradient(
+		to bottom,
+		transparent 0,
+		black 14px,
+		black calc(100% - 14px),
+		transparent 100%
+	);
+}
+
+.agent-client-turn-navigator::-webkit-scrollbar {
+	display: none;
 }
 
 .agent-client-turn-node-wrap {
@@ -1041,43 +1060,62 @@ If your plugin does not need CSS, delete this file.
 	left: 13px;
 	width: 1px;
 	background: var(--background-modifier-border);
+	opacity: 0.55;
 }
 
-.agent-client-turn-node {
+.agent-client-message-list-shell
+	.agent-client-turn-navigator
+	.agent-client-turn-node {
 	position: relative;
 	z-index: 1;
 	display: grid;
 	width: 24px;
 	height: 24px;
-	padding: 0;
+	min-width: 24px !important;
+	min-height: 24px !important;
+	margin: 0 !important;
+	padding: 0 !important;
 	place-items: center;
-	border: 0;
-	background: transparent;
-	box-shadow: none;
+	appearance: none;
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	color: inherit;
+	cursor: pointer;
 }
 
 .agent-client-turn-node > span {
-	width: 7px;
-	height: 7px;
-	border: 1px solid var(--text-faint);
+	width: 5px;
+	height: 5px;
+	border: 0;
 	border-radius: 50%;
-	background: var(--background-primary);
+	background: var(--text-faint);
 	transition:
 		width 150ms ease,
 		height 150ms ease,
-		border-color 150ms ease,
-		background-color 150ms ease;
+		border-radius 150ms ease,
+		background-color 150ms ease,
+		box-shadow 150ms ease;
 }
 
 .agent-client-turn-node:hover > span,
 .agent-client-turn-node:focus-visible > span {
-	border-color: var(--text-muted);
+	background: var(--text-muted);
+}
+
+.agent-client-turn-node:focus-visible {
+	outline: none;
+}
+
+.agent-client-turn-node:focus-visible > span {
+	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
 .agent-client-turn-node.is-active > span {
-	width: 11px;
-	height: 11px;
-	border-color: var(--interactive-accent);
+	width: 3px;
+	height: 12px;
+	border-radius: 2px;
 	background: var(--interactive-accent);
 }
 

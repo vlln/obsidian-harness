@@ -9,11 +9,18 @@ const artifacts = path.join(
 	root,
 	"devdocs/plans/0045-session-workspace-system-test/artifacts",
 );
+const visualPolishArtifacts = path.join(
+	root,
+	"devdocs/plans/0048-turn-navigator-visual-polish/artifacts",
+);
 const turnEntryPath = "Sessions/workspace-turns.session";
+const longTurnEntryPath = "Sessions/workspace-long-turns.session";
 const projectEntryPath = "Sessions/workspace-actions.session";
 const turnEntryId = "workspace-turn-entry";
+const longTurnEntryId = "workspace-long-turn-entry";
 const projectEntryId = "workspace-project-entry";
 const turnHistoryId = "workspace-turn-history";
+const longTurnHistoryId = "workspace-long-turn-history";
 
 async function openProjectMenu(kind: "click" | "contextmenu"): Promise<void> {
 	await browser.execute((eventKind) => {
@@ -93,9 +100,13 @@ async function setTurnViewportWidth(width: number): Promise<void> {
 		remote
 			.getCurrentWindow()
 			.setSize(Math.max(targetWidth + 420, 900), 900);
-		const shell = document.querySelector<HTMLElement>(
-			".agent-client-message-list-shell.has-turn-navigator",
-		);
+		const shell =
+			document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+			) ??
+			document.querySelector<HTMLElement>(
+				".agent-client-message-list-shell.has-turn-navigator",
+			);
 		if (!shell) throw new Error("Turn Navigator shell is unavailable");
 		const leaf = shell.closest<HTMLElement>(".workspace-leaf");
 		const rootSplit = leaf?.closest<HTMLElement>(
@@ -154,21 +165,33 @@ async function getTurnGeometry() {
 describe("v0.5 Session workspace", () => {
 	before(async () => {
 		await mkdir(artifacts, { recursive: true });
+		await mkdir(visualPolishArtifacts, { recursive: true });
 		await browser.execute(
-			async (turnPath, projectPath, turnId, projectId, historyId) => {
+			async (
+				turnPath,
+				longTurnPath,
+				projectPath,
+				turnId,
+				longTurnId,
+				projectId,
+				historyId,
+				longHistoryId,
+			) => {
 				const app = (window as any).app;
 				const plugin = app.plugins.plugins["obsidian-harness"];
 				if (!app.vault.getAbstractFileByPath("Sessions")) {
 					await app.vault.createFolder("Sessions");
 				}
-				for (const entryPath of [turnPath, projectPath]) {
+				for (const entryPath of [turnPath, longTurnPath, projectPath]) {
 					const old = app.vault.getAbstractFileByPath(entryPath);
 					if (old) await app.vault.delete(old, true);
 				}
-				for (const entryId of [turnId, projectId]) {
+				for (const entryId of [turnId, longTurnId, projectId]) {
 					await plugin.settingsService.removeSessionIndex(entryId);
 				}
-				await plugin.settingsService.deleteTranscript(historyId);
+				for (const transcriptId of [historyId, longHistoryId]) {
+					await plugin.settingsService.deleteTranscript(transcriptId);
+				}
 
 				const createdAt = "2026-07-27T00:00:00.000Z";
 				const turnEntry = {
@@ -193,9 +216,20 @@ describe("v0.5 Session workspace", () => {
 					updatedAt: "2100-07-27T00:00:01.000Z",
 					forkedFrom: null,
 				};
+				const longTurnEntry = {
+					...turnEntry,
+					entryId: longTurnId,
+					historyId: longHistoryId,
+					title: "Workspace long turn fixture",
+					updatedAt: "2100-07-27T00:00:03.000Z",
+				};
 				await app.vault.create(
 					turnPath,
 					JSON.stringify(turnEntry, null, 2),
+				);
+				await app.vault.create(
+					longTurnPath,
+					JSON.stringify(longTurnEntry, null, 2),
 				);
 				await app.vault.create(
 					projectPath,
@@ -207,6 +241,15 @@ describe("v0.5 Session workspace", () => {
 					title: turnEntry.title,
 					createdAt,
 				});
+				await plugin.settingsService.initializeTranscript(
+					longHistoryId,
+					{
+						agentId: "",
+						cwd: longTurnEntry.cwd,
+						title: longTurnEntry.title,
+						createdAt,
+					},
+				);
 				const turns = [
 					"First prompt",
 					"Second prompt",
@@ -234,9 +277,38 @@ describe("v0.5 Session workspace", () => {
 					`${historyBase}/turns.jsonl`,
 					`${turns.join("\n")}\n`,
 				);
+				const longTurns = Array.from({ length: 48 }, (_, index) =>
+					JSON.stringify({
+						schemaVersion: 2,
+						turnId: `workspace-long-turn-${index + 1}`,
+						startedAt: `2026-07-27T01:${String(index).padStart(2, "0")}:00.000Z`,
+						endedAt: `2026-07-27T01:${String(index).padStart(2, "0")}:30.000Z`,
+						status: "completed",
+						prompt: [
+							{ type: "text", text: `Long prompt ${index + 1}` },
+						],
+						items: [
+							{
+								itemId: `workspace-long-answer-${index + 1}`,
+								type: "assistant_message",
+								text: `Long answer ${index + 1} ${"detail ".repeat(8)}`,
+							},
+						],
+						stopReason: "end_turn",
+					}),
+				);
+				const longHistoryBase = `${app.vault.configDir}/plugins/obsidian-harness/sessions/${longHistoryId}`;
+				await app.vault.adapter.write(
+					`${longHistoryBase}/turns.jsonl`,
+					`${longTurns.join("\n")}\n`,
+				);
 				await plugin.settingsService.reconcileSessionIndex(
 					turnEntry,
 					turnPath,
+				);
+				await plugin.settingsService.reconcileSessionIndex(
+					longTurnEntry,
+					longTurnPath,
 				);
 				await plugin.settingsService.reconcileSessionIndex(
 					projectEntry,
@@ -285,37 +357,54 @@ describe("v0.5 Session workspace", () => {
 				await plugin.sessionCatalog.refresh();
 			},
 			turnEntryPath,
+			longTurnEntryPath,
 			projectEntryPath,
 			turnEntryId,
+			longTurnEntryId,
 			projectEntryId,
 			turnHistoryId,
+			longTurnHistoryId,
 		);
 	});
 
 	after(async () => {
 		await browser.execute(
-			async (turnPath, projectPath, turnId, projectId, historyId) => {
+			async (
+				turnPath,
+				longTurnPath,
+				projectPath,
+				turnId,
+				longTurnId,
+				projectId,
+				historyId,
+				longHistoryId,
+			) => {
 				const app = (window as any).app;
 				const plugin = app.plugins.plugins["obsidian-harness"];
 				if (plugin.__workspaceOriginalProjectActionHost) {
 					plugin.createProjectActionHost =
 						plugin.__workspaceOriginalProjectActionHost;
 				}
-				for (const entryId of [turnId, projectId]) {
+				for (const entryId of [turnId, longTurnId, projectId]) {
 					await plugin.settingsService.removeSessionIndex(entryId);
 				}
-				for (const entryPath of [turnPath, projectPath]) {
+				for (const entryPath of [turnPath, longTurnPath, projectPath]) {
 					const file = app.vault.getAbstractFileByPath(entryPath);
 					if (file) await app.vault.delete(file, true);
 				}
-				await plugin.settingsService.deleteTranscript(historyId);
+				for (const transcriptId of [historyId, longHistoryId]) {
+					await plugin.settingsService.deleteTranscript(transcriptId);
+				}
 				await plugin.sessionCatalog.refresh();
 			},
 			turnEntryPath,
+			longTurnEntryPath,
 			projectEntryPath,
 			turnEntryId,
+			longTurnEntryId,
 			projectEntryId,
 			turnHistoryId,
+			longTurnHistoryId,
 		);
 	});
 
@@ -638,6 +727,199 @@ describe("v0.5 Session workspace", () => {
 			expect(geometry.messageWidth).toBe(width - 34);
 			expect(geometry.overflowX).toBe(0);
 		}
+	});
+
+	it("release visual review: keeps long Turn rails quiet and scrollable", async () => {
+		await browser.execute(async (entryPath) => {
+			const app = (window as any).app;
+			const file = app.vault.getAbstractFileByPath(entryPath);
+			const leaf = app.workspace.getLeaf(true);
+			await leaf.openFile(file);
+			leaf.containerEl.dataset.workspaceTurnVisual = "true";
+		}, turnEntryPath);
+		await browser.waitUntil(
+			async () =>
+				(
+					await browser.$$(
+						'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+					)
+				).length === 3,
+			{ timeout: 5000, interval: 50 },
+		);
+		await setTurnViewportWidth(520);
+		await browser.pause(100);
+		const chrome = await browser.execute(() => {
+			const buttons = Array.from(
+				document.querySelectorAll<HTMLElement>(
+					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+				),
+			);
+			const idle = buttons.find(
+				(button) => !button.classList.contains("is-active"),
+			)!;
+			const active = buttons.find((button) =>
+				button.classList.contains("is-active"),
+			)!;
+			const idleStyle = getComputedStyle(idle);
+			const idleMarker = getComputedStyle(idle.firstElementChild!);
+			const activeMarker = getComputedStyle(active.firstElementChild!);
+			const connector = getComputedStyle(
+				idle.closest(".agent-client-turn-node-wrap")!,
+				"::after",
+			);
+			return {
+				backgroundColor: idleStyle.backgroundColor,
+				borderWidth: idleStyle.borderTopWidth,
+				boxShadow: idleStyle.boxShadow,
+				idleMarker: [idleMarker.width, idleMarker.height],
+				activeMarker: [activeMarker.width, activeMarker.height],
+				connectorContent: connector.content,
+				connectorOpacity: connector.opacity,
+			};
+		});
+		const normalShell = await browser.$(
+			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+		);
+		for (const theme of ["light", "dark"] as const) {
+			await setTheme(theme);
+			await browser.pause(100);
+			await normalShell.saveScreenshot(
+				path.join(visualPolishArtifacts, `runtime-normal-${theme}.png`),
+			);
+		}
+		await browser.execute(async (entryPath) => {
+			const app = (window as any).app;
+			const file = app.vault.getAbstractFileByPath(entryPath);
+			await app.workspace.getLeaf(false).openFile(file);
+		}, longTurnEntryPath);
+		await browser.waitUntil(
+			async () =>
+				(
+					await browser.$$(
+						'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+					)
+				).length === 48,
+			{ timeout: 5000, interval: 50 },
+		);
+		await setTurnViewportWidth(520);
+		const overflow = await browser.execute(() => {
+			const rail = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
+			)!;
+			const style = getComputedStyle(rail);
+			const webkitScrollbar = getComputedStyle(
+				rail,
+				"::-webkit-scrollbar",
+			);
+			return {
+				clientHeight: rail.clientHeight,
+				scrollHeight: rail.scrollHeight,
+				scrollbarWidth: style.scrollbarWidth,
+				webkitScrollbarDisplay: webkitScrollbar.display,
+				maskImage: style.maskImage || style.webkitMaskImage,
+			};
+		});
+		await browser.execute(() => {
+			const rail = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
+			)!;
+			rail.scrollTop = 0;
+			const buttons = document.querySelectorAll<HTMLButtonElement>(
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+			);
+			buttons[40].click();
+		});
+		await browser.pause(1500);
+		const followState = await browser.execute(() => {
+			const active = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-current="step"]',
+			);
+			const ordinal = Number(
+				active?.getAttribute("aria-label")?.match(/^Turn (\d+):/)?.[1],
+			);
+			return {
+				activeOrdinal: ordinal,
+				railScrollTop: document.querySelector<HTMLElement>(
+					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
+				)!.scrollTop,
+			};
+		});
+		const overflowShell = await browser.$(
+			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+		);
+		for (const theme of ["light", "dark"] as const) {
+			await setTheme(theme);
+			await browser.pause(100);
+			await overflowShell.saveScreenshot(
+				path.join(
+					visualPolishArtifacts,
+					`runtime-overflow-${theme}.png`,
+				),
+			);
+		}
+		await browser.execute(() => {
+			const leaf = document.querySelector<HTMLElement>(
+				'.workspace-leaf[data-workspace-turn-visual="true"]',
+			);
+			if (leaf) delete leaf.dataset.workspaceTurnVisual;
+			document
+				.querySelectorAll<HTMLElement>(
+					".workspace-split.mod-root .workspace-leaf",
+				)
+				.forEach((candidate) => {
+					for (const property of [
+						"display",
+						"flex",
+						"width",
+						"max-width",
+					]) {
+						candidate.style.removeProperty(property);
+					}
+				});
+			document
+				.querySelectorAll<HTMLElement>(
+					".agent-client-message-list-shell",
+				)
+				.forEach((shell) => {
+					for (const property of [
+						"width",
+						"min-width",
+						"max-width",
+						"align-self",
+					]) {
+						shell.style.removeProperty(property);
+					}
+				});
+		});
+		expect({
+			chrome,
+			overflow: {
+				hasOverflow: overflow.scrollHeight > overflow.clientHeight,
+				scrollbarWidth: overflow.scrollbarWidth,
+				webkitScrollbarDisplay: overflow.webkitScrollbarDisplay,
+				hasMask: overflow.maskImage !== "none",
+				didActivateDistantTurn: followState.activeOrdinal > 20,
+				didFollowActiveTurn: followState.railScrollTop > 0,
+			},
+		}).toEqual({
+			chrome: {
+				backgroundColor: "rgba(0, 0, 0, 0)",
+				borderWidth: "0px",
+				boxShadow: "none",
+				idleMarker: ["5px", "5px"],
+				activeMarker: ["3px", "12px"],
+				connectorContent: '""',
+				connectorOpacity: "0.55",
+			},
+			overflow: {
+				hasOverflow: true,
+				scrollbarWidth: "none",
+				webkitScrollbarDisplay: "none",
+				hasMask: true,
+				didActivateDistantTurn: true,
+				didFollowActiveTurn: true,
+			},
+		});
 	});
 
 	it("AC-0024-N-4 and AC-0025-N-4/B-1: saves responsive light/dark visual evidence", async () => {

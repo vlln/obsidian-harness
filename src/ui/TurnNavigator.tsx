@@ -14,9 +14,39 @@ export const TurnNavigator = React.memo(function TurnNavigator({
 	activeMessageId,
 	onNavigate,
 }: TurnNavigatorProps) {
+	const railRef = React.useRef<HTMLElement>(null);
+
+	React.useEffect(() => {
+		const rail = railRef.current;
+		const active = rail?.querySelector<HTMLElement>(
+			".agent-client-turn-node.is-active",
+		);
+		if (!rail || !active || rail.scrollHeight <= rail.clientHeight) return;
+
+		const edgeInset = 14;
+		const railRect = rail.getBoundingClientRect();
+		const activeRect = active.getBoundingClientRect();
+		let nextScrollTop = rail.scrollTop;
+		if (activeRect.top < railRect.top + edgeInset) {
+			nextScrollTop -= railRect.top + edgeInset - activeRect.top;
+		} else if (activeRect.bottom > railRect.bottom - edgeInset) {
+			nextScrollTop += activeRect.bottom - (railRect.bottom - edgeInset);
+		}
+		if (nextScrollTop === rail.scrollTop) return;
+
+		const reducedMotion = window.matchMedia(
+			"(prefers-reduced-motion: reduce)",
+		).matches;
+		rail.scrollTo({
+			top: Math.max(0, nextScrollTop),
+			behavior: reducedMotion ? "auto" : "smooth",
+		});
+	}, [activeMessageId]);
+
 	if (items.length === 0) return null;
 	return (
 		<nav
+			ref={railRef}
 			className="agent-client-turn-navigator"
 			aria-label="Conversation turns"
 		>
