@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-07-26
+
+### Added
+- **Project-aware Session creation**: New session now opens a Codex-style modal with a project name and one optional Agent working directory, defaulting to `~/Documents/<project-name>` when no folder is selected.
+- **Turn Navigator**: Open Session workspaces show one left-edge navigation node per user message, with preview tooltips, active-turn tracking and direct message navigation.
+- **Project actions**: Project rows now provide New session here, Open in system file manager and Copy path commands.
+
+### Changed
+- **Focused Session actions**: Removed the redundant Open command from Session row menus while retaining row-click navigation and Obsidian Reveal for Session entry files.
+- **Responsive Turn layout**: Turn nodes remain visible from 520 px upward and yield the full message viewport at narrower widths.
+
+### Fixed
+- **Turn accessibility names**: Preserved each Turn ordinal and preview in its accessible name after Obsidian tooltip registration.
+- **Narrow Session workspace layout**: Prevented hidden Turn rails from collapsing message content into an implicit grid column.
+
 ## [0.4.0] — 2026-07-26
 
 ### Added
