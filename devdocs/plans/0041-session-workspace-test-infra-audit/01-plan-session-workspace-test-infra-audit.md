@@ -2,7 +2,7 @@
 title: Plan-0041-01: Session Workspace Test Infrastructure Audit
 description: Audit whether existing Vitest, WDIO, host fault injection, architecture checks, coverage and delivery gates fully support the frozen v0.5.0 contracts.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T03:05:00Z
 ---
 
