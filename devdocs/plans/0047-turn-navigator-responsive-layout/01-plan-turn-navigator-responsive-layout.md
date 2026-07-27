@@ -2,7 +2,7 @@
 title: Plan-0047-01: Turn Navigator Responsive Layout
 description: Fix the SYSTEM_TEST regression where hiding the Turn rail leaves the message viewport in a collapsed implicit grid column.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T05:08:00Z
 ---
 
