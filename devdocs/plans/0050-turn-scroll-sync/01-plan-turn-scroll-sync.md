@@ -2,7 +2,7 @@
 title: Plan-0050-01: Turn Scroll Sync
 description: Keep active Turn state synchronized with manual viewport movement and reuse the continuous smooth-scroll coordinator for the scroll-to-bottom action.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T08:37:31Z
 ---
 
