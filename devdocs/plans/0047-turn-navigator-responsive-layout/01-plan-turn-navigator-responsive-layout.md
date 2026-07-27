@@ -23,8 +23,8 @@ container query changes the grid declaration on the container itself.
 
 ## Request
 
-Let the rail track derive its width from the rail and collapse naturally when the rail is hidden, without
-changing the 520 px threshold, rail width, Turn behavior or message rendering.
+Keep the stable rail/message tracks at wide widths and explicitly span the message viewport across the grid
+when the rail is hidden, without changing the 520 px threshold, rail width, Turn behavior or message rendering.
 
 ## Output Format
 
@@ -46,6 +46,7 @@ Stop if the fix requires DOM reordering, JavaScript breakpoint handling or chang
 ## Steps
 
 1. Retain the failing width assertion from Plan-0045.
-2. Replace the fixed rail grid track with an intrinsic track and remove the self-targeting container override.
+2. Replace the ineffective self-targeting container override with explicit narrow-width placement for the
+   message viewport.
 3. Rebuild and rerun the failed v0.5 WDIO geometry/visual layer.
 4. Inspect all ten responsive screenshots and complete the Report.
