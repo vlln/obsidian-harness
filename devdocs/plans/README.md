@@ -42,4 +42,4 @@
 | 0041 | [0041-session-workspace-test-infra-audit](0041-session-workspace-test-infra-audit/) | `test/0041-session-workspace-test-infra-audit` | done |
 | 0042 | [0042-session-creation](0042-session-creation/) | `feat/0042-session-creation` | done |
 | 0043 | [0043-turn-navigator](0043-turn-navigator/) | `feat/0043-turn-navigator` | done |
-| 0044 | [0044-navigator-actions](0044-navigator-actions/) | `feat/0044-navigator-actions` | pending |
+| 0044 | [0044-navigator-actions](0044-navigator-actions/) | `feat/0044-navigator-actions` | done |

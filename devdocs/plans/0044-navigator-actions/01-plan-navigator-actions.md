@@ -2,7 +2,7 @@
 title: Plan-0044-01: Project and Session Navigator Actions
 description: Remove the redundant Session Open menu item and add Project-scoped creation, system file manager and copy-path actions for AC-0026.
 type: plan
-status: pending
+status: done
 created: 2026-07-27T04:02:00Z
 ---
 
