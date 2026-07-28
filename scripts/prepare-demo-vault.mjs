@@ -8,7 +8,6 @@
 //
 // Usage: node scripts/prepare-demo-vault.mjs [target-dir]
 // Then in Obsidian: Open folder as vault → <repo>/demo-vault
-import { cp, mkdir, writeFile, cpSync } from "node:fs";
 import { existsSync, mkdirSync, writeFileSync, copyFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";

@@ -25,6 +25,7 @@ export default defineConfig([
 			globals: {
 				console: "readonly",
 				process: "readonly",
+				URL: "readonly",
 				ReadableStream: "readonly",
 				WritableStream: "readonly",
 			},
