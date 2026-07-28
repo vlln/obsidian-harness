@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Records a ~9s marketing demo video of Obsidian Harness by wrapping a headed
-# wdio run. The spec drives the UI (Session Manager -> open transcript ->
-# turn navigator) and signals /tmp/harness-demo-ready once the first content
-# is on screen; this script polls for that signal, then runs screencapture for
-# 9s. The spec holds a trailing pause longer than 9s so Obsidian is still open
-# when recording stops — the close is never captured.
+# wdio run. The spec fills the entire 9s with continuous interaction (Session
+# Manager → open transcript → scroll long conversation → Turn Navigator jump →
+# hold) and signals /tmp/harness-demo-ready once the first content frame is
+# on screen; this script polls for that signal, then runs screencapture for 9s.
+# The spec keeps Obsidian foregrounded with action for the full recording
+# window — no idle trailing tail, so the capture never drifts to other windows.
 #
 # Output: docs/public/demo.mov (fullscreen Obsidian only).
 #
