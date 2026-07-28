@@ -1,19 +1,46 @@
-"""Private harness adapters and direct Obsidian Harness session writer."""
+"""AHS → Obsidian Harness session projection and atomic writer.
+
+Native-format parsing is delegated to the harness-adapter library's
+``ahs-export`` CLI (Node). This module:
+1. Extracts a sessionId from the source path (harness-specific).
+2. Calls ``ahs-export`` to project the native session to AHS on disk.
+3. Reads the AHS archive (manifest + records/*.jsonl + blobs/).
+4. Projects AHS records into Obsidian transcript turns/items.
+5. Writes the Obsidian session atomically into the vault.
+"""
 
 import hashlib
 import json
 import os
+import re
 import shutil
+import subprocess
 import tempfile
 import uuid
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
 IMPORT_NAMESPACE = "5ad9d0b0-c511-423c-84d6-64aedca2a19a"
 BLOB_THRESHOLD = 64 * 1024
 FALLBACK_TIMESTAMP = "1970-01-01T00:00:00Z"
+TRANSCRIPT_SCHEMA_VERSION = 2
+
+# ACP agent id that can continue each imported source. The binding lets the
+# plugin resume the native backend session; unconfigured agents degrade to
+# backend_unavailable rather than read_only.
+HARNESS_AGENT_ID = {
+    "claude-code": "claude-code-acp",
+    "codex": "codex-acp",
+    "pi": "pi-acp",
+    "kimi-code": "kimi-acp",
+}
+
+# Old short names → canonical harness-adapter names.
+HARNESS_ALIAS = {
+    "claude": "claude-code",
+    "kimi": "kimi-code",
+}
 
 
 class ImportFailure(Exception):
@@ -36,6 +63,14 @@ class ImportFailure(Exception):
 
 
 @dataclass
+class AhsArchive:
+    """One AHS session archive on disk (manifest + records + blobs)."""
+    manifest: dict
+    records: list  # AHS records from the selected branch (file order)
+    blobs: dict = field(default_factory=dict)  # sha256 → bytes
+
+
+@dataclass
 class Conversion:
     turns: list
     blobs: dict
@@ -49,16 +84,9 @@ class Conversion:
     source_session_id: str
 
 
-# ACP agent id that can continue each imported source. The binding lets the
-# plugin resume the native backend session; unconfigured agents degrade to
-# backend_unavailable rather than read_only.
-HARNESS_AGENT_ID = {
-    "claude": "claude-code-acp",
-    "codex": "codex-acp",
-    "pi": "pi-acp",
-    "kimi": "kimi-acp",
-}
-
+# ---------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------
 
 def _json(value, pretty=False):
     if pretty:
@@ -74,67 +102,234 @@ def _stable_uuid(namespace, name):
     return str(uuid.uuid5(uuid.UUID(namespace), name))
 
 
-def _object(pairs):
-    result = {}
-    for key, value in pairs:
-        if key in result:
-            raise ImportFailure("source_invalid", "Duplicate object key: %s" % key)
-        result[key] = value
-    return result
+def _resolve_harness(harness):
+    """Map user-facing harness name to canonical harness-adapter name."""
+    return HARNESS_ALIAS.get(harness, harness)
 
 
-def _read_json(path):
+# ---------------------------------------------------------------------------
+# sessionId extraction (harness-specific, from source path)
+# ---------------------------------------------------------------------------
+
+_UUID_RE = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+
+def _extract_session_id(harness, source):
+    """Extract the sessionId from a source path.
+
+    Source files always live in their harness's standard directory, so the
+    adapter's default base path discovers them. We only need the sessionId
+    to tell ahs-export which session to project.
+    """
+    harness = _resolve_harness(harness)
+    source = Path(source)
+    name = source.name
+
+    if harness == "claude-code":
+        # ~/.claude/projects/<dir>/<uuid>.jsonl → filename stem
+        return source.stem
+
+    if harness == "codex":
+        # ~/.codex/sessions/.../rollout-<ts>-<uuid>.jsonl → last UUID in filename
+        match = _UUID_RE.search(name)
+        if match:
+            return match.group()
+        return source.stem
+
+    if harness == "pi":
+        # ~/.pi/agent/sessions/<dir>/<iso>_<ulid>.jsonl → part after last _
+        stem = source.stem
+        if "_" in stem:
+            return stem.rsplit("_", 1)[-1]
+        return stem
+
+    if harness == "kimi-code":
+        # ~/.kimi-code/sessions/.../session_<uuid>/ → dir name without prefix
+        dirname = source.name
+        if dirname.startswith("session_"):
+            return dirname[len("session_"):]
+        return dirname
+
+    raise ImportFailure("source_invalid", "Unsupported harness: %s" % harness)
+
+
+# ---------------------------------------------------------------------------
+# AHS export (subprocess to harness-adapter CLI)
+# ---------------------------------------------------------------------------
+
+def _run_ahs_export(adapter_path, harness, session_id, out_dir):
+    """Call ahs-export to project one session to AHS on disk.
+
+    Returns the path to the exported session directory.
+    Raises ImportFailure on any error.
+    """
+    adapter_path = Path(adapter_path)
+    export_script = adapter_path / "examples" / "ahs-export.ts"
+    if not export_script.is_file():
+        raise ImportFailure(
+            "adapter_not_found",
+            "harness-adapter ahs-export.ts not found",
+            export_script,
+        )
+
+    cmd = [
+        "npx", "vite-node",
+        str(export_script),
+        harness,
+        session_id,
+        str(out_dir),
+    ]
     try:
-        return json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=_object)
-    except FileNotFoundError as error:
-        raise ImportFailure("source_not_found", "Source does not exist", path) from error
-    except (json.JSONDecodeError, UnicodeDecodeError, ImportFailure) as error:
-        raise ImportFailure("source_invalid", "Invalid JSON source", path) from error
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(adapter_path),
+            timeout=120,
+        )
+    except FileNotFoundError:
+        raise ImportFailure(
+            "node_not_found",
+            "npx/node not found — required to run harness-adapter",
+        )
+    except subprocess.TimeoutExpired:
+        raise ImportFailure(
+            "export_timeout",
+            "ahs-export did not complete within 120s",
+        )
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip()
+        # Filter out Node experimental warnings.
+        stderr_lines = [
+            line for line in stderr.splitlines()
+            if not line.startswith("(node:")
+            and "trace-warnings" not in line
+            and line.strip()
+        ]
+        msg = "\n".join(stderr_lines) if stderr_lines else "ahs-export failed"
+        if "session not found" in msg:
+            raise ImportFailure(
+                "source_not_found",
+                "Session not found by adapter: %s" % session_id,
+                session_id,
+            )
+        if "unknown harness" in msg:
+            raise ImportFailure(
+                "source_invalid",
+                "harness-adapter does not recognize: %s" % harness,
+            )
+        raise ImportFailure("export_failed", msg)
+
+    # Parse stdout: "exported <id>: N records, M blobs → <dir>"
+    stdout = result.stdout.strip()
+    match = re.search(r"→\s*(.+)$", stdout)
+    if not match:
+        raise ImportFailure("export_failed", "Could not parse ahs-export output: %s" % stdout)
+    return Path(match.group(1).strip())
 
 
-def _read_jsonl(path):
+# ---------------------------------------------------------------------------
+# AHS archive reader
+# ---------------------------------------------------------------------------
+
+def _read_ahs_archive(session_dir, branch=None):
+    """Read an AHS session archive from disk.
+
+    Layout (ADR-0006):
+      <session_dir>/manifest.json
+      <session_dir>/records/<branch>.jsonl
+      <session_dir>/blobs/sha256-<hash>
+    """
+    session_dir = Path(session_dir)
+    manifest_path = session_dir / "manifest.json"
+    if not manifest_path.is_file():
+        raise ImportFailure("ahs_invalid", "AHS manifest.json not found", manifest_path)
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise ImportFailure("ahs_invalid", "Invalid AHS manifest", manifest_path) from error
+
+    # Determine branch: explicit > HEAD > "main"
+    if branch is not None:
+        branch_name = branch
+    else:
+        head = manifest.get("HEAD", {})
+        branch_name = head.get("branch", "main")
+
+    records_path = session_dir / "records" / ("%s.jsonl" % branch_name)
+    if not records_path.is_file():
+        # Check available branches for a helpful error.
+        records_dir = session_dir / "records"
+        if records_dir.is_dir():
+            available = sorted(
+                f.stem for f in records_dir.glob("*.jsonl")
+            )
+        else:
+            available = []
+        raise ImportFailure(
+            "branch_not_found",
+            "Branch %s not found in AHS archive" % branch_name,
+            records_path,
+            branches=[{"id": b, "label": b} for b in available],
+        )
+
     records = []
     try:
-        with Path(path).open("r", encoding="utf-8") as handle:
+        with records_path.open("r", encoding="utf-8") as handle:
             for line_number, line in enumerate(handle, 1):
                 if not line.strip():
                     continue
                 try:
-                    records.append(json.loads(line, object_pairs_hook=_object))
-                except (json.JSONDecodeError, UnicodeDecodeError, ImportFailure) as error:
+                    records.append(json.loads(line))
+                except (json.JSONDecodeError, UnicodeDecodeError) as error:
                     raise ImportFailure(
-                        "source_invalid", "Invalid JSONL record", path, line_number
+                        "ahs_invalid", "Invalid AHS record", records_path, line_number
                     ) from error
     except FileNotFoundError as error:
-        raise ImportFailure("source_not_found", "Source does not exist", path) from error
-    if not records:
-        raise ImportFailure("source_invalid", "Source contains no records", path)
-    return records
+        raise ImportFailure("ahs_invalid", "AHS records file not found", records_path) from error
+
+    # Read blobs (lazily — only loaded when referenced by a record).
+    blobs = {}
+
+    return AhsArchive(manifest=manifest, records=records, blobs=blobs)
 
 
-def _timestamp(value):
-    if isinstance(value, (int, float)):
-        return (
-            datetime.fromtimestamp(value / 1000, timezone.utc)
-            .isoformat(timespec="milliseconds")
-            .replace("+00:00", "Z")
-        )
-    return str(value or "")
+def _load_blob(session_dir, sha256):
+    """Load a blob file from the AHS archive."""
+    blob_path = Path(session_dir) / "blobs" / ("sha256-%s" % sha256)
+    if not blob_path.is_file():
+        raise ImportFailure("blob_not_found", "Blob not found: %s" % sha256, blob_path)
+    return blob_path.read_bytes()
 
 
-def _text(content, accepted=("text", "input_text", "output_text")):
-    if isinstance(content, str):
-        return content
-    if not isinstance(content, list):
-        return ""
-    return "".join(
-        str(part.get("text", ""))
-        for part in content
-        if isinstance(part, dict) and part.get("type") in accepted
-    )
+# ---------------------------------------------------------------------------
+# AHS → Obsidian transcript projection
+# ---------------------------------------------------------------------------
+
+def _map_tool_status(ahs_status):
+    """Map AHS tool_call status → Obsidian ToolCallStatus.
+
+    AHS statuses: completed, interrupted, pending, in_progress, error, success
+    Obsidian ToolCallStatus: pending | in_progress | completed | failed
+
+    "interrupted" → "failed" (the tool did not complete; showing a spinner
+    would imply it's still running, which is wrong for an imported session).
+    """
+    mapping = {
+        "completed": "completed",
+        "success": "completed",
+        "in_progress": "in_progress",
+        "pending": "pending",
+        "interrupted": "failed",
+        "error": "failed",
+    }
+    return mapping.get(ahs_status, "completed")
 
 
-def _kind(name):
+def _tool_kind(name):
+    """Derive a ToolKind from the tool name (matches chat.ts ToolKind)."""
     lowered = str(name or "").lower()
     if lowered in {"read", "grep", "glob", "search", "ls", "find"}:
         return "read"
@@ -147,465 +342,401 @@ def _kind(name):
     return "other"
 
 
-class Builder:
-    def __init__(self):
-        self.turns = []
-        self.current = None
-        self._item = 0
-        self._turn = 0
+def _content_blocks_to_items(blocks, item_id_factory):
+    """Convert AHS ContentBlock[] → Obsidian transcript items.
 
-    def prompt(self, text, timestamp):
-        self.finish("interrupted")
-        self._turn += 1
-        self.current = {
-            "schemaVersion": 2,
-            "turnId": "turn-%04d" % self._turn,
+    text → assistant_message item
+    thinking → thought item
+    image → (dropped, no Obsidian transcript item type for images)
+    blob_ref → assistant_message with preview text
+    """
+    items = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        btype = block.get("type")
+        if btype == "text":
+            text = block.get("text", "")
+            if text:
+                items.append({
+                    "type": "assistant_message",
+                    "itemId": item_id_factory(),
+                    "text": text,
+                })
+        elif btype == "thinking":
+            text = block.get("text", "")
+            if text:
+                items.append({
+                    "type": "thought",
+                    "itemId": item_id_factory(),
+                    "text": text,
+                })
+        elif btype == "blob_ref":
+            preview = block.get("preview", "")
+            if preview:
+                items.append({
+                    "type": "assistant_message",
+                    "itemId": item_id_factory(),
+                    "text": preview,
+                })
+    return items
+
+
+def _tool_result_content_to_obsidian(content, session_dir, blobs_collected):
+    """Convert AHS tool_result content → Obsidian rawOutput.
+
+    AHS tool_result.content is either:
+    - a string → wrap as {"content": str} (or blob_ref if oversized)
+    - a BlobRef → load blob, externalize
+
+    Returns (raw_output_value, blob_bytes_or_none).
+    """
+    if isinstance(content, str):
+        encoded = _json({"content": content}).encode("utf-8")
+        if len(encoded) <= BLOB_THRESHOLD:
+            return {"content": content}, None
+        digest = _sha(encoded)
+        blobs_collected[digest] = encoded
+        return {
+            "type": "blob_ref",
+            "schemaVersion": TRANSCRIPT_SCHEMA_VERSION,
+            "sha256": digest,
+            "mediaType": "application/json",
+            "byteLength": len(encoded),
+            "preview": content[:200],
+        }, None
+
+    if isinstance(content, dict) and content.get("type") == "blob_ref":
+        sha = content.get("sha256", "")
+        blob_bytes = _load_blob(session_dir, sha)
+        blobs_collected[sha] = blob_bytes
+        preview = content.get("preview", "")
+        return {
+            "type": "blob_ref",
+            "schemaVersion": TRANSCRIPT_SCHEMA_VERSION,
+            "sha256": sha,
+            "mediaType": content.get("mediaType", "text/plain"),
+            "byteLength": content.get("byteLength", len(blob_bytes)),
+            "preview": preview,
+        }, None
+
+    # Fallback: unknown content type, stringify.
+    return {"content": str(content)}, None
+
+
+def _project_ahs_to_turns(archive, session_dir):
+    """Project AHS records → Obsidian transcript turns.
+
+    Turn boundaries:
+    - AHS turn_boundary (phase=start) begins a new turn.
+    - AHS user_message begins a new turn (when no explicit boundary).
+    - AHS turn_boundary (phase=end) ends the current turn.
+    - If no explicit end boundary, the turn ends at the next turn start
+      or at the end of records (status "interrupted").
+
+    Within a turn:
+    - user_message → turn prompt (first one) or dropped (subsequent)
+    - assistant_message → assistant_message / thought items
+    - tool_call → tool item (paired with tool_result by toolCallId)
+    - tool_result → attaches to the matching tool item
+    - harness_message → assistant_message item (harness-injected)
+    - model_change, compaction, goal_update → (dropped, no Obsidian item type)
+    """
+    records = archive.records
+    manifest = archive.manifest
+
+    # Build tool_result lookup by toolCallId (first in file order wins).
+    results_by_call_id = {}
+    for rec in records:
+        if rec.get("type") == "tool_result":
+            call_id = rec.get("toolCallId", "")
+            if call_id and call_id not in results_by_call_id:
+                results_by_call_id[call_id] = rec
+
+    blobs_collected = {}
+    turns = []
+    current_turn = None
+    item_counter = [0]
+
+    def next_item_id():
+        item_counter[0] += 1
+        return "item-%04d" % item_counter[0]
+
+    def start_turn(prompt_text, timestamp):
+        nonlocal current_turn
+        if current_turn is not None:
+            # Previous turn wasn't explicitly ended — mark interrupted.
+            current_turn["status"] = "interrupted"
+            turns.append(current_turn)
+        current_turn = {
+            "schemaVersion": TRANSCRIPT_SCHEMA_VERSION,
+            "turnId": "",  # assigned later with stable UUID
             "status": "interrupted",
-            "startedAt": _timestamp(timestamp) or FALLBACK_TIMESTAMP,
-            "prompt": [{"type": "text", "text": text}],
+            "startedAt": timestamp or FALLBACK_TIMESTAMP,
+            "prompt": [{"type": "text", "text": prompt_text}] if prompt_text else [],
             "items": [],
         }
 
-    def _id(self):
-        self._item += 1
-        return "item-%04d" % self._item
-
-    def message(self, text):
-        if self.current is not None and text:
-            self.current["items"].append(
-                {"type": "assistant_message", "itemId": self._id(), "text": text}
-            )
-
-    def thought(self, text):
-        if self.current is not None and text:
-            self.current["items"].append(
-                {"type": "thought", "itemId": self._id(), "text": text}
-            )
-
-    def tool(self, call_id, name, arguments):
-        if self.current is None:
+    def end_turn(status="completed", timestamp=None, stop_reason=None):
+        nonlocal current_turn
+        if current_turn is None:
             return
-        self.current["items"].append(
-            {
-                "type": "tool",
-                "itemId": self._id(),
-                "toolCallId": str(call_id),
-                "status": "in_progress",
-                "kind": _kind(name),
-                "title": str(name or "unknown"),
-                "rawInput": arguments
-                if isinstance(arguments, dict)
-                else {"input": arguments},
-            }
-        )
-
-    def result(self, call_id, output, failed=False):
-        if self.current is None:
-            return
-        for item in reversed(self.current["items"]):
-            if item["type"] == "tool" and item["toolCallId"] == str(call_id):
-                item["status"] = "failed" if failed else "completed"
-                item["rawOutput"] = output if isinstance(output, dict) else {"content": output}
-                return
-        self.current["items"].append(
-            {
-                "type": "tool",
-                "itemId": self._id(),
-                "toolCallId": str(call_id or "unmatched"),
-                "status": "failed" if failed else "completed",
-                "kind": "other",
-                "title": "Unmatched tool result",
-                "rawOutput": output if isinstance(output, dict) else {"content": output},
-            }
-        )
-
-    def finish(self, status="completed", timestamp=None, stop_reason=None):
-        if self.current is None:
-            return
-        self.current["status"] = status
+        current_turn["status"] = status
         if timestamp:
-            self.current["endedAt"] = _timestamp(timestamp)
+            current_turn["endedAt"] = timestamp
         if stop_reason:
-            self.current["stopReason"] = stop_reason
-        self.turns.append(self.current)
-        self.current = None
+            current_turn["stopReason"] = stop_reason
+        turns.append(current_turn)
+        current_turn = None
 
-    def done(self):
-        self.finish("interrupted")
-        return self.turns
+    for rec in records:
+        rtype = rec.get("type")
+        timestamp = rec.get("timestamp", "")
 
+        if rtype == "turn_boundary":
+            phase = rec.get("phase")
+            if phase == "start":
+                # Start a new turn. The prompt will come from the next
+                # user_message; if none follows, prompt stays empty.
+                start_turn("", timestamp)
+            elif phase == "end":
+                end_turn("completed", timestamp)
+            continue
 
-def _select_chain(records, id_key, parent_key, branch, leaf_types=None, leaf_roles=None):
-    nodes = {record.get(id_key): record for record in records if record.get(id_key)}
-    parent_ids = {record.get(parent_key) for record in records if record.get(parent_key)}
-    global_leaves = [node_id for node_id in nodes if node_id not in parent_ids]
-    leaves = []
-    for node_id in global_leaves:
-        candidate = node_id
-        seen = set()
-        while candidate in nodes and candidate not in seen:
-            seen.add(candidate)
-            record = nodes[candidate]
-            role = record.get("message", {}).get("role")
-            if (leaf_types is None or record.get("type") in leaf_types) and (
-                leaf_roles is None or role in leaf_roles
-            ):
-                leaves.append(candidate)
-                break
-            candidate = record.get(parent_key)
-    leaves = list(dict.fromkeys(leaves))
-    choices = [{"id": leaf, "label": leaf} for leaf in leaves]
-    if len(leaves) > 1 and branch is None:
-        raise ImportFailure(
-            "branch_required", "Multiple branches require --branch", branches=choices
-        )
-    selected = branch or (leaves[0] if leaves else None)
-    if selected not in nodes:
-        raise ImportFailure(
-            "branch_not_found", "Selected branch does not exist", branches=choices
-        )
-    chain = []
-    seen = set()
-    while selected and selected in nodes and selected not in seen:
-        seen.add(selected)
-        record = nodes[selected]
-        chain.append(record)
-        selected = record.get(parent_key)
-    chain.reverse()
-    return chain
+        if rtype == "user_message":
+            content = rec.get("content", [])
+            text_parts = []
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    text_parts.append(block.get("text", ""))
+                elif isinstance(block, dict) and block.get("type") == "blob_ref":
+                    text_parts.append(block.get("preview", ""))
+            prompt_text = "\n".join(text_parts)
 
-
-def _parse_claude(path, branch):
-    records = _read_jsonl(path)
-    identity = next((item.get("sessionId") for item in records if item.get("sessionId")), None)
-    if not identity:
-        raise ImportFailure("source_identity_missing", "Claude session identity is missing", path)
-    chain = _select_chain(records, "uuid", "parentUuid", branch, {"user", "assistant"})
-    builder = Builder()
-    cwd = next((item.get("cwd") for item in records if item.get("cwd")), "")
-    title = "Untitled"
-    for record in chain:
-        kind = record.get("type")
-        message = record.get("message", {})
-        content = message.get("content", "")
-        timestamp = record.get("timestamp", "")
-        if kind == "user" and isinstance(content, str):
-            if title == "Untitled":
-                title = content[:80]
-            builder.prompt(content, timestamp)
-        elif kind == "user" and isinstance(content, list):
-            for part in content:
-                if part.get("type") == "tool_result":
-                    builder.result(
-                        part.get("tool_use_id"),
-                        part.get("content", ""),
-                        part.get("is_error", False),
-                    )
-        elif kind == "assistant":
-            for part in content if isinstance(content, list) else []:
-                part_type = part.get("type")
-                if part_type == "thinking":
-                    builder.thought(part.get("thinking", ""))
-                elif part_type == "text":
-                    builder.message(part.get("text", ""))
-                elif part_type == "tool_use":
-                    builder.tool(part.get("id"), part.get("name"), part.get("input", {}))
-            stop = message.get("stop_reason") or message.get("stopReason")
-            if stop in {"end_turn", "stop", "max_tokens"}:
-                builder.finish("completed", timestamp, stop)
-    return builder, identity, branch, cwd, title, records
-
-
-def _parse_pi(path, branch):
-    records = _read_jsonl(path)
-    header = next((item for item in records if item.get("type") == "session"), None)
-    identity = header.get("id") if header else None
-    if not identity:
-        raise ImportFailure("source_identity_missing", "Pi session identity is missing", path)
-    messages = [item for item in records if item.get("type") == "message"]
-    chain = _select_chain(messages, "id", "parentId", branch, leaf_roles={"user", "assistant"})
-    chain_ids = {item.get("id") for item in chain}
-    selected_calls = {
-        part.get("id")
-        for item in chain
-        for part in item.get("message", {}).get("content", [])
-        if isinstance(part, dict) and part.get("type") == "toolCall"
-    }
-    sibling_results = [
-        item
-        for item in messages
-        if item.get("id") not in chain_ids
-        and item.get("message", {}).get("role") == "toolResult"
-        and item.get("message", {}).get("toolCallId") in selected_calls
-    ]
-    positions = {id(item): index for index, item in enumerate(records)}
-    chain = sorted(chain + sibling_results, key=lambda item: positions[id(item)])
-    builder = Builder()
-    title = "Untitled"
-    for record in chain:
-        message = record.get("message", {})
-        role = message.get("role")
-        content = message.get("content", [])
-        timestamp = record.get("timestamp", "")
-        if role == "user":
-            prompt = _text(content)
-            if title == "Untitled":
-                title = prompt[:80]
-            builder.prompt(prompt, timestamp)
-        elif role == "assistant":
-            for part in content:
-                part_type = part.get("type")
-                if part_type == "thinking":
-                    builder.thought(part.get("thinking", ""))
-                elif part_type == "text":
-                    builder.message(part.get("text", ""))
-                elif part_type == "toolCall":
-                    builder.tool(part.get("id"), part.get("name"), part.get("arguments", {}))
-            stop = message.get("stopReason")
-            if stop in {"stop", "end_turn", "maxTokens"}:
-                builder.finish("completed", timestamp, stop)
-        elif role == "toolResult":
-            builder.result(
-                message.get("toolCallId"),
-                _text(content),
-                message.get("isError", False),
-            )
-    return builder, identity, branch, header.get("cwd", ""), title, records
-
-
-def _arguments(value):
-    if not isinstance(value, str):
-        return value if isinstance(value, dict) else {"input": value}
-    try:
-        parsed = json.loads(value)
-        return parsed if isinstance(parsed, dict) else {"input": parsed}
-    except json.JSONDecodeError:
-        return {"input": value}
-
-
-def _parse_codex(path, branch):
-    if branch is not None:
-        raise ImportFailure("branch_not_found", "Codex source has no selectable branch")
-    records = _read_jsonl(path)
-    meta = next(
-        (item.get("payload", {}) for item in records if item.get("type") == "session_meta"),
-        {},
-    )
-    identity = meta.get("id") or meta.get("session_id")
-    if not identity:
-        raise ImportFailure("source_identity_missing", "Codex session identity is missing", path)
-    builder = Builder()
-    title = "Untitled"
-    response_messages = {}
-    pending_event_messages = []
-    for record in records:
-        record_type = record.get("type")
-        payload = record.get("payload", {})
-        timestamp = record.get("timestamp", "")
-        payload_type = payload.get("type")
-        if record_type == "response_item" and payload_type == "message":
-            role = payload.get("role")
-            text = _text(payload.get("content", []))
-            if role == "user":
-                if title == "Untitled":
-                    title = text[:80]
-                builder.prompt(text, timestamp)
-            elif role == "assistant":
-                response_messages[text] = response_messages.get(text, 0) + 1
-                if text in pending_event_messages:
-                    pending_event_messages.remove(text)
-                else:
-                    builder.message(text)
-        elif record_type == "event_msg" and payload_type == "agent_message":
-            text = payload.get("message", "")
-            if response_messages.get(text, 0):
-                response_messages[text] -= 1
+            if current_turn is None:
+                start_turn(prompt_text, timestamp)
+            elif not current_turn["prompt"] and prompt_text:
+                # First user message in an auto-started turn.
+                current_turn["prompt"] = [{"type": "text", "text": prompt_text}]
             else:
-                builder.message(text)
-                pending_event_messages.append(text)
-        elif record_type == "response_item" and payload_type in {
-            "function_call",
-            "custom_tool_call",
-        }:
-            builder.tool(
-                payload.get("call_id") or payload.get("id"),
-                payload.get("name"),
-                _arguments(payload.get("arguments", payload.get("input", {}))),
-            )
-        elif record_type == "response_item" and payload_type in {
-            "function_call_output",
-            "custom_tool_call_output",
-        }:
-            builder.result(
-                payload.get("call_id"),
-                payload.get("output", payload.get("result", "")),
-                payload.get("is_error", False),
-            )
-        elif record_type in {"function_call", "custom_tool_call"}:
-            builder.tool(
-                payload.get("call_id") or payload.get("id"),
-                payload.get("name"),
-                _arguments(payload.get("arguments", payload.get("input", {}))),
-            )
-        elif record_type in {"function_call_output", "custom_tool_call_output"}:
-            builder.result(
-                payload.get("call_id"),
-                payload.get("output", payload.get("result", "")),
-                payload.get("is_error", False),
-            )
-        elif (
-            record_type == "event_msg"
-            and payload_type in {"task_complete", "turn_complete"}
-        ) or record_type == "task_complete":
-            builder.finish("completed", timestamp, payload.get("stop_reason") or "end_turn")
-    return builder, identity, None, meta.get("cwd", ""), title, records
-
-
-def _parse_kimi(path, branch):
-    directory = Path(path)
-    state_path = directory / "state.json"
-    state = _read_json(state_path)
-    directory_identity = directory.name[8:] if directory.name.startswith("session_") else None
-    identity = state.get("session_id") or state.get("id") or directory_identity
-    if not identity:
-        raise ImportFailure("source_identity_missing", "Kimi session identity is missing", state_path)
-    root_wire = directory / "wire.jsonl"
-    if root_wire.exists():
-        wires = {"main": root_wire}
-    else:
-        wires = {
-            item.parent.name: item
-            for item in sorted((directory / "agents").glob("*/wire.jsonl"))
-        }
-    choices = [{"id": name, "label": name} for name in wires]
-    if len(wires) > 1 and branch is None:
-        raise ImportFailure(
-            "branch_required", "Multiple Kimi agents require --branch", branches=choices
-        )
-    selected = branch or (next(iter(wires)) if wires else None)
-    if selected not in wires:
-        raise ImportFailure(
-            "branch_not_found", "Selected Kimi agent does not exist", branches=choices
-        )
-    records = _read_jsonl(wires[selected])
-    builder = Builder()
-    title = "Untitled"
-    for record in records:
-        record_type = record.get("type") or record.get("method")
-        timestamp = record.get("time") or record.get("timestamp", "")
-        if record_type == "turn.prompt":
-            prompt = _text(
-                record.get("content", record.get("input", record.get("params", {}).get("content", [])))
-            )
-            if title == "Untitled":
-                title = prompt[:80]
-            builder.prompt(prompt, timestamp)
+                # Subsequent user message within a turn — treat as a new turn.
+                start_turn(prompt_text, timestamp)
             continue
-        if record_type != "context.append_loop_event":
+
+        if rtype == "harness_message":
+            if current_turn is None:
+                start_turn("", timestamp)
+            content = rec.get("content", [])
+            items = _content_blocks_to_items(content, next_item_id)
+            current_turn["items"].extend(items)
             continue
-        event = record.get("event", record.get("params", {}).get("event", {}))
-        event_type = event.get("type")
-        if event_type == "content.part":
-            part = event.get("part", {})
-            if part.get("type") in {"think", "thinking"}:
-                builder.thought(part.get("think", part.get("text", "")))
-            elif part.get("type") in {"text", "output_text"}:
-                builder.message(part.get("text", ""))
-        elif event_type == "tool.call":
-            builder.tool(
-                event.get("toolCallId") or event.get("id") or event.get("call_id"),
-                event.get("name"),
-                event.get("args", event.get("arguments", {})),
-            )
-        elif event_type == "tool.result":
-            builder.result(
-                event.get("toolCallId") or event.get("tool_call_id") or event.get("call_id"),
-                event.get("result", event.get("output", "")),
-                event.get("is_error", False),
-            )
-        elif event_type == "step.end":
-            builder.finish(
-                "completed",
-                timestamp,
-                event.get("finishReason") or event.get("stop_reason") or "end_turn",
-            )
-    agent_state = state.get("agents", {}).get(selected, {})
-    cwd = state.get("cwd", state.get("work_dir", agent_state.get("homedir", "")))
-    return builder, identity, selected if len(wires) > 1 or branch else None, cwd, state.get("title") or title, records
 
+        if rtype == "assistant_message":
+            if current_turn is None:
+                start_turn("", timestamp)
+            content = rec.get("content", [])
+            items = _content_blocks_to_items(content, next_item_id)
+            current_turn["items"].extend(items)
+            # Carry usage if present on this record.
+            if "usage" in rec and "usage" not in current_turn:
+                current_turn["usage"] = _ahs_usage_to_obsidian(rec["usage"])
+            continue
 
-def _blobify(turns):
-    blobs = {}
-    for turn in turns:
-        for item in turn["items"]:
-            if item["type"] != "tool" or "rawOutput" not in item:
-                continue
-            content = _json(item["rawOutput"]).encode("utf-8")
-            if len(content) <= BLOB_THRESHOLD:
-                continue
-            digest = _sha(content)
-            item["rawOutput"] = {
-                "type": "blob_ref",
-                "schemaVersion": 2,
-                "sha256": digest,
-                "mediaType": "application/json",
-                "byteLength": len(content),
-                "preview": content.decode("utf-8")[:200],
+        if rtype == "tool_call":
+            if current_turn is None:
+                start_turn("", timestamp)
+            call_id = rec.get("toolCallId", "")
+            name = rec.get("name", "unknown")
+            args = rec.get("args")
+            ahs_status = rec.get("status", "completed")
+
+            tool_item = {
+                "type": "tool",
+                "itemId": next_item_id(),
+                "toolCallId": call_id,
+                "status": _map_tool_status(ahs_status),
+                "kind": _tool_kind(name),
+                "title": name,
+                "rawInput": args if isinstance(args, dict) else {"input": args},
             }
-            blobs[digest] = content
-    return blobs
+
+            # Attach paired tool_result.
+            result = results_by_call_id.get(call_id)
+            if result is not None:
+                raw_output, _ = _tool_result_content_to_obsidian(
+                    result.get("content"), session_dir, blobs_collected
+                )
+                tool_item["rawOutput"] = raw_output
+                result_status = result.get("status")
+                if result_status == "error":
+                    tool_item["status"] = "failed"
+                elif result_status == "success":
+                    tool_item["status"] = "completed"
+            # When no paired result, keep the AHS status as-is —
+            # "interrupted" maps to "interrupted" (not "in_progress").
+
+            current_turn["items"].append(tool_item)
+            continue
+
+        if rtype == "tool_result":
+            # Already handled via lookup when processing tool_call.
+            # If we encounter a tool_result with no matching tool_call
+            # (shouldn't happen per AHS spec), skip it.
+            continue
+
+        if rtype == "model_change":
+            # No Obsidian transcript item type for model changes.
+            # Could be stored in TurnContext.configOptions but that requires
+            # SessionConfigOption shape; skip for now.
+            continue
+
+        if rtype == "compaction":
+            # No Obsidian transcript item type for compaction markers.
+            continue
+
+        if rtype == "goal_update":
+            # No Obsidian transcript item type for goal updates.
+            continue
+
+        # Unknown record type — skip (AHS may add new types).
+
+    # End any dangling turn.
+    if current_turn is not None:
+        current_turn["status"] = "interrupted"
+        turns.append(current_turn)
+
+    return turns, blobs_collected
 
 
-def convert_session(harness, source, branch=None, title=None, cwd=None):
-    parsers = {
-        "claude": _parse_claude,
-        "pi": _parse_pi,
-        "codex": _parse_codex,
-        "kimi": _parse_kimi,
-    }
-    if harness not in parsers:
-        raise ImportFailure("source_invalid", "Unsupported harness: %s" % harness)
-    builder, identity, selected_branch, parsed_cwd, parsed_title, records = parsers[harness](
-        Path(source), branch
-    )
-    turns = builder.done()
-    identity_name = _json(
-        {
-            "branchIdentity": selected_branch,
-            "sourceIdentity": identity,
-            "sourceKind": harness,
+def _ahs_usage_to_obsidian(usage):
+    """Convert AHS Usage → Obsidian SessionUsage.
+
+    AHS Usage: { inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
+                 reasoningTokens, cost: {amount, currency}, durationMs }
+    Obsidian SessionUsage: { used, size, cost?: {amount, currency} }
+
+    AHS doesn't have context-window used/size; we synthesize used as the
+    sum of input + cacheRead (approximation of context tokens consumed).
+    size is unknown → 0.
+    """
+    if not isinstance(usage, dict):
+        return None
+    result = {"used": 0, "size": 0}
+    input_tokens = usage.get("inputTokens", 0) or 0
+    cache_read = usage.get("cacheReadTokens", 0) or 0
+    result["used"] = input_tokens + cache_read
+    if "cost" in usage and isinstance(usage["cost"], dict):
+        result["cost"] = {
+            "amount": usage["cost"].get("amount", 0),
+            "currency": usage["cost"].get("currency", "USD"),
         }
-    )
-    import_id = _stable_uuid(IMPORT_NAMESPACE, identity_name)
-    entry_id = _stable_uuid(import_id, "entry")
-    history_id = _stable_uuid(import_id, "history")
-    for turn_index, turn in enumerate(turns):
-        turn["turnId"] = _stable_uuid(import_id, "turn:%d" % turn_index)
-        for item_index, item in enumerate(turn["items"]):
-            item["itemId"] = _stable_uuid(
-                import_id, "turn:%d:item:%d" % (turn_index, item_index)
-            )
-    blobs = _blobify(turns)
-    timestamps = [
-        _timestamp(record.get("timestamp") or record.get("time"))
-        for record in records
-        if record.get("timestamp") or record.get("time")
-    ]
-    created_at = timestamps[0] if timestamps else FALLBACK_TIMESTAMP
-    updated_at = timestamps[-1] if timestamps else created_at
-    return Conversion(
-        turns=turns,
-        blobs=blobs,
-        entry_id=entry_id,
-        history_id=history_id,
-        cwd=cwd if cwd is not None else parsed_cwd,
-        title=title or parsed_title or "Untitled",
-        created_at=created_at,
-        updated_at=updated_at,
-        agent_id=HARNESS_AGENT_ID[harness],
-        source_session_id=str(identity),
-    )
+    return result
 
+
+# ---------------------------------------------------------------------------
+# Conversion orchestration
+# ---------------------------------------------------------------------------
+
+def convert_session(harness, source, adapter_path, branch=None, title=None, cwd=None):
+    """Convert one external session to an Obsidian Harness Conversion.
+
+    1. Extract sessionId from source path.
+    2. Call ahs-export to project to AHS on disk (temp dir).
+    3. Read AHS archive.
+    4. Project AHS records → Obsidian transcript turns.
+    5. Build Conversion with stable IDs.
+    """
+    harness = _resolve_harness(harness)
+    if harness not in HARNESS_AGENT_ID:
+        raise ImportFailure("source_invalid", "Unsupported harness: %s" % harness)
+
+    source = Path(source)
+    if not source.exists():
+        raise ImportFailure("source_not_found", "Source does not exist", source)
+
+    session_id = _extract_session_id(harness, source)
+
+    # Export to AHS in a temp dir.
+    ahs_temp = Path(tempfile.mkdtemp(prefix="ahs-export-"))
+    try:
+        session_dir = _run_ahs_export(adapter_path, harness, session_id, ahs_temp)
+
+        # If multiple branches exist and none was specified, check.
+        archive = _read_ahs_archive(session_dir, branch)
+        manifest = archive.manifest
+        branches = manifest.get("branches", {})
+        if branch is None and len(branches) > 1:
+            # Multiple branches — require selection.
+            head_branch = manifest.get("HEAD", {}).get("branch")
+            # Default to HEAD branch (the main/active one).
+            branch = head_branch
+            # Re-read with the HEAD branch explicitly.
+            archive = _read_ahs_archive(session_dir, branch)
+
+        # Project AHS → Obsidian turns.
+        turns, blobs = _project_ahs_to_turns(archive, session_dir)
+
+        # Build stable IDs.
+        identity_name = _json({
+            "branchIdentity": branch,
+            "sourceIdentity": session_id,
+            "sourceKind": harness,
+        })
+        import_id = _stable_uuid(IMPORT_NAMESPACE, identity_name)
+        entry_id = _stable_uuid(import_id, "entry")
+        history_id = _stable_uuid(import_id, "history")
+
+        for turn_index, turn in enumerate(turns):
+            turn["turnId"] = _stable_uuid(import_id, "turn:%d" % turn_index)
+            for item_index, item in enumerate(turn["items"]):
+                item["itemId"] = _stable_uuid(
+                    import_id, "turn:%d:item:%d" % (turn_index, item_index)
+                )
+
+        # Timestamps from manifest.
+        stats = manifest.get("stats", {})
+        created_at = _first_timestamp(archive.records) or FALLBACK_TIMESTAMP
+        updated_at = _last_timestamp(archive.records) or created_at
+
+        # Metadata from manifest.
+        parsed_cwd = manifest.get("cwd", "") or ""
+        parsed_title = manifest.get("title", "") or ""
+
+        return Conversion(
+            turns=turns,
+            blobs=blobs,
+            entry_id=entry_id,
+            history_id=history_id,
+            cwd=cwd if cwd is not None else parsed_cwd,
+            title=title or parsed_title or "Untitled",
+            created_at=created_at,
+            updated_at=updated_at,
+            agent_id=HARNESS_AGENT_ID[harness],
+            source_session_id=str(session_id),
+        )
+    finally:
+        shutil.rmtree(ahs_temp, ignore_errors=True)
+
+
+def _first_timestamp(records):
+    for rec in records:
+        ts = rec.get("timestamp")
+        if ts:
+            return ts
+    return None
+
+
+def _last_timestamp(records):
+    for rec in reversed(records):
+        ts = rec.get("timestamp")
+        if ts:
+            return ts
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Atomic session writer (preserved from previous implementation)
+# ---------------------------------------------------------------------------
 
 def _inside(root, target):
     try:
@@ -655,7 +786,8 @@ def _result(status, conversion, entry_file):
     }
 
 
-def import_session(harness, source, vault, entry_dir, branch=None, title=None, cwd=None):
+def import_session(harness, source, vault, entry_dir, adapter_path,
+                   branch=None, title=None, cwd=None):
     vault = Path(vault)
     if not vault.is_absolute() or not (vault / ".obsidian").is_dir():
         raise ImportFailure("vault_invalid", "--vault must be an absolute Obsidian vault", vault)
@@ -669,7 +801,7 @@ def import_session(harness, source, vault, entry_dir, branch=None, title=None, c
     if not _inside(root, target):
         raise ImportFailure("vault_boundary_violation", "entry-dir escapes the vault", target)
 
-    conversion = convert_session(harness, source, branch, title, cwd)
+    conversion = convert_session(harness, source, adapter_path, branch, title, cwd)
     entry_name = "session-%s.session" % conversion.entry_id[:8]
     entry = target / entry_name
     entry_file = entry.relative_to(root).as_posix()
@@ -693,7 +825,7 @@ def import_session(harness, source, vault, entry_dir, branch=None, title=None, c
         "forkedFrom": None,
     }
     manifest = {
-        "schemaVersion": 2,
+        "schemaVersion": TRANSCRIPT_SCHEMA_VERSION,
         "historyId": conversion.history_id,
         "createdAt": conversion.created_at,
         "updatedAt": conversion.updated_at,

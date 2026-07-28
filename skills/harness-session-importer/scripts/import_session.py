@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Convert one external harness session into an Obsidian Harness v2 session."""
+"""Convert one external harness session into an Obsidian Harness v2 session.
+
+Parsing is delegated to the harness-adapter library's ahs-export CLI.
+This script handles AHS → Obsidian transcript projection and atomic writing.
+"""
 
 import argparse
 import json
@@ -12,11 +16,14 @@ from importer import ImportFailure, import_session
 def parser():
     command = argparse.ArgumentParser()
     command.add_argument(
-        "--harness", choices=("claude", "codex", "pi", "kimi"), required=True
+        "--harness", choices=("claude-code", "codex", "pi", "kimi-code", "claude", "kimi"),
+        required=True,
     )
     command.add_argument("--session", type=Path, required=True)
     command.add_argument("--vault", type=Path, required=True)
     command.add_argument("--entry-dir", required=True)
+    command.add_argument("--adapter", type=Path, required=True,
+                         help="Path to the harness-adapter repo root")
     command.add_argument("--branch")
     command.add_argument("--title")
     command.add_argument("--cwd")
@@ -31,6 +38,7 @@ def main():
             args.session,
             args.vault,
             args.entry_dir,
+            args.adapter,
             args.branch,
             args.title,
             args.cwd,

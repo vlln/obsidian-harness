@@ -1,0 +1,14 @@
+{
+  "ahsVersion": "0.1.0",
+  "harness": "claude-code",
+  "harnessVersion": "2.0.0",
+  "sessionId": "claude-fixture",
+  "cwd": "/fixture/project",
+  "model": "claude-test",
+  "HEAD": { "branch": "main", "recordId": "r-main-end" },
+  "branches": {
+    "main": { "parentBranch": null, "parentRecordId": null },
+    "b001": { "parentBranch": "main", "parentRecordId": "r-fork-point" }
+  },
+  "stats": { "turnCount": 1 }
+}
