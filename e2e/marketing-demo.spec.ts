@@ -29,15 +29,24 @@ const ASSISTANT_TEXT = [
 	"One session at a time, explicitly selected. Re-importing the same source is a no-op. Imported sessions carry an `acpBinding` so you can resume the original conversation when the agent is configured locally.",
 ].join("\n");
 
-async function setWindowSize(w: number, h: number) {
-	await browser.execute((width, height) => {
+async function setWindowSize(_w: number, _h: number) {
+	// Fullscreen so the full-screen screen capture is 100% the Obsidian
+	// window — no menu bar, dock, or desktop clutter. screencapture -v records
+	// the whole display; fullscreen guarantees it contains only Obsidian.
+	await browser.execute(() => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const { remote } = require("electron") as {
-			remote: { getCurrentWindow(): { setSize(width: number, height: number): void } };
+			remote: {
+				getCurrentWindow(): {
+					setFullScreen(flag: boolean): void;
+					isFullScreen(): boolean;
+				};
+			};
 		};
-		remote.getCurrentWindow().setSize(width, height);
-	}, w, h);
-	await browser.pause(400);
+		const win = remote.getCurrentWindow();
+		if (!win.isFullScreen()) win.setFullScreen(true);
+	});
+	await browser.pause(800);
 }
 
 async function setTheme(theme: "light" | "dark") {
