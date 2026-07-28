@@ -6,4 +6,4 @@ v0.6.0 迭代 TEST_INFRA 增量搭建容器。分支 `test/0055-agent-config-tes
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Agent config test infra increment (secretStorage stub + coverage whitelist + settings E2E helper) | pending | [01-plan-agent-config-test-infra.md](01-plan-agent-config-test-infra.md) | — |
+| Agent config test infra increment (secretStorage stub + coverage whitelist + settings E2E helper) | done | [01-plan-agent-config-test-infra.md](01-plan-agent-config-test-infra.md) | [01-report-agent-config-test-infra.md](01-report-agent-config-test-infra.md) |
