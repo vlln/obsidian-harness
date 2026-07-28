@@ -16,7 +16,7 @@ import { TerminalManager } from "./terminal-handler";
 import { PermissionManager } from "./permission-handler";
 import { AcpHandler } from "./acp-handler";
 import { getLogger, Logger } from "../utils/logger";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import {
 	convertWindowsPathToWsl,
 	getEnhancedWindowsEnv,
@@ -101,7 +101,7 @@ export class AcpClient {
 
 	private logger: Logger;
 
-	constructor(private plugin: AgentClientPlugin) {
+	constructor(private plugin: HarnessPlugin) {
 		this.logger = getLogger();
 
 		// Initialize managers
@@ -394,7 +394,7 @@ export class AcpClient {
 		// hold the persistent connection. This is the same builder the deprecated
 		// ClientSideConnection constructed internally (legacyClientApp), inlined.
 		const app = acp
-			.client({ name: "obsidian-agent-client" })
+			.client({ name: "obsidian-harness" })
 			.onNotification("session/update", (ctx) =>
 				this.handler.sessionUpdate(ctx.params),
 			)
@@ -439,8 +439,8 @@ export class AcpClient {
 						terminal: true,
 					},
 					clientInfo: {
-						name: "obsidian-agent-client",
-						title: "Agent Client for Obsidian",
+						name: "obsidian-harness",
+						title: "Harness for Obsidian",
 						version: this.plugin.manifest.version,
 					},
 				},

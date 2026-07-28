@@ -109,14 +109,14 @@ export interface UseAgentReturn {
 // ============================================================================
 
 /**
- * @param agentClient - Agent client for communication
+ * @param harness - Agent client for communication
  * @param settingsAccess - Settings access for agent configuration
  * @param vaultAccess - Vault access for reading notes (also serves as IMentionService)
  * @param workingDirectory - Working directory for the session
  * @param initialAgentId - Optional initial agent ID (from view persistence)
  */
 export function useAgent(
-	agentClient: AcpClient,
+	harness: AcpClient,
 	settingsAccess: ISettingsAccess,
 	vaultAccess: IVaultAccess & IMentionService,
 	workingDirectory: string,
@@ -133,7 +133,7 @@ export function useAgent(
 	// ============================================================
 
 	const agentSession = useAgentSession(
-		agentClient,
+		harness,
 		settingsAccess,
 		workingDirectory,
 		setErrorInfo,
@@ -141,7 +141,7 @@ export function useAgent(
 	);
 
 	const agentMessages = useAgentMessages(
-		agentClient,
+		harness,
 		settingsAccess,
 		vaultAccess,
 		agentSession.session,
@@ -171,9 +171,9 @@ export function useAgent(
 
 	// Subscribe to all updates from agent
 	useEffect(() => {
-		const unsubscribe = agentClient.onSessionUpdate(handleSessionUpdate);
+		const unsubscribe = harness.onSessionUpdate(handleSessionUpdate);
 		return unsubscribe;
-	}, [agentClient, handleSessionUpdate]);
+	}, [harness, handleSessionUpdate]);
 
 	// ============================================================
 	// Return

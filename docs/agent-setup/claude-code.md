@@ -28,7 +28,7 @@ where.exe claude-agent-acp
 
 :::
 
-3. Open **Settings → Agent Client**. The default command (`claude-agent-acp`) works in many cases. If the agent is not found automatically, set the **Claude Code path** to the path found above, or click **Auto-detect**.
+3. Open **Settings → Obsidian Harness**. The default command (`claude-agent-acp`) works in many cases. If the agent is not found automatically, set the **Claude Code path** to the path found above, or click **Auto-detect**.
 
 ## Authentication
 
@@ -37,7 +37,7 @@ Choose one of the following methods:
 ### Option A: API Key
 
 1. Get your API key from [Anthropic Console](https://console.anthropic.com/)
-2. Open **Settings → Agent Client → Built-in agents → Claude Code → API key**
+2. Open **Settings → Obsidian Harness → Built-in agents → Claude Code → API key**
 3. Click the **Link...** button next to the API key field
 4. In the **Select secret** dialog:
    - To use an existing secret: select it from the list and click **Save**
@@ -52,7 +52,7 @@ API keys are stored in **Obsidian's Keychain** (Settings → Keychain). You can 
 ::: info Upgrading from a previous version
 If you previously stored your Claude API key in this plugin (v0.10.x or earlier), it is automatically migrated to Obsidian's Keychain as `claude-api-key` the first time you load the upgraded plugin. A one-time notification confirms the migration.
 
-If `claude-api-key` is already in use by another plugin with a different value, your key is preserved under `agent-client-claude-api-key` instead. You can rename it from **Settings → Keychain** if you prefer.
+If `claude-api-key` is already in use by another plugin with a different value, your key is preserved under `harness-claude-api-key` instead. You can rename it from **Settings → Keychain** if you prefer.
 :::
 
 ### Option B: Account Login
@@ -85,7 +85,7 @@ claude
 
 Follow the prompts to authenticate with your Anthropic account.
 
-3. In **Settings → Agent Client**, leave the **API key field empty**.
+3. In **Settings → Obsidian Harness**, leave the **API key field empty**.
 
 ::: tip
 The Claude Desktop app uses a different authentication system. Having Claude Desktop running does **not** authenticate the plugin — you must log in via the CLI.

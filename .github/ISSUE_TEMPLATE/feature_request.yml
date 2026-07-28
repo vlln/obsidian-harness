@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for suggesting a feature!
 
-        **💡 Have an early-stage idea?** Use [Ideas in Discussions](https://github.com/rait-09/obsidian-agent-client/discussions/categories/ideas) instead. This template is for concrete, well-defined feature requests.
+        **💡 Have an early-stage idea?** Use [Ideas in Discussions](https://github.com/vlln/obsidian-harness-frontend/discussions/categories/ideas) instead. This template is for concrete, well-defined feature requests.
 
         **Before submitting, please consider the project scope:**
         - Features achievable via MCP or other standard protocols are out of scope (they should be provided as MCP servers)

@@ -7,9 +7,9 @@ import {
 	shouldPersistResolvedAgentId,
 	uniqueNonEmpty,
 } from "../src/services/session-helpers";
-import type { AgentClientPluginSettings } from "../src/plugin";
+import type { HarnessPluginSettings } from "../src/plugin";
 
-function createMinimalSettings(): AgentClientPluginSettings {
+function createMinimalSettings(): HarnessPluginSettings {
 	return {
 		claude: {
 			id: "claude-code-acp",

@@ -1,11 +1,11 @@
 blank_issues_enabled: true
 contact_links:
   - name: Ask a Question
-    url: https://github.com/rait-09/obsidian-agent-client/discussions/categories/q-a
+    url: https://github.com/vlln/obsidian-harness-frontend/discussions/categories/q-a
     about: Ask questions about usage or configuration in Discussions
   - name: Share an Idea
-    url: https://github.com/rait-09/obsidian-agent-client/discussions/categories/ideas
+    url: https://github.com/vlln/obsidian-harness-frontend/discussions/categories/ideas
     about: Propose and discuss early-stage feature ideas in Discussions
   - name: Documentation
-    url: https://rait-09.github.io/obsidian-agent-client/
+    url: https://vlln.github.io/obsidian-harness/
     about: Check the documentation before opening an issue

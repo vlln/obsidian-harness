@@ -3,7 +3,7 @@ import * as React from "react";
 const { useMemo } = React;
 import { createRoot, Root } from "react-dom/client";
 
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import { ChatContextProvider } from "./ChatContext";
 import { ChatPanel } from "./ChatPanel";
 import { VaultService } from "../services/vault-service";
@@ -18,7 +18,7 @@ function SessionChatComponent({
 	viewId,
 	config,
 }: {
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	view: HarnessSessionView;
 	viewId: string;
 	config: SessionFileData;
@@ -71,14 +71,14 @@ function SessionChatComponent({
  */
 export class HarnessSessionView extends FileView {
 	private root: Root | null = null;
-	private plugin: AgentClientPlugin;
+	private plugin: HarnessPlugin;
 	private entryFilePath: string | null = null;
 	readonly viewId: string;
 
-	acpClient!: ReturnType<AgentClientPlugin["getOrCreateAcpClient"]>;
+	acpClient!: ReturnType<HarnessPlugin["getOrCreateAcpClient"]>;
 	vaultService!: VaultService;
 
-	constructor(leaf: WorkspaceLeaf, plugin: AgentClientPlugin) {
+	constructor(leaf: WorkspaceLeaf, plugin: HarnessPlugin) {
 		super(leaf);
 		this.plugin = plugin;
 		this.viewId = (leaf as { id?: string }).id ?? crypto.randomUUID();

@@ -6,7 +6,7 @@ import {
 	type MentionContext,
 } from "../utils/mention-parser";
 import type { SlashCommand } from "../types/session";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 
 // ============================================================================
 // Types
@@ -88,7 +88,7 @@ export interface UseSuggestionsReturn {
  */
 export function useSuggestions(
 	vaultAccess: IVaultAccess,
-	plugin: AgentClientPlugin,
+	plugin: HarnessPlugin,
 	availableCommands: SlashCommand[],
 	autoMentionDefault: boolean,
 ): UseSuggestionsReturn {

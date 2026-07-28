@@ -9,11 +9,11 @@ import {
 } from "obsidian";
 import { convertWslPathToWindows } from "../../utils/platform";
 import { isAbsolutePath } from "../../utils/paths";
-import type AgentClientPlugin from "../../plugin";
+import type HarnessPlugin from "../../plugin";
 
 interface MarkdownRendererProps {
 	text: string;
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 }
 
 export function MarkdownRenderer({ text, plugin }: MarkdownRendererProps) {
@@ -44,9 +44,9 @@ export function MarkdownRenderer({ text, plugin }: MarkdownRendererProps) {
 			const codeText = pre.textContent ?? "";
 			if (!codeText.trim()) continue;
 
-			pre.classList.add("agent-client-code-block-with-copy");
+			pre.classList.add("harness-code-block-with-copy");
 			const button = pre.createEl("button", {
-				cls: "clickable-icon agent-client-code-copy-button",
+				cls: "clickable-icon harness-code-copy-button",
 				attr: { "aria-label": "Copy code" },
 			});
 			setIcon(button, "copy");
@@ -123,7 +123,7 @@ export function MarkdownRenderer({ text, plugin }: MarkdownRendererProps) {
 	return (
 		<div
 			ref={containerRef}
-			className="agent-client-markdown-text-renderer"
+			className="harness-markdown-text-renderer"
 		/>
 	);
 }

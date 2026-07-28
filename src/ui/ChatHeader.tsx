@@ -100,13 +100,13 @@ function SidebarHeader({
 	onShowMenu,
 }: SidebarHeaderProps) {
 	return (
-		<div className="nav-header agent-client-chat-view-header">
+		<div className="nav-header harness-chat-view-header">
 			<div className="nav-buttons-container">
-				<span className="agent-client-chat-view-header-title">
+				<span className="harness-chat-view-header-title">
 					{agentLabel}
 				</span>
 				{isUpdateAvailable && (
-					<span className="agent-client-chat-view-header-update">
+					<span className="harness-chat-view-header-update">
 						Plugin update available!
 					</span>
 				)}
@@ -204,31 +204,31 @@ function FloatingHeader({
 
 	return (
 		<div
-			className={`agent-client-inline-header agent-client-inline-header-floating`}
+			className={`harness-inline-header harness-inline-header-floating`}
 		>
-			<div className="agent-client-inline-header-main">
+			<div className="harness-inline-header-main">
 				{availableAgents.length > 1 ? (
-					<div className="agent-client-agent-selector">
+					<div className="harness-agent-selector">
 						<div ref={agentDropdownRef} />
 						<span
-							className="agent-client-agent-selector-icon"
+							className="harness-agent-selector-icon"
 							ref={(el) => {
 								if (el) setIcon(el, "chevron-down");
 							}}
 						/>
 					</div>
 				) : (
-					<span className="agent-client-agent-label">
+					<span className="harness-agent-label">
 						{agentLabel}
 					</span>
 				)}
 			</div>
 			{isUpdateAvailable && (
-				<p className="agent-client-chat-view-header-update">
+				<p className="harness-chat-view-header-update">
 					Plugin update available!
 				</p>
 			)}
-			<div className="agent-client-inline-header-actions">
+			<div className="harness-inline-header-actions">
 				<HeaderButton
 					iconName="more-vertical"
 					tooltip="More"

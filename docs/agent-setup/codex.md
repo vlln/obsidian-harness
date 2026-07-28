@@ -28,7 +28,7 @@ where.exe codex-acp
 
 :::
 
-3. Open **Settings → Agent Client**. The default command (`codex-acp`) works in many cases. If the agent is not found automatically, set the **Codex path** to the path found above, or click **Auto-detect**.
+3. Open **Settings → Obsidian Harness**. The default command (`codex-acp`) works in many cases. If the agent is not found automatically, set the **Codex path** to the path found above, or click **Auto-detect**.
 
 ## Authentication
 
@@ -37,7 +37,7 @@ Choose one of the following methods:
 ### Option A: API Key
 
 1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Open **Settings → Agent Client → Built-in agents → Codex → API key**
+2. Open **Settings → Obsidian Harness → Built-in agents → Codex → API key**
 3. Click the **Link...** button next to the API key field
 4. In the **Select secret** dialog:
    - To use an existing secret: select it from the list and click **Save**
@@ -52,7 +52,7 @@ API keys are stored in **Obsidian's Keychain** (Settings → Keychain). You can 
 ::: info Upgrading from a previous version
 If you previously stored your OpenAI API key in this plugin (v0.10.x or earlier), it is automatically migrated to Obsidian's Keychain as `openai-api-key` the first time you load the upgraded plugin. A one-time notification confirms the migration.
 
-If `openai-api-key` is already in use by another plugin with a different value, your key is preserved under `agent-client-openai-api-key` instead. You can rename it from **Settings → Keychain** if you prefer.
+If `openai-api-key` is already in use by another plugin with a different value, your key is preserved under `harness-openai-api-key` instead. You can rename it from **Settings → Keychain** if you prefer.
 :::
 
 ### Option B: Account Login
@@ -77,7 +77,7 @@ codex
 
 Follow the prompts to authenticate with your OpenAI account.
 
-3. In **Settings → Agent Client**, leave the **API key field empty**.
+3. In **Settings → Obsidian Harness**, leave the **API key field empty**.
 
 ::: tip
 The ChatGPT app and Codex app use a different authentication system. Having ChatGPT running does **not** authenticate the plugin — you must log in via the CLI.

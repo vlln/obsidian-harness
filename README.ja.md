@@ -1,26 +1,24 @@
-<h1 align="center">Agent Client Plugin for Obsidian</h1>
+<h1 align="center">Obsidian Harness</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/github/downloads/RAIT-09/obsidian-agent-client/total" alt="GitHub Downloads">
-  <img src="https://img.shields.io/github/license/RAIT-09/obsidian-agent-client" alt="License">
-  <img src="https://img.shields.io/github/v/release/RAIT-09/obsidian-agent-client" alt="GitHub release">
-  <img src="https://img.shields.io/github/last-commit/RAIT-09/obsidian-agent-client" alt="GitHub last commit">
-  <a href="https://github.com/RAIT-09/obsidian-agent-client/discussions"><img src="https://img.shields.io/github/discussions/RAIT-09/obsidian-agent-client" alt="GitHub Discussions"></a>
+  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness-frontend/total" alt="GitHub Downloads">
+  <img src="https://img.shields.io/github/license/vlln/obsidian-harness-frontend" alt="License">
+  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness-frontend" alt="GitHub release">
+  <img src="https://img.shields.io/github/last-commit/vlln/obsidian-harness-frontend" alt="GitHub last commit">
+  <a href="https://github.com/vlln/obsidian-harness-frontend/discussions"><img src="https://img.shields.io/github/discussions/vlln/obsidian-harness-frontend" alt="GitHub Discussions"></a>
 </p>
 
 <p align="center">
-  <a href="https://community.obsidian.md/plugins/agent-client" target="_blank"><img src="https://img.shields.io/badge/Add%20to%20Obsidian-7c3aed?logo=obsidian&logoColor=white&style=for-the-badge" alt="Add to Obsidian"></a>
+  <a href="README.md">English version</a>
 </p>
 
-<p align="center">
-  <a href="https://www.buymeacoffee.com/rait09" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="180" height="50" ></a>
-</p>
+> Obsidian をコックピットに、Agent をエンジンに — ナレッジベースから AI コーディングエージェントを管理。
 
-AIエージェント（Claude Code、Codex、Gemini CLI）をObsidianに直接統合。Vault内からAIアシスタントとチャットできます。
+AIエージェント（Claude Code、Codex、Gemini CLI）をObsidianに直接統合。Vault内からAIアシスタントとチャットでき、ノートをすべてのエージェントセッションの制御平面として利用できます。
 
 このプラグインは、Zed の [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol) で構築されています。
 
-https://github.com/user-attachments/assets/1c538349-b3fb-44dd-a163-7331cbca7824
+<!-- TODO: 自分のデモ動画に差し替えること。このリポジトリの GitHub issue/PR にアップロードし、生成された https://github.com/user-attachments/assets/... URL を下に貼り付けてください。 -->
 
 ## 機能
 
@@ -38,25 +36,19 @@ https://github.com/user-attachments/assets/1c538349-b3fb-44dd-a163-7331cbca7824
 
 ## インストール
 
-### コミュニティプラグインから（推奨）
+### BRAT経由（推奨）
 
-1. **設定 → コミュニティプラグイン → 閲覧** を開く
-2. **「Agent Client」** を検索
-3. **インストール** → **有効化** をクリック
-
-### BRAT経由（プレリリース版）
-
-コミュニティプラグインに公開される前のプレリリース版を試すには:
+このプラグインはまだ Obsidian コミュニティプラグインディレクトリに登録されていません。[BRAT](https://github.com/TfTHacker/obsidian42-brat) を使ってインストールします:
 
 1. [BRAT](https://github.com/TfTHacker/obsidian42-brat) プラグインをインストール
 2. **設定 → BRAT → Add Beta Plugin** に移動
-3. 貼り付け: `https://github.com/RAIT-09/obsidian-agent-client`
-4. プラグインリストから **Agent Client** を有効化
+3. 貼り付け: `https://github.com/vlln/obsidian-harness-frontend`
+4. プラグインリストから **Obsidian Harness** を有効化
 
 ### 手動インストール
 
-1. [リリース](https://github.com/RAIT-09/obsidian-agent-client/releases)から `main.js`、`manifest.json`、`styles.css` をダウンロード
-2. `VaultFolder/.obsidian/plugins/agent-client/` に配置
+1. [リリース](https://github.com/vlln/obsidian-harness-frontend/releases)から `main.js`、`manifest.json`、`styles.css` をダウンロード
+2. `VaultFolder/.obsidian/plugins/obsidian-harness/` に配置
 3. **設定 → コミュニティプラグイン** でプラグインを有効化
 
 ## クイックスタート
@@ -84,7 +76,7 @@ https://github.com/user-attachments/assets/1c538349-b3fb-44dd-a163-7331cbca7824
    where.exe claude-agent-acp
    ```
 
-4. **設定 → Agent Client** で設定:
+4. **設定 → Obsidian Harness** で設定:
    - **Node.js path**: 例: `/usr/local/bin/node`
    - **Built-in agents → Claude Code → Path**: 例: `/usr/local/bin/claude-agent-acp`（`claude`ではない）
    - **API key**: キーを追加、またはCLIでログイン済みの場合は空欄
@@ -93,12 +85,12 @@ https://github.com/user-attachments/assets/1c538349-b3fb-44dd-a163-7331cbca7824
 
 ### セットアップガイド
 
-- [Claude Code](https://rait-09.github.io/obsidian-agent-client/agent-setup/claude-code.html)
-- [Codex](https://rait-09.github.io/obsidian-agent-client/agent-setup/codex.html)
-- [Gemini CLI](https://rait-09.github.io/obsidian-agent-client/agent-setup/gemini-cli.html)
-- [カスタムエージェント](https://rait-09.github.io/obsidian-agent-client/agent-setup/custom-agents.html)（OpenCode、Qwen Code、Kiro、Mistral Vibeなど）
+- [Claude Code](https://vlln.github.io/obsidian-harness/agent-setup/claude-code.html)
+- [Codex](https://vlln.github.io/obsidian-harness/agent-setup/codex.html)
+- [Gemini CLI](https://vlln.github.io/obsidian-harness/agent-setup/gemini-cli.html)
+- [カスタムエージェント](https://vlln.github.io/obsidian-harness/agent-setup/custom-agents.html)（OpenCode、Qwen Code、Kiro、Mistral Vibeなど）
 
-**[ドキュメント全文](https://rait-09.github.io/obsidian-agent-client/)**
+**[ドキュメント全文](https://vlln.github.io/obsidian-harness/)**
 
 ## 開発
 
@@ -118,4 +110,4 @@ Apache License 2.0 - 詳細は [LICENSE](LICENSE) を参照。
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=RAIT-09/obsidian-agent-client&type=Date)](https://www.star-history.com/#RAIT-09/obsidian-agent-client&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=vlln/obsidian-harness-frontend&type=Date)](https://www.star-history.com/#vlln/obsidian-harness-frontend&Date)

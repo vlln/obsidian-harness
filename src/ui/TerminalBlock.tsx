@@ -91,12 +91,12 @@ export const TerminalBlock = React.memo(function TerminalBlock({
 	}, [isRunning]);
 
 	return (
-		<div className="agent-client-terminal-renderer">
+		<div className="harness-terminal-renderer">
 			{output || (isRunning ? "Waiting for output..." : "No output")}
 
 			{exitStatus && (
 				<div
-					className={`agent-client-terminal-renderer-exit ${exitStatus.exitCode === 0 ? "agent-client-success" : "agent-client-error"}`}
+					className={`harness-terminal-renderer-exit ${exitStatus.exitCode === 0 ? "harness-success" : "harness-error"}`}
 				>
 					Exit Code: {exitStatus.exitCode}
 					{exitStatus.signal && ` | Signal: ${exitStatus.signal}`}

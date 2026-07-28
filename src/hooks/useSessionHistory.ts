@@ -79,7 +79,7 @@ export interface MessagesRestoreCallback {
  */
 export interface UseSessionHistoryOptions {
 	/** Agent client for session operations */
-	agentClient: AcpClient;
+	harness: AcpClient;
 	/** Current session (used to access agentCapabilities and agentId) */
 	session: ChatSession;
 	/** Settings access for local session storage */
@@ -196,13 +196,13 @@ function titleFromEntryFile(entryFile: string): string {
  * Capability detection is based on session.agentCapabilities, which is set
  * during initialization and persists for the session lifetime.
  *
- * @param options - Hook options including agentClient, session, and onSessionLoad
+ * @param options - Hook options including harness, session, and onSessionLoad
  */
 export function useSessionHistory(
 	options: UseSessionHistoryOptions,
 ): UseSessionHistoryReturn {
 	const {
-		agentClient,
+		harness,
 		session,
 		settingsAccess,
 		onSessionLoad,
@@ -289,7 +289,7 @@ export function useSessionHistory(
 				onSessionLoad(sessionId, undefined, undefined);
 
 				if (capabilities.canLoad) {
-					const result = await agentClient.loadSession(
+					const result = await harness.loadSession(
 						sessionId,
 						cwd,
 					);
@@ -300,7 +300,7 @@ export function useSessionHistory(
 					);
 				} else if (capabilities.canResume) {
 					// Use resume (without history replay, restore from local storage)
-					const result = await agentClient.resumeSession(
+					const result = await harness.resumeSession(
 						sessionId,
 						cwd,
 					);
@@ -331,7 +331,7 @@ export function useSessionHistory(
 			}
 		},
 		[
-			agentClient,
+			harness,
 			capabilities.canLoad,
 			capabilities.canResume,
 			onSessionLoad,
@@ -352,7 +352,7 @@ export function useSessionHistory(
 			setError(null);
 
 			try {
-				const result = await agentClient.forkSession(sessionId, cwd);
+				const result = await harness.forkSession(sessionId, cwd);
 
 				// Update with new session ID and modes/models from result
 				// For fork, the new session ID is returned in result
@@ -381,7 +381,7 @@ export function useSessionHistory(
 			}
 		},
 		[
-			agentClient,
+			harness,
 			onSessionLoad,
 			settingsAccess,
 			onMessagesRestore,

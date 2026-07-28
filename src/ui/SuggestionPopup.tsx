@@ -92,16 +92,16 @@ export function SuggestionPopup({
 			return (
 				<div
 					key={`mention-${index}`}
-					className={`agent-client-mention-dropdown-item ${isSelected ? "agent-client-selected" : ""} ${hasBorder ? "agent-client-has-border" : ""}`}
+					className={`harness-mention-dropdown-item ${isSelected ? "harness-selected" : ""} ${hasBorder ? "harness-has-border" : ""}`}
 					onClick={() => onSelect(note)}
 					onMouseEnter={() => {
 						// Could update selected index on hover
 					}}
 				>
-					<div className="agent-client-mention-dropdown-item-name">
+					<div className="harness-mention-dropdown-item-name">
 						{note.name}
 					</div>
-					<div className="agent-client-mention-dropdown-item-path">
+					<div className="harness-mention-dropdown-item-path">
 						{note.path}
 					</div>
 				</div>
@@ -112,16 +112,16 @@ export function SuggestionPopup({
 			return (
 				<div
 					key={`command-${index}`}
-					className={`agent-client-mention-dropdown-item ${isSelected ? "agent-client-selected" : ""} ${hasBorder ? "agent-client-has-border" : ""}`}
+					className={`harness-mention-dropdown-item ${isSelected ? "harness-selected" : ""} ${hasBorder ? "harness-has-border" : ""}`}
 					onClick={() => onSelect(command)}
 					onMouseEnter={() => {
 						// Could update selected index on hover
 					}}
 				>
-					<div className="agent-client-mention-dropdown-item-name">
+					<div className="harness-mention-dropdown-item-name">
 						/{command.name}
 					</div>
-					<div className="agent-client-mention-dropdown-item-path">
+					<div className="harness-mention-dropdown-item-path">
 						{command.description}
 						{command.hint && ` (${command.hint})`}
 					</div>
@@ -131,7 +131,7 @@ export function SuggestionPopup({
 	};
 
 	return (
-		<div ref={dropdownRef} className="agent-client-mention-dropdown">
+		<div ref={dropdownRef} className="harness-mention-dropdown">
 			{items.map((item, index) => renderItem(item, index))}
 		</div>
 	);

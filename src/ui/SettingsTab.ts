@@ -6,7 +6,7 @@ import {
 	Platform,
 	SecretComponent,
 } from "obsidian";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type {
 	CustomAgentSettings,
 	AgentEnvVar,
@@ -22,12 +22,12 @@ import {
 
 /* eslint-disable obsidianmd/ui/sentence-case -- Settings labels contain product names, API acronyms, CLI names, environment variables, and placeholders. */
 
-export class AgentClientSettingTab extends PluginSettingTab {
-	plugin: AgentClientPlugin;
+export class HarnessSettingTab extends PluginSettingTab {
+	plugin: HarnessPlugin;
 	private agentSelector: DropdownComponent | null = null;
 	private unsubscribe: (() => void) | null = null;
 
-	constructor(app: App, plugin: AgentClientPlugin) {
+	constructor(app: App, plugin: HarnessPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -46,12 +46,12 @@ export class AgentClientSettingTab extends PluginSettingTab {
 
 		// Documentation link
 		const docContainer = containerEl.createDiv({
-			cls: "agent-client-doc-link",
+			cls: "harness-doc-link",
 		});
 		docContainer.createSpan({ text: "Need help? Check out the " });
 		docContainer.createEl("a", {
 			text: "documentation",
-			href: "https://rait-09.github.io/obsidian-agent-client/",
+			href: "https://vlln.github.io/obsidian-harness/",
 			attr: { target: "_blank" },
 		});
 		docContainer.createSpan({ text: "." });
@@ -565,7 +565,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 			.setDesc("Folder where chat exports will be saved")
 			.addText((text) =>
 				text
-					.setPlaceholder("Agent Client")
+					.setPlaceholder("Harness")
 					.setValue(this.plugin.settings.exportSettings.defaultFolder)
 					.onChange(async (value) => {
 						await this.plugin.settingsService.updateSettings({
@@ -584,7 +584,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder("agent_client_{date}_{time}")
+					.setPlaceholder("harness_{date}_{time}")
 					.setValue(
 						this.plugin.settings.exportSettings.filenameTemplate,
 					)
@@ -601,11 +601,11 @@ export class AgentClientSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Frontmatter tag")
 			.setDesc(
-				"Tag to add to exported notes. Supports nested tags (e.g., projects/agent-client). Leave empty to disable.",
+				"Tag to add to exported notes. Supports nested tags (e.g., projects/harness). Leave empty to disable.",
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder("agent-client")
+					.setPlaceholder("harness")
 					.setValue(
 						this.plugin.settings.exportSettings.frontmatterTag,
 					)
@@ -678,7 +678,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 					)
 					.addText((text) =>
 						text
-							.setPlaceholder("Agent Client")
+							.setPlaceholder("Harness")
 							.setValue(
 								this.plugin.settings.exportSettings
 									.imageCustomFolder,
@@ -1211,7 +1211,7 @@ export class AgentClientSettingTab extends PluginSettingTab {
 		index: number,
 	) {
 		const blockEl = containerEl.createDiv({
-			cls: "agent-client-custom-agent",
+			cls: "harness-custom-agent",
 		});
 
 		const idSetting = new Setting(blockEl)

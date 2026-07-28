@@ -169,7 +169,7 @@ describe("Obsidian Harness Plugin", () => {
 		await browser.execute(async () => {
 			const app = (window as any).app;
 			const leaves =
-				app?.workspace?.getLeavesOfType("agent-client-chat-view") ?? [];
+				app?.workspace?.getLeavesOfType("harness-chat-view") ?? [];
 			for (const leaf of leaves) {
 				await leaf.detach();
 			}

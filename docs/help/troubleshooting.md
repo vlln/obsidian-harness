@@ -1,6 +1,6 @@
 # Troubleshooting
 
-This guide covers common issues and solutions for Agent Client.
+This guide covers common issues and solutions for Obsidian Harness.
 
 ## Connection Issues
 
@@ -15,11 +15,11 @@ The plugin is trying to start the agent process but isn't receiving a response.
 
 **Solutions:**
 
-1. **Verify the agent path** in **Settings → Agent Client → [Agent Name] → Path**
+1. **Verify the agent path** in **Settings → Obsidian Harness → [Agent Name] → Path**
    - On macOS/Linux, find the path with: `which claude-agent-acp`
    - On Windows, find the path with: `where claude-agent-acp`
 
-2. **Verify Node.js path** in **Settings → Agent Client → Node.js path**
+2. **Verify Node.js path** in **Settings → Obsidian Harness → Node.js path**
    - Many agents require Node.js
    - Find it with: `which node` (macOS/Linux) or `where node` (Windows)
 
@@ -42,14 +42,14 @@ The agent executable cannot be found at the specified path.
 The agent requires authentication before processing requests.
 
 **For Claude Code:**
-- **API key**: Open **Settings → Agent Client → Built-in agents → Claude Code → API key**, click **Link...**, and link or create a secret. See [Claude Code Setup](/agent-setup/claude-code#authentication).
+- **API key**: Open **Settings → Obsidian Harness → Built-in agents → Claude Code → API key**, click **Link...**, and link or create a secret. See [Claude Code Setup](/agent-setup/claude-code#authentication).
 - **Account login**: Run `claude` in Terminal first and complete the login flow
 
 **For Codex:**
-- Open **Settings → Agent Client → Built-in agents → Codex → API key**, click **Link...**, and link or create a secret. See [Codex Setup](/agent-setup/codex#authentication).
+- Open **Settings → Obsidian Harness → Built-in agents → Codex → API key**, click **Link...**, and link or create a secret. See [Codex Setup](/agent-setup/codex#authentication).
 
 **For Gemini CLI:**
-- Open **Settings → Agent Client → Built-in agents → Gemini CLI → API key**, click **Link...**, and link or create a secret. See [Gemini CLI Setup](/agent-setup/gemini-cli#authentication).
+- Open **Settings → Obsidian Harness → Built-in agents → Gemini CLI → API key**, click **Link...**, and link or create a secret. See [Gemini CLI Setup](/agent-setup/gemini-cli#authentication).
 - Or run `gemini` in Terminal first to authenticate with your Google account
 
 ### "No Authentication Methods" error
@@ -88,7 +88,7 @@ The agent connected but couldn't create a session.
 
 The selected agent ID doesn't exist in settings.
 
-**Solution:** Go to **Settings → Agent Client** and select a valid agent from the **Active agent** dropdown.
+**Solution:** Go to **Settings → Obsidian Harness** and select a valid agent from the **Active agent** dropdown.
 
 ## Message Sending Issues
 
@@ -119,9 +119,9 @@ The conversation couldn't be saved.
 
 **Solutions:**
 
-1. Check that the export folder exists (**Settings → Agent Client → Export → Export folder**)
+1. Check that the export folder exists (**Settings → Obsidian Harness → Export → Export folder**)
 2. Verify the folder name is valid (no special characters that aren't allowed in folder names)
-3. Check the filename template for invalid characters (**Settings → Agent Client → Export → Filename**)
+3. Check the filename template for invalid characters (**Settings → Obsidian Harness → Export → Filename**)
 
 ## Multi-Device Vault Sync
 
@@ -140,7 +140,7 @@ If you sync your vault (e.g., via Nextcloud, Syncthing, or iCloud) across machin
 - A Linux distribution must be installed: Run `wsl --list`
 
 **Settings:**
-- Enable **Settings → Agent Client → Windows Subsystem for Linux → Enable WSL mode**
+- Enable **Settings → Obsidian Harness → Windows Subsystem for Linux → Enable WSL mode**
 - Optionally specify your distribution in **WSL distribution**
 
 **Using a Node version manager (nvm/fnm) inside WSL:**
@@ -187,7 +187,7 @@ Desktop applications on Linux may not inherit PATH settings from `.bashrc`.
 
 If you need more detailed information about an issue, enable Debug mode:
 
-1. Go to **Settings → Agent Client → Developer → Debug mode**
+1. Go to **Settings → Obsidian Harness → Developer → Debug mode**
 2. Enable the toggle
 3. Open DevTools:
    - macOS: `Cmd + Option + I`
@@ -218,7 +218,7 @@ If you need more detailed information about an issue, enable Debug mode:
 If you're still experiencing issues:
 
 1. Enable **Debug mode** and check console logs
-2. Search [GitHub Issues](https://github.com/RAIT-09/obsidian-agent-client/issues)
+2. Search [GitHub Issues](https://github.com/vlln/obsidian-harness-frontend/issues)
 3. Open a new issue with:
    - Your OS and Obsidian version
    - The agent you're using

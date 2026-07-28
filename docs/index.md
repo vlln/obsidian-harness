@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: "Agent Client"
+  name: "Obsidian Harness"
   text: "AI Agents in Obsidian"
   tagline: Chat with Claude Code, Codex, Gemini CLI, and more — right from your vault
   actions:
@@ -11,7 +11,7 @@ hero:
       link: /getting-started/
     - theme: alt
       text: View on GitHub
-      link: https://github.com/RAIT-09/obsidian-agent-client
+      link: https://github.com/vlln/obsidian-harness-frontend
 
 features:
   - icon: 🤖
@@ -40,9 +40,9 @@ features:
   </video>
 </div>
 
-## What is Agent Client?
+## What is Obsidian Harness?
 
-Agent Client is an Obsidian plugin that brings AI coding agents directly into your vault. Built on the [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol), it enables seamless communication with various AI agents.
+Obsidian Harness is an Obsidian plugin that brings AI coding agents directly into your vault. Built on the [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol), it enables seamless communication with various AI agents.
 
 ### Supported Agents
 

@@ -6,7 +6,7 @@ You can use any agent that implements the [Agent Client Protocol (ACP)](https://
 
 1. Install your ACP-compatible agent (e.g., [OpenCode](https://github.com/anomalyco/opencode), [Qwen Code](https://github.com/QwenLM/qwen-code), [Kiro](https://kiro.dev/)).
 
-2. Open **Settings → Agent Client** and scroll to **Custom Agents** section.
+2. Open **Settings → Obsidian Harness** and scroll to **Custom Agents** section.
 
 3. Click **Add custom agent**.
 

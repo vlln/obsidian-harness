@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 
 /**
  * Hook for subscribing to plugin settings changes.
@@ -8,9 +8,9 @@ import type AgentClientPlugin from "../plugin";
  * ensuring React re-renders when settings change.
  *
  * @param plugin - Plugin instance containing the settings store
- * @returns Current settings snapshot (AgentClientPluginSettings)
+ * @returns Current settings snapshot (HarnessPluginSettings)
  */
-export function useSettings(plugin: AgentClientPlugin) {
+export function useSettings(plugin: HarnessPlugin) {
 	return useSyncExternalStore(
 		plugin.settingsService.subscribe,
 		plugin.settingsService.getSnapshot,

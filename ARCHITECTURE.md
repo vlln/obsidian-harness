@@ -158,7 +158,7 @@ src/
 **ChatContext** provides shared services to the component tree:
 ```typescript
 interface ChatContextValue {
-  plugin: AgentClientPlugin;
+  plugin: HarnessPlugin;
   acpClient: AcpClient;
   vaultService: VaultService;
   settingsService: SettingsService;

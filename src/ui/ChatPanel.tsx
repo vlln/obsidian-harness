@@ -14,7 +14,6 @@ import type { AttachedFile, ChatInputState } from "../types/chat";
 
 import { isSameDirectory } from "../utils/platform";
 import {
-	buildGeminiDeprecationNotice,
 	computeSessionTitle,
 	shouldPersistResolvedAgentId,
 	shouldPersistResolvedSessionId,
@@ -169,7 +168,7 @@ export function ChatPanel({
 	// Platform Check
 	// ============================================================
 	if (!Platform.isDesktopApp) {
-		throw new Error("Agent Client is only available on desktop");
+		throw new Error("Harness is only available on desktop");
 	}
 
 	// ============================================================
@@ -245,7 +244,7 @@ export function ChatPanel({
 	);
 
 	const sessionHistory = useSessionHistory({
-		agentClient: acpClient,
+		harness: acpClient,
 		session,
 		settingsAccess: plugin.settingsService,
 		cwd: vaultPath,
@@ -378,45 +377,6 @@ export function ChatPanel({
 		autoExportIfEnabled,
 	} = actions;
 
-	// ============================================================
-	// Gemini CLI deprecation notice (static, agent-id driven)
-	// ============================================================
-	// Independent channel from the npm-backed agentUpdateNotification:
-	// derived synchronously from the active agent id (no network).
-	const geminiNotice = useMemo(
-		() =>
-			session.agentId === plugin.settings.gemini.id
-				? buildGeminiDeprecationNotice()
-				: null,
-		[session.agentId, plugin.settings.gemini.id],
-	);
-
-	// Dismiss state lives locally in ChatPanel so it never races with the
-	// async setAgentUpdateNotification owned by useChatActions.
-	const [geminiNoticeDismissed, setGeminiNoticeDismissed] = useState(false);
-
-	// Re-show the notice when switching agents (e.g. away and back to Gemini).
-	useEffect(() => {
-		setGeminiNoticeDismissed(false);
-	}, [session.agentId]);
-
-	const effectiveGeminiNotice =
-		geminiNotice && !geminiNoticeDismissed ? geminiNotice : null;
-
-	const handleClearGeminiNotice = useCallback(
-		() => setGeminiNoticeDismissed(true),
-		[],
-	);
-
-	// Wrap send so the Gemini notice also dismisses on send, mirroring how
-	// useChatActions clears agentUpdateNotification inside handleSendMessage.
-	const handleSendMessageWithGeminiDismiss = useCallback(
-		(content: string, attachments?: AttachedFile[]) => {
-			setGeminiNoticeDismissed(true);
-			return handleSendMessage(content, attachments);
-		},
-		[handleSendMessage],
-	);
 
 	const { handleOpenHistory } = useHistoryModal(
 		plugin,
@@ -737,7 +697,7 @@ export function ChatPanel({
 			messages.length > 0
 		) {
 			if (!activeDocument.hasFocus()) {
-				new Notification("Agent Client", {
+				new Notification("Harness", {
 					body: `${activeAgentLabel} has completed the response.`,
 				});
 			}
@@ -833,7 +793,7 @@ export function ChatPanel({
 			settings.enableSystemNotifications &&
 			!activeDocument.hasFocus()
 		) {
-			new Notification("Agent Client", {
+			new Notification("Harness", {
 				body: `${activeAgentLabel} is requesting permission.`,
 			});
 		}
@@ -894,7 +854,7 @@ export function ChatPanel({
 		const refs = [
 			// Toggle auto-mention
 			ws.on(
-				"agent-client:toggle-auto-mention",
+				"harness:toggle-auto-mention",
 				(targetViewId?: string) => {
 					if (targetViewId && targetViewId !== viewId) return;
 					suggestions.mentions.toggleAutoMention();
@@ -903,7 +863,7 @@ export function ChatPanel({
 
 			// New chat requested (from "New chat" or "Switch agent to" commands)
 			ws.on(
-				"agent-client:new-chat-requested",
+				"harness:new-chat-requested",
 				(targetViewId?: string, agentId?: string) => {
 					if (targetViewId && targetViewId !== viewId) return;
 					void handleStartNewSessionEntryRef.current(agentId);
@@ -912,7 +872,7 @@ export function ChatPanel({
 
 			// Approve active permission
 			ws.on(
-				"agent-client:approve-active-permission",
+				"harness:approve-active-permission",
 				(targetViewId?: string) => {
 					if (targetViewId && targetViewId !== viewId) return;
 					void (async () => {
@@ -929,7 +889,7 @@ export function ChatPanel({
 
 			// Reject active permission
 			ws.on(
-				"agent-client:reject-active-permission",
+				"harness:reject-active-permission",
 				(targetViewId?: string) => {
 					if (targetViewId && targetViewId !== viewId) return;
 					void (async () => {
@@ -945,13 +905,13 @@ export function ChatPanel({
 			),
 
 			// Cancel current message
-			ws.on("agent-client:cancel-message", (targetViewId?: string) => {
+			ws.on("harness:cancel-message", (targetViewId?: string) => {
 				if (targetViewId && targetViewId !== viewId) return;
 				void handleStopGenerationRef.current();
 			}),
 
 			// Export chat
-			ws.on("agent-client:export-chat", (targetViewId?: string) => {
+			ws.on("harness:export-chat", (targetViewId?: string) => {
 				if (targetViewId && targetViewId !== viewId) return;
 				void handleExportChatRef.current();
 			}),
@@ -1111,14 +1071,14 @@ export function ChatPanel({
 
 	const cwdBanner =
 		agentCwd !== vaultPath && !isSameDirectory(agentCwd, vaultPath) ? (
-			<div className="agent-client-cwd-banner" title={agentCwd}>
+			<div className="harness-cwd-banner" title={agentCwd}>
 				<span
-					className="agent-client-cwd-banner-icon"
+					className="harness-cwd-banner-icon"
 					ref={(el) => {
 						if (el) setIcon(el, "folder-open");
 					}}
 				/>
-				<span className="agent-client-cwd-banner-path">{agentCwd}</span>
+				<span className="harness-cwd-banner-path">{agentCwd}</span>
 			</div>
 		) : null;
 
@@ -1194,9 +1154,9 @@ export function ChatPanel({
 
 	const continuationStatusElement = (
 		<div
-			className={`agent-client-continuation-status is-${continuationState.type}`}
+			className={`harness-continuation-status is-${continuationState.type}`}
 		>
-			<div className="agent-client-continuation-copy">
+			<div className="harness-continuation-copy">
 				<strong>
 					{continuationState.type === "resumable"
 						? "Connected"
@@ -1268,7 +1228,7 @@ export function ChatPanel({
 				suggestions={suggestions}
 				plugin={plugin}
 				view={viewHost}
-				onSendMessage={handleSendMessageWithGeminiDismiss}
+				onSendMessage={handleSendMessage}
 				onStopGeneration={handleStopGeneration}
 				onRestoredMessageConsumed={handleRestoredMessageConsumed}
 				modes={session.modes}
@@ -1292,28 +1252,25 @@ export function ChatPanel({
 				// Agent update notification props
 				agentUpdateNotification={agentUpdateNotification}
 				onClearAgentUpdate={handleClearAgentUpdate}
-				// Gemini CLI deprecation notice props
-				geminiNotice={effectiveGeminiNotice}
-				onClearGeminiNotice={handleClearGeminiNotice}
 				messages={messages}
 			/>
 		) : null;
 
 	if (variant === "floating") {
-		// Floating layout: no wrapper div. Parent agent-client-floating-window is the flex container.
+		// Floating layout: no wrapper div. Parent harness-floating-window is the flex container.
 		// Focus tracking uses containerElProp (from FloatingChatView's containerRef).
 		return (
 			<>
 				<div
-					className="agent-client-floating-header"
+					className="harness-floating-header"
 					onMouseDown={onFloatingHeaderMouseDown}
 				>
 					{headerElement}
 				</div>
 				{cwdBanner}
 				{continuationStatusElement}
-				<div className="agent-client-floating-content">
-					<div className="agent-client-floating-messages-container">
+				<div className="harness-floating-content">
+					<div className="harness-floating-messages-container">
 						{messageListElement}
 					</div>
 					{inputAreaElement}
@@ -1326,7 +1283,7 @@ export function ChatPanel({
 	return (
 		<div
 			ref={containerRef}
-			className="agent-client-chat-view-container"
+			className="harness-chat-view-container"
 			style={chatFontSizeStyle}
 		>
 			{headerElement}

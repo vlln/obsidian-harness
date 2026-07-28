@@ -51,14 +51,14 @@ export function ErrorBanner({
 
 	return (
 		<div
-			className={`agent-client-error-overlay agent-client-error-overlay--${variant}`}
+			className={`harness-error-overlay harness-error-overlay--${variant}`}
 		>
-			<div className="agent-client-error-overlay-header">
-				<h4 className="agent-client-error-overlay-title">
+			<div className="harness-error-overlay-header">
+				<h4 className="harness-error-overlay-title">
 					{errorInfo.title}
 				</h4>
 				<button
-					className="agent-client-error-overlay-close"
+					className="harness-error-overlay-close"
 					onClick={onClose}
 					aria-label="Close"
 					type="button"
@@ -69,19 +69,19 @@ export function ErrorBanner({
 					}}
 				/>
 			</div>
-			<p className="agent-client-error-overlay-message">
+			<p className="harness-error-overlay-message">
 				{errorInfo.message}
 			</p>
 			{errorInfo.suggestion && (
-				<div className="agent-client-error-overlay-suggestion">
+				<div className="harness-error-overlay-suggestion">
 					{showEmojis && variant === "error" && (
 						<LucideIcon
 							name="circle-alert"
-							className="agent-client-error-overlay-suggestion-icon"
+							className="harness-error-overlay-suggestion-icon"
 						/>
 					)}
 					{variant !== "error" ? (
-						<code className="agent-client-error-overlay-code">
+						<code className="harness-error-overlay-code">
 							{errorInfo.suggestion}
 						</code>
 					) : (
@@ -91,7 +91,7 @@ export function ErrorBanner({
 			)}
 			{errorInfo.link && (
 				<a
-					className="agent-client-error-overlay-link"
+					className="harness-error-overlay-link"
 					href={errorInfo.link.url}
 					target="_blank"
 					rel="noopener noreferrer"

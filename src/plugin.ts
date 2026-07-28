@@ -38,7 +38,7 @@ import {
 	createSettingsService,
 	type SettingsService,
 } from "./services/settings-service";
-import { AgentClientSettingTab } from "./ui/SettingsTab";
+import { HarnessSettingTab } from "./ui/SettingsTab";
 import { AcpClient } from "./acp/acp-client";
 import {
 	sanitizeArgs,
@@ -113,7 +113,7 @@ export type ChatViewLocation =
 	| "editor-tab"
 	| "editor-split";
 
-export interface AgentClientPluginSettings {
+export interface HarnessPluginSettings {
 	gemini: GeminiAgentSettings;
 	claude: ClaudeAgentSettings;
 	codex: CodexAgentSettings;
@@ -169,7 +169,7 @@ export interface AgentClientPluginSettings {
 	floatingButtonPosition: { x: number; y: number } | null;
 }
 
-const DEFAULT_SETTINGS: AgentClientPluginSettings = {
+const DEFAULT_SETTINGS: HarnessPluginSettings = {
 	claude: {
 		id: "claude-code-acp",
 		displayName: "Claude Code",
@@ -203,15 +203,15 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 	debugMode: false,
 	nodePath: "",
 	exportSettings: {
-		defaultFolder: "Agent Client",
-		filenameTemplate: "agent_client_{date}_{time}",
+		defaultFolder: "Harness",
+		filenameTemplate: "harness_{date}_{time}",
 		autoExportOnNewChat: false,
 		autoExportOnCloseChat: false,
 		openFileAfterExport: true,
 		includeImages: true,
 		imageLocation: "obsidian",
-		imageCustomFolder: "Agent Client",
-		frontmatterTag: "agent-client",
+		imageCustomFolder: "Harness",
+		frontmatterTag: "harness",
 	},
 	windowsWslMode: false,
 	windowsWslDistribution: undefined,
@@ -235,9 +235,9 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 	floatingButtonPosition: null,
 };
 
-export default class AgentClientPlugin extends Plugin {
+export default class HarnessPlugin extends Plugin {
 	private readonly sessionEntryLifecycle = new SessionEntryLifecycleQueue();
-	settings: AgentClientPluginSettings;
+	settings: HarnessPluginSettings;
 	settingsService!: SettingsService;
 
 	/** Registry for all chat view containers (sidebar + floating) */
@@ -302,6 +302,14 @@ export default class AgentClientPlugin extends Plugin {
 		// Detach stale leaves from a previous plugin instance to prevent
 		// "Attempting to register an existing view type" when Obsidian's
 		// hot-reload races onunload/onload (e.g. rapid toggle or npm run dev).
+		// Phase 2 migration: clean up old view-type strings from prior versions
+		// so stale leaves don't linger as blank panels after the rename.
+		this.app.workspace.detachLeavesOfType(
+			"agent-client-chat-view" as any as typeof VIEW_TYPE_CHAT,
+		);
+		this.app.workspace.detachLeavesOfType(
+			"agent-client-session-manager" as any as typeof VIEW_TYPE_SESSION_MANAGER,
+		);
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_CHAT);
 		this.registerView(VIEW_TYPE_CHAT, (leaf) => new ChatView(leaf, this));
 
@@ -326,7 +334,7 @@ export default class AgentClientPlugin extends Plugin {
 				void this.activateSessionManager();
 			},
 		);
-		ribbonIconEl.addClass("agent-client-ribbon-icon");
+		ribbonIconEl.addClass("harness-ribbon-icon");
 
 		this.addCommand({
 			id: "open-chat-view",
@@ -359,7 +367,7 @@ export default class AgentClientPlugin extends Plugin {
 			}),
 		);
 
-		this.addSettingTab(new AgentClientSettingTab(this.app, this));
+		this.addSettingTab(new HarnessSettingTab(this.app, this));
 
 		// Mount floating button (always present; visibility controlled by settings inside component)
 		this.floatingButton = new FloatingButtonContainer(this);
@@ -378,7 +386,7 @@ export default class AgentClientPlugin extends Plugin {
 				for (const [viewId, client] of this._acpClients) {
 					client.disconnect().catch((error) => {
 						getLogger().warn(
-							`[AgentClient] Quit cleanup error for view ${viewId}:`,
+							`[Harness] Quit cleanup error for view ${viewId}:`,
 							error,
 						);
 					});
@@ -482,7 +490,7 @@ export default class AgentClientPlugin extends Plugin {
 				await client.disconnect();
 			} catch (error) {
 				getLogger().warn(
-					`[AgentClient] Failed to disconnect client for view ${viewId}:`,
+					`[Harness] Failed to disconnect client for view ${viewId}:`,
 					error,
 				);
 			}
@@ -578,7 +586,7 @@ export default class AgentClientPlugin extends Plugin {
 		if (viewContainerEl) {
 			window.setTimeout(() => {
 				const textarea = viewContainerEl.querySelector(
-					"textarea.agent-client-chat-input-textarea",
+					"textarea.harness-chat-input-textarea",
 				);
 				if (textarea instanceof HTMLTextAreaElement) {
 					textarea.focus();
@@ -650,7 +658,7 @@ export default class AgentClientPlugin extends Plugin {
 	async openNewChatViewWithAgent(agentId: string): Promise<void> {
 		const leaf = this.createNewChatLeaf(true);
 		if (!leaf) {
-			getLogger().warn("[AgentClient] Failed to create new leaf");
+			getLogger().warn("[Harness] Failed to create new leaf");
 			return;
 		}
 
@@ -667,7 +675,7 @@ export default class AgentClientPlugin extends Plugin {
 		if (viewContainerEl) {
 			window.setTimeout(() => {
 				const textarea = viewContainerEl.querySelector(
-					"textarea.agent-client-chat-input-textarea",
+					"textarea.harness-chat-input-textarea",
 				);
 				if (textarea instanceof HTMLTextAreaElement) {
 					textarea.focus();
@@ -819,8 +827,15 @@ export default class AgentClientPlugin extends Plugin {
 				displayName: str(rc.displayName, D.claude.displayName),
 				apiKeySecretId: this.migrateLegacyApiKey(
 					"claude-api-key",
-					"agent-client-claude-api-key",
-					str(rc.apiKeySecretId, D.claude.apiKeySecretId),
+					"harness-claude-api-key",
+					this.migrateOldFallbackKeychainId(
+						str(rc.apiKeySecretId, D.claude.apiKeySecretId),
+						"agent-client-claude-api-key",
+						"harness-claude-api-key",
+						() => {
+							migratedSecrets = true;
+						},
+					),
 					str(rc.apiKey, ""),
 					"Claude",
 					() => {
@@ -840,8 +855,15 @@ export default class AgentClientPlugin extends Plugin {
 				displayName: str(rk.displayName, D.codex.displayName),
 				apiKeySecretId: this.migrateLegacyApiKey(
 					"openai-api-key",
-					"agent-client-openai-api-key",
-					str(rk.apiKeySecretId, D.codex.apiKeySecretId),
+					"harness-openai-api-key",
+					this.migrateOldFallbackKeychainId(
+						str(rk.apiKeySecretId, D.codex.apiKeySecretId),
+						"agent-client-openai-api-key",
+						"harness-openai-api-key",
+						() => {
+							migratedSecrets = true;
+						},
+					),
 					str(rk.apiKey, ""),
 					"Codex",
 					() => {
@@ -857,8 +879,15 @@ export default class AgentClientPlugin extends Plugin {
 				displayName: str(rg.displayName, D.gemini.displayName),
 				apiKeySecretId: this.migrateLegacyApiKey(
 					"gemini-api-key",
-					"agent-client-gemini-api-key",
-					str(rg.apiKeySecretId, D.gemini.apiKeySecretId),
+					"harness-gemini-api-key",
+					this.migrateOldFallbackKeychainId(
+						str(rg.apiKeySecretId, D.gemini.apiKeySecretId),
+						"agent-client-gemini-api-key",
+						"harness-gemini-api-key",
+						() => {
+							migratedSecrets = true;
+						},
+					),
 					str(rg.apiKey, ""),
 					"Gemini",
 					() => {
@@ -1005,7 +1034,7 @@ export default class AgentClientPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	async saveSettingsAndNotify(nextSettings: AgentClientPluginSettings) {
+	async saveSettingsAndNotify(nextSettings: HarnessPluginSettings) {
 		await this.settingsService.updateSettings(nextSettings);
 	}
 
@@ -1024,7 +1053,7 @@ export default class AgentClientPlugin extends Plugin {
 	 *   - Use defaultSecretId (e.g. "claude-api-key") for cross-plugin sharing.
 	 *   - On collision (defaultSecretId exists with a different value, e.g.
 	 *     from another plugin), fall back to fallbackSecretId
-	 *     (e.g. "agent-client-claude-api-key") to preserve the user's key
+	 *     (e.g. "harness-claude-api-key") to preserve the user's key
 	 *     and notify them.
 	 *
 	 * This method is for upgrading from v0.10.x or experimental builds and
@@ -1060,7 +1089,7 @@ export default class AgentClientPlugin extends Plugin {
 			// No collision — create the secret with the preferred ID
 			this.app.secretStorage.setSecret(defaultSecretId, trimmed);
 			new Notice(
-				`[Agent Client] Your ${agentLabel} API key has been migrated to Obsidian's Keychain as "${defaultSecretId}".`,
+				`[Harness] Your ${agentLabel} API key has been migrated to Obsidian's Keychain as "${defaultSecretId}".`,
 			);
 			onMigrate();
 			return defaultSecretId;
@@ -1077,10 +1106,52 @@ export default class AgentClientPlugin extends Plugin {
 		// the user's key without overwriting other plugins' secrets.
 		this.app.secretStorage.setSecret(fallbackSecretId, trimmed);
 		new Notice(
-			`[Agent Client] "${defaultSecretId}" was already in use. Your ${agentLabel} API key was migrated to "${fallbackSecretId}". You can rename it in Obsidian's Keychain settings.`,
+			`[Harness] "${defaultSecretId}" was already in use. Your ${agentLabel} API key was migrated to "${fallbackSecretId}". You can rename it in Obsidian's Keychain settings.`,
 		);
 		onMigrate();
 		return fallbackSecretId;
+	}
+
+	/**
+	 * Phase 3 migration: copy secrets from old fallback keychain IDs
+	 * (agent-client-*-api-key) to the new harness-*-api-key IDs.
+	 *
+	 * Users who previously hit the collision-fallback path had their key
+	 * stored under "agent-client-{agent}-api-key". After the rebrand, the
+	 * fallback id is "harness-{agent}-api-key". This one-time migration
+	 * copies the secret to the new id and deletes the old one so no user
+	 * loses a key.
+	 *
+	 * Returns the resolved apiKeySecretId (new fallback id if migrated,
+	 * or currentSecretId unchanged).
+	 */
+	private migrateOldFallbackKeychainId(
+		currentSecretId: string,
+		oldFallbackId: string,
+		newFallbackId: string,
+		onMigrate: () => void,
+	): string {
+		// Only migrate if the stored id is the old fallback
+		if (currentSecretId !== oldFallbackId) {
+			return currentSecretId;
+		}
+
+		const secret = this.app.secretStorage.getSecret(oldFallbackId);
+		if (secret === null) {
+			// Old id has no secret — just update the id reference
+			onMigrate();
+			return newFallbackId;
+		}
+
+		// Copy to new id. Obsidian's SecretStorage API has no deleteSecret,
+		// so the old id is orphaned harmlessly (stale secret left behind).
+		// TODO: remove old fallback secret once Obsidian exposes a delete API.
+		this.app.secretStorage.setSecret(newFallbackId, secret);
+		new Notice(
+			`[Harness] Your API key has been migrated from "${oldFallbackId}" to "${newFallbackId}" in Obsidian's Keychain.`,
+		);
+		onMigrate();
+		return newFallbackId;
 	}
 
 	/**

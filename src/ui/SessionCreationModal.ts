@@ -43,7 +43,7 @@ export class SessionCreationModal extends Modal {
 	}
 
 	onOpen(): void {
-		this.modalEl.addClass("agent-client-session-creation-modal");
+		this.modalEl.addClass("harness-session-creation-modal");
 		this.render();
 	}
 
@@ -53,17 +53,17 @@ export class SessionCreationModal extends Modal {
 		contentEl.createEl("h2", { text: "Create project" });
 
 		const nameField = contentEl.createDiv({
-			cls: "agent-client-session-creation-field",
+			cls: "harness-session-creation-field",
 		});
 		nameField.createEl("label", {
 			text: "Project name",
-			attr: { for: "agent-client-project-name" },
+			attr: { for: "harness-project-name" },
 		});
 		const nameInput = nameField.createEl("input", {
 			type: "text",
 			value: this.projectName,
-			cls: "agent-client-session-creation-name",
-			attr: { id: "agent-client-project-name" },
+			cls: "harness-session-creation-name",
+			attr: { id: "harness-project-name" },
 		});
 		nameInput.disabled = this.sourceDirectory !== null || this.submitting;
 		nameInput.addEventListener("input", () => {
@@ -72,27 +72,27 @@ export class SessionCreationModal extends Modal {
 		});
 
 		const locationField = contentEl.createDiv({
-			cls: "agent-client-session-creation-field",
+			cls: "harness-session-creation-field",
 		});
 		locationField.createEl("span", {
 			text: "Location",
-			cls: "agent-client-session-creation-label",
+			cls: "harness-session-creation-label",
 		});
 		const locationValue = locationField.createDiv({
-			cls: "agent-client-session-creation-location",
+			cls: "harness-session-creation-location",
 			attr: { "aria-live": "polite" },
 		});
 
 		const sourceField = contentEl.createDiv({
-			cls: "agent-client-session-creation-field",
+			cls: "harness-session-creation-field",
 		});
 		sourceField.createEl("span", {
 			text: "Source folder",
-			cls: "agent-client-session-creation-label",
+			cls: "harness-session-creation-label",
 		});
 		if (this.sourceDirectory) {
 			const source = sourceField.createDiv({
-				cls: "agent-client-session-creation-source",
+				cls: "harness-session-creation-source",
 			});
 			source.createEl("span", {
 				text: this.sourceDirectory,
@@ -135,11 +135,11 @@ export class SessionCreationModal extends Modal {
 		}
 
 		const issue = contentEl.createDiv({
-			cls: "agent-client-session-creation-issue",
+			cls: "harness-session-creation-issue",
 			attr: { role: "status" },
 		});
 		const actions = contentEl.createDiv({
-			cls: "agent-client-session-modal-actions",
+			cls: "harness-session-modal-actions",
 		});
 		const cancel = actions.createEl("button", { text: "Cancel" });
 		cancel.disabled = this.submitting;

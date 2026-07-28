@@ -23,7 +23,7 @@ function RemoveButton({
 	return (
 		<button
 			ref={ref}
-			className="agent-client-attachment-preview-remove"
+			className="harness-attachment-preview-remove"
 			onClick={() => onRemove(fileId)}
 			title="Remove attachment"
 			type="button"
@@ -40,7 +40,7 @@ function FileIcon() {
 	return (
 		<span
 			ref={ref}
-			className="agent-client-attachment-preview-file-icon"
+			className="harness-attachment-preview-file-icon"
 		/>
 	);
 }
@@ -54,22 +54,22 @@ export function AttachmentStrip({ files, onRemove }: AttachmentStripProps) {
 	if (files.length === 0) return null;
 
 	return (
-		<div className="agent-client-attachment-preview-strip">
+		<div className="harness-attachment-preview-strip">
 			{files.map((file) => (
 				<div
 					key={file.id}
-					className="agent-client-attachment-preview-item"
+					className="harness-attachment-preview-item"
 				>
 					{file.kind === "image" && file.data ? (
 						<img
 							src={`data:${file.mimeType};base64,${file.data}`}
 							alt="Attached image"
-							className="agent-client-attachment-preview-thumbnail"
+							className="harness-attachment-preview-thumbnail"
 						/>
 					) : (
-						<div className="agent-client-attachment-preview-file">
+						<div className="harness-attachment-preview-file">
 							<FileIcon />
-							<span className="agent-client-attachment-preview-file-name">
+							<span className="harness-attachment-preview-file-name">
 								{file.name ?? "file"}
 							</span>
 						</div>

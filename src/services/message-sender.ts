@@ -680,10 +680,10 @@ This is what the user is currently focusing on.
  */
 export async function sendPreparedPrompt(
 	input: SendPreparedPromptInput,
-	agentClient: AcpClient,
+	harness: AcpClient,
 ): Promise<SendPromptResult> {
 	try {
-		await agentClient.sendPrompt(input.sessionId, input.agentContent);
+		await harness.sendPrompt(input.sessionId, input.agentContent);
 
 		return {
 			success: true,
@@ -697,7 +697,7 @@ export async function sendPreparedPrompt(
 			input.agentContent,
 			input.displayContent,
 			input.authMethods,
-			agentClient,
+			harness,
 		);
 	}
 }
@@ -720,7 +720,7 @@ async function handleSendError(
 	agentContent: PromptContent[],
 	displayContent: PromptContent[],
 	authMethods: AuthenticationMethod[],
-	agentClient: AcpClient,
+	harness: AcpClient,
 ): Promise<SendPromptResult> {
 	// Check for "empty response text" error - ignore silently
 	if (isEmptyResponseError(error)) {
@@ -744,7 +744,7 @@ async function handleSendError(
 					agentContent,
 					displayContent,
 					authMethods[0].id,
-					agentClient,
+					harness,
 				);
 
 				if (retryResult) {
@@ -784,16 +784,16 @@ async function retryWithAuthentication(
 	agentContent: PromptContent[],
 	displayContent: PromptContent[],
 	authMethodId: string,
-	agentClient: AcpClient,
+	harness: AcpClient,
 ): Promise<SendPromptResult | null> {
 	try {
-		const authSuccess = await agentClient.authenticate(authMethodId);
+		const authSuccess = await harness.authenticate(authMethodId);
 
 		if (!authSuccess) {
 			return null;
 		}
 
-		await agentClient.sendPrompt(sessionId, agentContent);
+		await harness.sendPrompt(sessionId, agentContent);
 
 		return {
 			success: true,

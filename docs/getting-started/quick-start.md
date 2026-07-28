@@ -4,7 +4,7 @@ This guide will get you chatting with an AI agent in just a few minutes.
 
 ## Step 1: Choose Your Agent
 
-Agent Client supports multiple AI agents. Choose one to start:
+Obsidian Harness supports multiple AI agents. Choose one to start:
 
 | Agent | Provider | Integration |
 |-------|----------|-------------|
