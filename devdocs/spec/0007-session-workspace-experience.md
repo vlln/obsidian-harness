@@ -1,9 +1,9 @@
 ---
 title: Spec-0007: Session Workspace Experience
-description: Codex-inspired project-aware Session creation, synchronized turn navigation and non-redundant Navigator action menus through v0.5.1.
+description: Codex-inspired project-aware Session creation, synchronized turn navigation, non-redundant Navigator action menus through v0.5.1, and a Navigator toggle button in the Session view header for v0.6.0.
 type: spec
-status: active
-version: 2
+status: proposed
+version: 3
 created: 2026-07-27T02:26:04Z
 ---
 
@@ -31,6 +31,11 @@ created: 2026-07-27T02:26:04Z
 `v0.5.1` 在不改变上述数据与模块边界的前提下承接 [BL-0008](../backlog.md)：修复手动滚动时
 current turn 的既有同步语义，并让 Turn 跳转与回到底部动作使用同一个连续平滑滚动协调机制。
 
+`v0.6.0` 承接 [BL-0010](../backlog.md)：打开 Session Navigator 的 GUI 入口目前只在 Obsidian
+最左侧 ribbon，用户在 Session 视图内想切换 Session 时视线与鼠标需横跨整个窗口。本轮在
+`.session` FileView 的 sidebar header 顶部恢复一个 Navigator 切换按钮（早期版本曾在顶部，
+后移至 ribbon），提供上下文就近入口；ribbon 图标保留，两者指向同一激活动作。
+
 ### 1.1 对现行规范的增量关系
 
 本 Spec 激活后按以下范围覆盖现行规则，未列出的上游规则继续有效：
@@ -54,6 +59,7 @@ current turn 的既有同步语义，并让 Turn 跳转与回到底部动作使�
 | US-033 | Harness 用户 | 从 Project 菜单创建同目录 Session 或复制完整路径 | 快速复用 Project 上下文 | P1 |
 | US-034 | Harness 用户 | Session 菜单只显示不能由行点击直接完成的操作 | 降低重复命令造成的理解成本 | P1 |
 | US-035 | Harness 用户 | 手动浏览长 Session 时让 current turn 跟随 viewport，并连续平滑地回到底部 | 保持导航位置可信且避免虚拟测量造成分段停顿 | P0 |
+| US-036 | Harness 用户 | 在 Session 视图顶部一键打开 Session Navigator | 切换 Session 时不必移动视线和鼠标到窗口最左侧 ribbon | P1 |
 
 ## 三、模块划分
 
@@ -67,6 +73,7 @@ current turn 的既有同步语义，并让 Turn 跳转与回到底部动作使�
 | Turn Navigator UI | 渲染节点、预览、键盘交互和当前 turn 状态 | 无持久化实体 | `src/ui/TurnNavigator.tsx` | P0 |
 | Virtual Message Navigation | 将 turn 与回到底部动作映射到既有 virtualizer，发布滚动锚点、合并测量修正并处理 reduced motion | 无持久化实体 | `src/ui/MessageList.tsx` | P0 |
 | Navigator Action Menus | 精简 Session 菜单，渲染 Project 尾部菜单并阻止菜单点击触发展开/折叠 | 无持久化实体 | `src/ui/SessionManagerView.tsx` | P1 |
+| Session View Header | 在 sidebar 变体 header 提供 Navigator 切换按钮，调用既有 Navigator 激活命令 | 无持久化实体 | `src/ui/ChatHeader.tsx` | P1 |
 
 模块依赖拆为三条无环链：
 
@@ -77,7 +84,9 @@ current turn 的既有同步语义，并让 Turn 跳转与回到底部动作使�
    `Turn Navigation Projection`，同时由 `MessageList` 渲染
    `TurnNavigator` 并向其注入 navigation callback；`TurnNavigator` 不反向导入 MessageList；
 3. `SessionManagerView` 的 Project/Session menus → plugin commands → 必要的纯目录规则或
-   `Session Storage`；plugin commands 不导入 React UI。
+   `Session Storage`；plugin commands 不导入 React UI；`.session` FileView 的
+   `Session View Header`（`ChatHeader` sidebar 变体）→ plugin 的 `activateSessionManager`
+   动作，仅单向调用，不回读 Navigator 状态。
 
 纯规则/投影服务没有指向 UI 或 plugin 的依赖。`src/services/` 不得导入 React；Turn Navigator
 不得读取 transcript 文件；Project 菜单不得直接修改 Catalog snapshot。`SessionFileData` 只由
@@ -165,6 +174,13 @@ metadata 和 Session index；Project 菜单与 turn 导航不产生持久化写�
 | BR-062 | Open in system file manager 打开 `cwd` 对应的 Finder/Explorer/文件管理器目录，不定位 Obsidian vault 文件树 |
 | BR-063 | Copy path 写入完整 cwd；目录已不存在时仍允许复制，但 New session here 和系统打开必须停止并显示可定位的错误 |
 
+### 5.4 Navigator 入口
+
+| 规则编号 | 描述 |
+|----------|------|
+| BR-066 | `.session` FileView 的 sidebar header 提供 Navigator 切换按钮；点击或键盘激活调用 plugin 的既有 `activateSessionManager` 动作（与命令 `open-session-manager`、ribbon 图标同一入口），不新建第二套打开逻辑 |
+| BR-067 | 切换按钮只在 sidebar 变体（`.session` FileView）显示；floating chat 与兼容用旧 ChatView 不渲染该按钮；ribbon 入口保留 |
+
 ## 六、UI 约束
 
 ### 6.1 创建弹窗
@@ -219,6 +235,15 @@ Source folder
 - 系统文件管理器动作使用外部打开图标；Session 的 vault Reveal 保持 folder-search 图标和原文案，
   使两种目的地可区分。
 
+### 6.4 Session 视图 header 的 Navigator 切换按钮
+
+- 按钮位于 sidebar header 的 `nav-buttons-container` 内、More 菜单按钮之前，复用既有
+  `nav-action-button` 图标按钮模式，与原生 sidebar 面板的视觉密度一致。
+- 图标使用 `panel-left`，aria-label 与 tooltip 文案为 `Open session navigator`。
+- 按钮是可聚焦元素，Enter/Space 激活；激活后焦点管理交给 workspace 的视图切换，
+  本按钮不自行移动焦点。
+- 按钮的出现或消失不得改变 header 中 Agent 标签与 More 按钮的布局。
+
 ## 七、异常与失败语义
 
 | 场景 | 结果 |
@@ -232,6 +257,7 @@ Source folder
 | turn 目标在点击前因 Session 切换消失 | 忽略旧目标，不跳转到同 index 的其他消息 |
 | virtualizer 无法完成目标测量 | 使用 index estimate 定位并保持 UI 可操作，不进入重复滚动循环 |
 | 回到底部期间目标消息被替换或 MessageList 卸载 | 取消该动作的 listener/timer；不得对旧容器执行迟到修正 |
+| Navigator 切换按钮激活时 workspace 无法 reveal 或创建 Navigator leaf | 显示非阻断 Notice；Session 视图保持可用，不重复创建 leaf |
 
 ## 八、非功能指标
 
@@ -243,7 +269,7 @@ Source folder
 | 交互 | 消息滚动协调器收敛 | reduced motion 下 100 ms 内；平滑模式每阶段至多 1.6 s、完整动作至多 3.2 s；Turn 目标在主阶段结束时进入 viewport，最终阶段结束时精确对齐 |
 | 交互 | 回到底部的原生平滑滚动调用 | 1 次主滚动，测量变化时最多 1 次末端修正 |
 | 响应式 | 260-1200 px 宿主宽度 | 无水平溢出、菜单/轨道/消息不重叠 |
-| 可访问性 | 创建表单、Project 菜单、turn 节点 | 完整键盘操作、可见焦点、可读 aria-label |
+| 可访问性 | 创建表单、Project 菜单、turn 节点、Navigator 切换按钮 | 完整键盘操作、可见焦点、可读 aria-label |
 | 兼容性 | 支持的桌面平台 | macOS、Windows、Linux 使用各自系统文件管理器语义 |
 
 ## 九、依赖与决策复用
@@ -280,3 +306,4 @@ Source folder
 | Navigator action menu | Session 或 Project 行尾部针对该行目标的命令菜单 | `NavigatorActionMenu` |
 | System file manager | Finder、Windows Explorer 或 Linux 桌面文件管理器 | `openProjectInSystemFileManager` |
 | Vault reveal | 在 Obsidian 文件树中定位 `.session` 入口文件 | `revealNavigatorSession` |
+| Navigator toggle button | Session 视图 sidebar header 中激活 Session Navigator 的图标按钮 | `activateSessionManager` |

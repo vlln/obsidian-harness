@@ -1,8 +1,8 @@
 ---
 title: AC-0006: Session Workspace Experience
-description: Project-aware Session creation, synchronized per-user-message turn navigation and Navigator action menu refinements through v0.5.1.
+description: Project-aware Session creation, synchronized per-user-message turn navigation, Navigator action menu refinements through v0.5.1, and Navigator toggle button acceptance for v0.6.0.
 type: ac
-status: active
+status: proposed
 created: 2026-07-27T02:47:58Z
 ---
 
@@ -72,3 +72,17 @@ v2 transcript：本地身份为 `historyId`，manifest 精确路径为 `sessions
 | AC-0026-E-1 | Project cwd 在菜单打开后被删除 | 依次执行 `New session here` 和 `Open in system file manager`；随后执行 `Copy path` 并展开/折叠 Project | 前两个动作停止并显示包含 cwd 的可定位错误，不打开创建弹窗或错误目录；随后 clipboard 收到完整 cwd，Project 展开状态按点击切换 | 故障注入 E2E |
 | AC-0026-F-1 | 第一次系统文件管理器调用被拒绝，clipboard 可用 | 执行 `Open in system file manager`；确认焦点后重开菜单并执行 `Copy path` | 显示包含 cwd 的非阻断 Notice；菜单关闭后焦点返回 Project ellipsis；Session、Catalog 和展开状态不变；重开菜单后 clipboard 收到完整 cwd | Host 故障注入 + WDIO E2E |
 | AC-0026-F-2 | 第一次 clipboard 写入被拒绝，系统文件管理器 API 可用 | 执行 `Copy path`；确认焦点后重开菜单并执行 `Open in system file manager` | 显示 Copy path 失败；菜单关闭后焦点返回 Project ellipsis；Session 和 Catalog 不变；重开菜单后系统文件管理器收到准确 cwd | Clipboard/Host 故障注入 + WDIO E2E |
+
+## AC-0027: Navigator 切换按钮（Session 视图 header）
+
+本验收项承接 [Spec-0007](../spec/0007-session-workspace-experience.md) v3 §5.4 与 §6.4
+（[BL-0010](../backlog.md)）。
+
+| 编号 | 前置条件 | 操作步骤 | 预期结果 | 验证方式 |
+|------|---------|---------|---------|---------|
+| AC-0027-N-1 | `.session` FileView 已在 sidebar 打开，Navigator leaf 未打开 | 查看 header 并点击切换按钮 | header 的 `nav-buttons-container` 内、More 按钮之前显示 `panel-left` 图标按钮；点击调用与 ribbon 图标、命令 `open-session-manager` 相同的 `activateSessionManager` 动作；Navigator 可见且 Session 视图保持打开 | WDIO E2E + 动作 spy + DOM 顺序断言 |
+| AC-0027-N-2 | 同上 | 仅用键盘 Tab 聚焦按钮，分别用 Enter 和 Space 激活 | 按钮可聚焦、有可见焦点，aria-label 为 `Open session navigator`；两种键均触发同一动作；按钮出现或消失不改变 Agent 标签与 More 按钮布局 | WDIO 键盘/可访问性/几何断言 |
+| AC-0027-B-1 | 同一消息数据分别在 floating chat、旧 ChatView 和 `.session` FileView 三个宿主打开 | 检查各自 header | 只有 `.session` FileView 的 sidebar header 显示切换按钮；floating 与旧 ChatView 不渲染该按钮且不预留布局空白 | WDIO E2E + DOM 断言 |
+| AC-0027-B-2 | Navigator leaf 已存在（后台 tab 或已折叠） | 点击切换按钮 | reveal 既有 leaf，不创建第二个 Navigator leaf | WDIO E2E + workspace leaf 计数 |
+| AC-0027-E-1 | Session 正在 streaming 或等待 permission | 点击切换按钮后再切回 | 切换动作完成且 Navigator 可见；Session 状态、streaming 内容与待处理 permission 不受视图切换影响 | WDIO E2E |
+| AC-0027-F-1 | `activateSessionManager` 被注入抛错（workspace 无法 reveal/创建 leaf） | 点击切换按钮，随后重试 | 显示非阻断 Notice；Session 视图保持可用；不产生残留或重复 leaf；故障解除后重试成功 | 故障注入 WDIO E2E |
