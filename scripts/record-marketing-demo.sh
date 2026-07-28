@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Records a ~12s marketing demo video of Obsidian Harness by wrapping a headed
-# wdio run. The spec drives the UI (open transcript → light/dark/light walk) and
-# signals /tmp/harness-demo-ready once content has rendered; this script polls
-# for that signal, then starts screencapture for 12s concurrently.
+# Records a ~9s marketing demo video of Obsidian Harness by wrapping a headed
+# wdio run. The spec drives the UI (Session Manager -> open transcript ->
+# turn navigator) and signals /tmp/harness-demo-ready once the first content
+# is on screen; this script polls for that signal, then runs screencapture for
+# 9s. The spec holds a trailing pause longer than 9s so Obsidian is still open
+# when recording stops — the close is never captured.
 #
-# Output: docs/public/demo.mov (whole-screen capture — see note below).
+# Output: docs/public/demo.mov (fullscreen Obsidian only).
 #
 # Usage: bash scripts/record-marketing-demo.sh
 set -euo pipefail
@@ -30,7 +32,7 @@ trap cleanup EXIT
 echo "[record] waiting for spec to render content (up to 90s)..."
 for i in $(seq 1 90); do
   if [ -f "$READY" ]; then
-    echo "[record] content ready after ${i}s — starting 12s screen capture"
+    echo "[record] content ready after ${i}s — starting 9s screen capture"
     break
   fi
   sleep 1
@@ -42,9 +44,9 @@ if [ ! -f "$READY" ]; then
   exit 1
 fi
 
-# Whole-screen capture (screencapture -v records the main display).
-# -V12 limits recording to 12s then exits automatically.
-screencapture -v -V12 -x "$OUT"
+# Fullscreen Obsidian, so the full-display capture is 100% Obsidian.
+# -V9 limits recording to 9s; the spec keeps Obsidian open past that.
+screencapture -v -V9 -x "$OUT"
 
 echo "[record] done. output:"
 ls -la "$OUT"
