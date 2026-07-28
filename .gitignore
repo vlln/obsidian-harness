@@ -67,3 +67,6 @@ test/vaults/*/*.session
 
 # E2E marketing screenshot/video artifacts
 /e2e/artifacts/
+
+# Generated demo vault (regenerate via scripts/prepare-demo-vault.mjs)
+/demo-vault/
