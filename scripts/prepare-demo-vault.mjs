@@ -2,7 +2,7 @@
 // Prepares a self-contained demo vault at ./demo-vault (or arg[2]) with the
 // Obsidian Harness plugin installed and 3 pre-populated sessions so you can
 // open it in Obsidian and screen-record the cockpit story manually:
-//   - Session Manager shows two projects (harness-alpha, harness-beta)
+//   - Session Manager shows three projects (harness-alpha, harness-beta, harness-gamma)
 //   - a long 8-turn conversation with an ACP backend binding (acpBinding)
 //   - short sessions for project variety
 //
@@ -22,6 +22,7 @@ const vaultSessionsDir = path.join(target, "Sessions");
 // --- demo content (mirrors e2e/marketing-demo.spec.ts) ---
 const ALPHA_CWD = "/Users/vlln/projects/harness-alpha";
 const BETA_CWD = "/Users/vlln/projects/harness-beta";
+const GAMMA_CWD = "/Users/vlln/projects/harness-gamma";
 
 const CONVERSATION = [
 	{
@@ -91,6 +92,29 @@ const SESSIONS = [
 		acpBinding: null,
 		turns: [
 			{ prompt: "Generate the v0.6 beta release checklist.", answer: "1. Bump version to 0.6.0\n2. Update CHANGELOG\n3. Run `npm run gate:mr`\n4. Tag `v0.6.0` and publish release." },
+		],
+	},
+	{
+		entryFile: "Sessions/marketing-gamma-pi.session",
+		entryId: "7777aaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+		historyId: "8888bbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+		agentId: "pi-acp",
+		title: "Pi Agent backend connection",
+		cwd: GAMMA_CWD,
+		acpBinding: { agentId: "pi-acp", sessionId: "feedface-0000-1111-2222-333333333333" },
+		turns: [
+			{
+				prompt: "How does Obsidian Harness connect to the Pi Agent backend?",
+				answer: "Pi Agent is **auto-discovered**: the plugin checks for `~/.pi/pi-acp/` on load and, if present, exposes `pi-acp` as an available agent — no manual path or API key configuration needed.\n\nA session carrying an `acpBinding` to `pi-acp` can be resumed in place: the plugin calls `session/load` with the opaque `acpBinding.sessionId` and the Pi backend replays the context.",
+			},
+			{
+				prompt: "What if the Pi backend isn't installed on this machine?",
+				answer: "The transcript stays fully readable offline, and the continuation indicator degrades gracefully to **Backend unavailable** instead of failing.\n\nInstall Pi Agent + the `pi-acp` plugin under `~/.pi/` and the binding becomes resumable again — no session data is lost.",
+			},
+			{
+				prompt: "Can I import a Pi Agent session into this vault?",
+				answer: "Yes — the **Session Importer** skill converts `~/.pi/agent/sessions/<dir>/*.jsonl` into a standard v2 `.session` with an `acpBinding` to the original `pi-acp` backend.\n\nIt's idempotent: re-importing the same source is a no-op, and existing content is never overwritten on conflict.",
+			},
 		],
 	},
 ];
@@ -179,16 +203,17 @@ Obsidian Harness plugin is pre-installed and enabled.
 
 ## What's here
 - **Session Manager** (ribbon robot icon or command palette → "Obsidian Harness: Open session manager") — shows sessions grouped by **project**:
-  - \`harness-alpha\` — 2 sessions, incl. a long 8-turn conversation
-  - \`harness-beta\` — 1 session
+  - \`harness-alpha\` — 2 sessions, incl. a long 8-turn conversation (Claude Code)
+  - \`harness-beta\` — 1 session (Codex)
+  - \`harness-gamma\` — 1 session bound to the **Pi Agent** backend (auto-discovered from \`~/.pi/pi-acp/\`)
 - Open any \`.session\` file (e.g. \`Sessions/marketing-alpha-long.session\`) to read the transcript — note these are **vault files** you can move, link, and search.
-- The long session carries an **acpBinding** (backend connection to \`claude-code-acp\`). To see the "Ready to continue" indicator, configure the Claude Code agent under **Settings → Obsidian Harness → Claude Code** (Node.js path + claude-agent-acp path); otherwise it shows a graceful "backend unavailable" state.
+- Sessions carry an **acpBinding** (backend connection). Pi Agent is auto-discovered (no config needed); for Claude Code, configure it under **Settings → Obsidian Harness → Claude Code** to see "Ready to continue". Otherwise the indicator degrades gracefully to "backend unavailable".
 
 ## Suggested recording beats
-1. Session Manager — two projects, expand/collapse rows.
+1. Session Manager — three projects, expand/collapse rows.
 2. Open the long \`.session\` — conversation renders; scroll through 8 turns.
 3. Turn Navigator rail (left of messages) — click a turn node to jump.
-4. Backend connection — point out the acpBinding / continuation indicator.
+4. Backend connection — open the \`marketing-gamma-pi.session\` to show the Pi Agent \`acpBinding\` and continuation indicator (auto-discovered).
 `,
 );
 
