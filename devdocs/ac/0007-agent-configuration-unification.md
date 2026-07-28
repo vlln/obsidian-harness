@@ -2,7 +2,7 @@
 title: "AC-0007: Agent Configuration Unification"
 description: 统一 agents[] 配置模型的加载规范化、单一 Agents 分区编辑器与可选 API key secret 注入的验收标准。
 type: ac
-status: proposed
+status: active
 created: 2026-07-28T07:42:34Z
 ---
 

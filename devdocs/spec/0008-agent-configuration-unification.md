@@ -2,7 +2,7 @@
 title: "Spec-0008: Agent Configuration Unification"
 description: 将所有 Agent 后端统一为单一 agents[] 配置模型（内置后端降级为预填默认条目），并将 Settings 页重组为单一 Agents 分区与统一编辑器。
 type: spec
-status: proposed
+status: active
 version: 1
 created: 2026-07-28T07:42:34Z
 ---

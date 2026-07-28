@@ -2,7 +2,7 @@
 title: Spec-0007: Session Workspace Experience
 description: Codex-inspired project-aware Session creation, synchronized turn navigation, non-redundant Navigator action menus through v0.5.1, and a Navigator toggle button in the Session view header for v0.6.0.
 type: spec
-status: proposed
+status: active
 version: 3
 created: 2026-07-27T02:26:04Z
 ---

@@ -2,7 +2,7 @@
 title: ADR-0012: Unified Agent Configuration Model
 description: 以单一 agents[] 数组与统一 AgentSettings 类型取代四个分离的内置/自定义配置位，内置后端降级为预填默认条目，API key 成为每个条目的可选 secret 注入能力。
 type: adr
-status: proposed
+status: accepted
 created: 2026-07-28T07:42:34Z
 ---
 

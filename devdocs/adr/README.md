@@ -17,4 +17,4 @@
 | [0009-imported-session-continuation](0009-imported-session-continuation.md) | 导入 Session 绑定原生后端并可续聊 | accepted |
 | [0010-session-catalog-projection](0010-session-catalog-projection.md) | Session Catalog Projection | accepted |
 | [0011-session-navigator-test-infra](0011-session-navigator-test-infra.md) | Session Navigator 测试基建复用 | accepted |
-| [0012-unified-agent-config-model](0012-unified-agent-config-model.md) | Unified Agent Configuration Model | proposed |
+| [0012-unified-agent-config-model](0012-unified-agent-config-model.md) | Unified Agent Configuration Model | accepted |
