@@ -1,6 +1,6 @@
 /**
  * Obsidian-inspired theme for VitePress
- * Based on Obsidian's default dark/light themes
+ * Purple cockpit identity — distinct from the default VitePress palette.
  */
 
 :root {
@@ -27,6 +27,10 @@
   /* Code blocks */
   --vp-code-block-bg: #f6f6f6;
   --vp-code-line-highlight-color: rgba(168, 139, 250, 0.1);
+
+  /* Font */
+  --vp-font-family-base: "Inter", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .dark {
@@ -54,7 +58,8 @@
   --vp-code-line-highlight-color: rgba(168, 139, 250, 0.15);
 }
 
-/* Hero section styling */
+/* ── Hero ─────────────────────────────────────────────── */
+
 .VPHero .name {
   background: linear-gradient(135deg, #a88bfa 0%, #7c5fd6 100%);
   -webkit-background-clip: text;
@@ -62,10 +67,36 @@
   -webkit-text-fill-color: transparent;
 }
 
-/* Button styling */
+.VPHero .text {
+  background: linear-gradient(135deg, #8b6ce7 0%, #5b3fb8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Subtle cockpit grid glow behind the home hero */
+.VPHomeHero {
+  position: relative;
+}
+
+.VPHomeHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      60% 50% at 50% 0%,
+      rgba(168, 139, 250, 0.16) 0%,
+      transparent 70%
+    );
+  pointer-events: none;
+}
+
+/* ── Buttons ──────────────────────────────────────────── */
+
 .VPButton.brand {
   background-color: var(--vp-c-brand-1);
   border-color: var(--vp-c-brand-1);
+  border-radius: 8px;
 }
 
 .VPButton.brand:hover {
@@ -73,39 +104,78 @@
   border-color: var(--vp-c-brand-2);
 }
 
-/* Sidebar active item */
+/* ── Sidebar ──────────────────────────────────────────── */
+
 .VPSidebar .is-active > .link > .text {
   color: var(--vp-c-brand-1);
+  font-weight: 600;
 }
 
-/* Feature cards */
+/* ── Feature cards ────────────────────────────────────── */
+
 .VPFeature {
-  border-radius: 8px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 12px;
+  border: 1px solid var(--vp-c-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .VPFeature:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(124, 95, 214, 0.14);
+  border-color: var(--vp-c-brand-2);
 }
 
 .dark .VPFeature:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* Inline code */
+/* ── Inline code ──────────────────────────────────────── */
+
 :not(pre) > code {
-  background-color: var(--vp-c-bg-soft);
+  background-color: var(--vp-c-brand-soft);
   border-radius: 4px;
   padding: 2px 6px;
   color: var(--vp-c-brand-1);
+  font-weight: 500;
 }
 
-/* Custom containers (tips, warnings) */
+/* ── Custom containers (tips, warnings) ────────────────── */
+
+.custom-block {
+  border-radius: 8px;
+}
+
 .custom-block.tip {
   border-color: var(--vp-c-brand-1);
+  background-color: var(--vp-c-brand-soft);
+}
+
+.custom-block.tip .custom-block-title {
+  color: var(--vp-c-brand-2);
 }
 
 .custom-block.warning {
   border-color: #e5a84b;
+}
+
+/* ── Tables ───────────────────────────────────────────── */
+
+table {
+  display: block;
+  border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th {
+  background-color: var(--vp-c-bg-soft);
+  font-weight: 600;
+}
+
+/* ── Code blocks ──────────────────────────────────────── */
+
+div[class*="language-"] {
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-border);
 }
