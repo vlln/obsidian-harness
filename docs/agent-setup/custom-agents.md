@@ -6,9 +6,9 @@ You can use any agent that implements the [Agent Client Protocol (ACP)](https://
 
 1. Install your ACP-compatible agent (e.g., [OpenCode](https://github.com/anomalyco/opencode), [Qwen Code](https://github.com/QwenLM/qwen-code), [Kiro](https://kiro.dev/)).
 
-2. Open **Settings → Obsidian Harness** and scroll to **Custom Agents** section.
+2. Open **Settings → Obsidian Harness** and scroll to the **Agents** section.
 
-3. Click **Add custom agent**.
+3. Click **Add agent**.
 
 4. Configure the agent:
    - **Agent ID**: Unique identifier (e.g., `my-agent`)
@@ -53,8 +53,9 @@ You can use any agent that implements the [Agent Client Protocol (ACP)](https://
 
 Authentication depends on the specific agent. Common patterns:
 
-- **API Key**: Add to **Environment variables** (e.g., `MY_API_KEY=xxx`)
-- **Account Login**: Run the agent's CLI to authenticate, then leave environment variables empty
+- **API Key (recommended)**: Fill the agent's **API key** field — the key is stored in Obsidian's Keychain and never written to `data.json`. Set **API key env var name** to the variable the agent reads (e.g., `MY_API_KEY`), and Harness injects it when spawning the agent.
+- **Account Login**: Run the agent's CLI to authenticate, then leave the API key fields empty.
+- **Other config**: Put non-secret `KEY=VALUE` pairs in **Environment variables** (stored as plain text in `data.json` — do not put secrets here).
 
 Refer to your agent's documentation for specific authentication instructions.
 

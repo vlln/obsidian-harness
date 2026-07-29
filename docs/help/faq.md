@@ -71,7 +71,7 @@ By default, new views open in the right pane. You can change this in **Settings 
 
 ### What is a custom agent?
 
-Any ACP-compatible agent beyond the built-in ones (Claude Code, Codex, Gemini CLI). You can add custom agents in **Settings → Obsidian Harness → Custom agents**. See [Custom Agents](/agent-setup/custom-agents).
+Any ACP-compatible agent beyond the built-in ones (Claude Code, Codex, Gemini CLI). Open **Settings → Obsidian Harness → Agents** and click **Add agent** to add a new entry. See [Custom Agents](/agent-setup/custom-agents).
 
 ### Do all agents support the same features?
 
