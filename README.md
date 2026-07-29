@@ -18,7 +18,7 @@ Obsidian Harness turns your vault into a cockpit for AI coding agents (Claude Co
 
 Built on [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol) by Zed.
 
-https://github.com/user-attachments/assets/0fcb6751-84cb-4eb9-b373-adb28e8115e0
+https://github.com/user-attachments/assets/4d55316a-f913-4353-bf56-d967e0af862e
 
 ## Why Harness
 
