@@ -26,7 +26,7 @@ All v0.6.0 execution Plans (0055–0058) are `done` with green MR gates.
 | AC-0027 Navigator toggle | PASS: 6/6 (1.0 s, after fix 0060) | `e2e/navigator-toggle.spec.ts` |
 | Full suite on develop, run 1 | 7/9 specs | demo-vault-verify (vault mismatch, see below) + offline-transcript (flake) |
 | Full suite on develop, run 2 | 8/9 specs, 72 s | only demo-vault-verify; [artifacts/e2e-full-regression.log](artifacts/e2e-full-regression.log) |
-| demo-vault-verify against prepared `demo-vault` | PASS: 1/1 | run with a temp wdio config pointing `vault` at `demo-vault` |
+| demo-vault-verify against prepared `demo-vault` | PASS: 1/1 | run via the dedicated `wdio.demo.conf.mts` (vault=`demo-vault`) |
 | offline-transcript standalone rerun | PASS: 7/7 | flake not reproducible in isolation |
 
 ## AC Evidence
@@ -67,7 +67,7 @@ All v0.6.0 execution Plans (0055–0058) are `done` with green MR gates.
 | Failure | Classification | Basis | Resolution |
 |---------|----------------|-------|------------|
 | AC-0027-B-1 红：legacy ChatView 渲染了 Navigator 切换按钮 | 局部 bug（实现与契约不符） | BR-067 明确"兼容用旧 ChatView 不渲染该按钮"；实现（904914b）在 ChatPanel sidebar 变体中无条件渲染，而 legacy ChatView 与 `.session` FileView 同为 sidebar 变体 | `fix/0060-legacy-chatview-navigator-toggle`：新增 `showNavigatorToggle` opt-in prop（镜像 `showTurnNavigator` 模式），仅 `HarnessSessionView` 传入；复现测试（B-1）修复前红、修复后绿并永久保留。commit `55c110a` |
-| 全量回归中 demo-vault-verify 失败 | 既有套件组成债（非本轮缺陷，非产品缺陷） | 该 spec 是 `scripts/prepare-demo-vault.mjs` 的配套 QA 校验，断言内容（harness-alpha/beta/gamma、marketing-gamma-pi.session）只存在于生成的 `demo-vault`；默认套件 vault 为 `test/vaults/simple`，二者自 c06e925（v0.6.0 之前）起即不匹配。在准备好的 `demo-vault` 下复跑 PASS（1/1），证明产品行为正确 | 非阻塞，录入 backlog（BL-0012）；vault mismatch 与 v0.6.0 变更无关 |
+| 全量回归中 demo-vault-verify 失败 | 既有套件组成债（非本轮缺陷，非产品缺陷） | 该 spec 是 `scripts/prepare-demo-vault.mjs` 的配套 QA 校验，有独立配置 `wdio.demo.conf.mts`（vault=`demo-vault`），但同时被默认 `wdio.conf.mts` 的 glob 捕获；默认套件 vault 为 `test/vaults/simple`，二者自 c06e925（v0.6.0 之前）起即不匹配。用 `wdio.demo.conf.mts` 对准备好的 `demo-vault` 复跑 PASS（1/1），证明产品行为正确 | 非阻塞，录入 backlog（BL-0012）；vault mismatch 与 v0.6.0 变更无关 |
 | 全量回归 run 1 中 offline-transcript 一红（"Offline prompt" 未出现） | 测试竞态抖动（非产品缺陷） | spec 在 `waitUntil("Ready to continue")` 后立即断言异步加载的 transcript 消息文本，无第二阶段等待；单独复跑 7/7 PASS，run 2 亦 PASS | 非阻塞，录入 backlog（BL-0013：补消息内容等待） |
 
 ## System-Test Semantic Review
