@@ -18,7 +18,7 @@ AIエージェント（Claude Code、Codex、Gemini CLI、Pi）をObsidianに直
 
 このプラグインは、Zed の [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol) で構築されています。
 
-https://github.com/user-attachments/assets/0fcb6751-84cb-4eb9-b373-adb28e8115e0
+https://github.com/user-attachments/assets/4d55316a-f913-4353-bf56-d967e0af862e
 
 ## 機能
 
