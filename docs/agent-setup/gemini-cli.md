@@ -71,12 +71,6 @@ Once linked, the field shows the masked secret value with a **Change** button to
 API keys are stored in **Obsidian's Keychain** (Settings → Keychain). You can rename, edit, or delete secrets there at any time. The same secret can be shared across plugins by referencing the same ID.
 :::
 
-::: info Upgrading from a previous version
-If you previously stored your Gemini API key in this plugin (v0.10.x or earlier), it is automatically migrated to Obsidian's Keychain as `gemini-api-key` the first time you load the upgraded plugin. A one-time notification confirms the migration.
-
-If `gemini-api-key` is already in use by another plugin with a different value, your key is preserved under `harness-gemini-api-key` instead. You can rename it from **Settings → Keychain** if you prefer.
-:::
-
 ::: tip If the key isn't picked up
 If authentication still fails, set the key on the Gemini CLI side instead: run `gemini` in your terminal, type `/auth`, choose **Use Gemini API Key**, and paste your key (it's stored in your system keychain). Then leave the **API key field empty** in Obsidian Harness.
 :::
