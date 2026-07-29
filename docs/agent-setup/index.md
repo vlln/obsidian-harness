@@ -9,6 +9,7 @@ Obsidian Harness supports multiple AI agents through the [Agent Client Protocol 
 | [Claude Code](./claude-code) | Anthropic | `@agentclientprotocol/claude-agent-acp` |
 | [Codex](./codex) | OpenAI | `@zed-industries/codex-acp` |
 | [Gemini CLI](./gemini-cli) | Google | `@google/gemini-cli` |
+| [Pi](./pi) | Pi | `pi-acp` (built-in preset) |
 | [Custom Agents](./custom-agents) | Various | Any ACP-compatible agent |
 
 ## Common Setup Steps

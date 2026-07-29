@@ -106,6 +106,7 @@ Open a terminal (Terminal on macOS/Linux, PowerShell on Windows) and run the fol
 - [Claude Code](https://vlln.github.io/obsidian-harness/agent-setup/claude-code.html)
 - [Codex](https://vlln.github.io/obsidian-harness/agent-setup/codex.html)
 - [Gemini CLI](https://vlln.github.io/obsidian-harness/agent-setup/gemini-cli.html)
+- [Pi](https://vlln.github.io/obsidian-harness/agent-setup/pi.html)
 - [Custom Agents](https://vlln.github.io/obsidian-harness/agent-setup/custom-agents.html) (OpenCode, Qwen Code, Kiro, Mistral Vibe, etc.)
 
 **[Full Documentation](https://vlln.github.io/obsidian-harness/)**
