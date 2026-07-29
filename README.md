@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="README.ja.md">日本語はこちら</a>
+  <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a>
 </p>
 
 > **Obsidian as cockpit, Agent as engine.** Your knowledge base is the control plane; AI coding agents are the execution layer. Sessions are vault files you can open, link, search, and resume — not just a chat panel.
@@ -96,7 +96,7 @@ Open a terminal (Terminal on macOS/Linux, PowerShell on Windows) and run the fol
 
 4. **Configure** in **Settings → Obsidian Harness**:
    - **Node.js path**: e.g., `/usr/local/bin/node`
-   - **Built-in agents → Claude Code → Path**: e.g., `/usr/local/bin/claude-agent-acp` (not `claude`)
+   - **Agents → Claude Code → Path**: e.g., `/usr/local/bin/claude-agent-acp` (not `claude`)
    - **API key**: Add your key, or leave empty if logged in via CLI
 
 5. **Start working**: Click the robot icon in the ribbon. Use the **Session Navigator** to browse sessions by project, the **Turn Navigator** to jump between turns, and open any `.session` file to read or resume a conversation.
@@ -140,7 +140,3 @@ npm run build
 ## License
 
 Apache License 2.0 - see [LICENSE](LICENSE) for details.
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=vlln/obsidian-harness-frontend&type=Date)](https://www.star-history.com/#vlln/obsidian-harness-frontend&Date)
