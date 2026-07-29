@@ -87,8 +87,8 @@ The Claude Desktop app uses a different authentication system. Having Claude Des
 
 ## Verify Setup
 
-1. Click the robot icon in the ribbon or use the command palette: **"Open chat view"**
-2. You should see the chat panel open and connect to Claude Code
-3. Try sending a message to verify the connection
+1. Click the robot icon in the ribbon (or run **Open session manager**).
+2. In the Session Navigator, click **New session** (or open an existing `.session` file). Confirm **Claude Code** is the selected agent.
+3. Send a message to verify the connection.
 
 Having issues? See [Troubleshooting](/help/troubleshooting).

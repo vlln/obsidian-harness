@@ -11,7 +11,7 @@ Modes are predefined configurations that alter the agent's behavior for specific
 
 ## Changing Modes
 
-1. Open the chat panel
+1. Open a session (`.session` workspace)
 2. Look for the **mode dropdown** below the input field
 3. Select the desired mode from the available options
 

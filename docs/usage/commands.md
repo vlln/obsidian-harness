@@ -3,15 +3,17 @@
 All commands available in Obsidian Harness. Open the command palette (`Cmd/Ctrl + P`) to access them, or assign keyboard shortcuts in **Settings → Hotkeys**.
 
 ::: tip
-Commands operate on the **last focused chat view**. Click on a chat view to focus it before running a command.
+Commands operate on the **last focused session or chat view**. Click a view to focus it before running a command.
 :::
 
-## Chat Commands
+## Session & Chat Commands
 
 | Command | Description |
 |---------|-------------|
-| **Open chat view** | Open the chat panel |
-| **Open new chat view** | Open an additional chat view |
+| **Open session manager** | Open the Session Navigator in the left sidebar (same as the ribbon icon) |
+| **Create new .session file** | Create a new `.session` entry in your vault |
+| **Open chat view** | Open the legacy chat view (a quick sidebar chat without a `.session` entry) |
+| **Open new chat view** | Open an additional legacy chat view |
 | **New chat** | Start a fresh conversation |
 | **Cancel current message** | Stop the agent's current response |
 | **Export chat** | Export the current conversation to a note |
