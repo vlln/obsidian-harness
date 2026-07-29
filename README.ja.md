@@ -18,7 +18,7 @@ AIエージェント（Claude Code、Codex、Gemini CLI）をObsidianに直接�
 
 このプラグインは、Zed の [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol) で構築されています。
 
-<!-- TODO: 自分のデモ動画に差し替えること。このリポジトリの GitHub issue/PR にアップロードし、生成された https://github.com/user-attachments/assets/... URL を下に貼り付けてください。 -->
+https://github.com/vlln/obsidian-harness-frontend/releases/download/v0.6.0/demo.mp4
 
 ## 機能
 
