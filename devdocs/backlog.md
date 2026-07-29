@@ -13,4 +13,4 @@
 | BL-0008 | 修复 Turn Navigator 的滚动同步：手动滚动消息区时更新当前 turn；回到底部按钮复用连续平滑滚动协调器，避免虚拟测量导致分段停顿 | done | v0.5.1 | 2026-07-27 用户反馈 |
 | BL-0009 | 统一 Agent 配置模型并重组 Settings UI：所有后端（含内置）统一为单一 `agents[]` 数组模型（统一 AgentSettings 类型取代 Base/Claude/Codex/Gemini/Custom 五类型，含可选 apiKeySecretId 与 apiKeyEnvVarName），内置后端仅是预填默认值条目，消除 pi-acp 硬编码特例；Settings 页改为单一 Agents 分区 + 逐条编辑，合并三段重复的 built-in 渲染器。无老用户，不需要 data.json 迁移 | planned | v0.6.0 | 2026-07-28 用户需求 |
 | BL-0010 | 将 Navigator 切换按钮放回左侧栏顶部：在 Session 视图 header 顶部提供打开/切换 Session Navigator 的按钮（早期版本曾在顶部，后移到 ribbon），恢复上下文就近入口；ribbon 图标保留 | planned | v0.6.0 | 2026-07-28 用户需求 |
-| BL-0011 | 补齐 harness-session-importer Python 测试，恢复 `gate:mr` 覆盖率 ≥85%（d72f6f9 重写 importer.py 后跌至 81%，develop 门禁静默变红） | planned | v0.6.0 | 2026-07-28 v0.6.0 TEST_INFRA 增量检查发现（工程债） |
+| BL-0011 | 补齐 harness-session-importer Python 测试，恢复 `gate:mr` 覆盖率 ≥85%（d72f6f9 重写 importer.py 后跌至 81%，develop 门禁静默变红） | done | v0.6.0 | 2026-07-28 v0.6.0 TEST_INFRA 增量检查发现（工程债） |
