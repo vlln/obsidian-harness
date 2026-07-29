@@ -247,6 +247,15 @@ div[class*="language-"] {
   height: 22px;
 }
 
+/* ── Nav logo ─────────────────────────────────────────── */
+
+.VPNavBarTitle img.logo,
+.VPNavBarTitle .logo {
+  height: 26px;
+  width: auto;
+  border-radius: 6px;
+}
+
 /* ── Home: agent badges ───────────────────────────────── */
 
 .oh-agent-badge {
