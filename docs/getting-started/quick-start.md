@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide will get you chatting with an AI agent in just a few minutes.
+This guide gets you working with an AI agent in just a few minutes.
 
 ## Step 1: Choose Your Agent
 
@@ -24,12 +24,15 @@ Follow the setup guide for your chosen agent:
 
 Each guide covers installation, path configuration, and authentication.
 
-## Step 3: Start Chatting
+## Step 3: Start a Session
 
-1. Click the **robot icon** in the left ribbon, or
-2. Open the command palette (`Cmd/Ctrl + P`) and search for **"Open chat view"**
+1. Click the **robot icon** in the left ribbon (or run **Open session manager** from the command palette).
+2. In the **Session Navigator** (left sidebar), click **New session**, name your project, and confirm.
+3. The new `.session` workspace opens — type a message and press Enter!
 
-The chat panel opens in the right sidebar. Type a message and press Enter!
+::: tip
+You can also open any existing `.session` note directly from the Navigator or your vault. Each open workspace has a **Turn Navigator** rail on the left edge for jumping between turns, and a **panel-left** toggle in the header to flip back to the Navigator.
+:::
 
 ## What's Next?
 

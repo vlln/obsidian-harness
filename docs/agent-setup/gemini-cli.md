@@ -100,8 +100,8 @@ If authentication still fails, configure Vertex AI on the Gemini CLI side instea
 
 ## Verify Setup
 
-1. Click the robot icon in the ribbon or use the command palette: **"Open chat view"**
-2. Switch to Gemini CLI from the agent dropdown in the chat header
-3. Try sending a message to verify the connection
+1. Click the robot icon in the ribbon (or run **Open session manager**).
+2. In the Session Navigator, click **New session**, then switch to **Gemini CLI** from the agent dropdown in the header.
+3. Send a message to verify the connection.
 
 Having issues? See [Troubleshooting](/help/troubleshooting).

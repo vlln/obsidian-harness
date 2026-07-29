@@ -61,8 +61,8 @@ Refer to your agent's documentation for specific authentication instructions.
 
 ## Verify Setup
 
-1. Click the robot icon in the ribbon or use the command palette: **"Open chat view"**
-2. Select your custom agent from the agent dropdown in the chat header
-3. Try sending a message to verify the connection
+1. Click the robot icon in the ribbon (or run **Open session manager**).
+2. In the Session Navigator, click **New session**, then select your custom agent from the agent dropdown in the header.
+3. Send a message to verify the connection.
 
 Having issues? See [Troubleshooting](/help/troubleshooting).

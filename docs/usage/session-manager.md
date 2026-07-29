@@ -1,35 +1,34 @@
-# Session Manager
+# Session Navigator
 
-A dedicated sidebar view that lists all open chat sessions with live status, so you can keep track of multiple conversations at a glance.
+A Codex-style sidebar that lists every session in your vault, organized by **Project** and **Recents**, with live run status on each row. It is the primary cockpit for browsing, opening, and starting sessions.
 
 <p align="center">
-  <img src="/images/session-manager-view.webp" alt="Session Manager view in the left sidebar" width="400" />
+  <img src="/images/session-manager-view.webp" alt="Session Navigator in the left sidebar" width="400" />
 </p>
 
 ## Overview
 
-The Session Manager shows every chat view (sidebar and floating) currently open, with:
+The Session Navigator discovers sessions through the vault's shared catalog and shows:
 
-- **Session title** — derived from the first message, or the saved title if you renamed it
-- **Agent name** — which agent the session is using
-- **Status icon** — live indicator of what the session is doing right now
-- **Focus highlight** — the currently focused chat view is marked as active
+- **Project** groups — projected from each session's working directory (`cwd`), so there is no separate project entity to manage
+- **Recents** — your most recently active sessions
+- **Status icon** — a live indicator of what each session is doing right now
+- **Active highlight** — the currently focused session is marked
 
 ::: tip
-This is especially useful when you have many chat views open and want to see which one is generating, awaiting permission, or idle.
+Because sessions are vault files, the Navigator is just a cockpit over them — you can also open, search, backlink, and move a `.session` note like any other note.
 :::
 
-## Opening the Session Manager
+## Opening the Navigator
 
-You can open the Session Manager in several ways:
-
-- **Chat header menu**: Click the **⋮** (more) menu in any chat view's header and select **"Open session manager"**
-- **Command palette**: Open `Cmd/Ctrl + P` and search for **"Open session manager"**
+- **Ribbon**: Click the **robot icon** in the left ribbon
+- **Header toggle**: In any open `.session` workspace, click the **panel-left** button before the More menu
+- **Command palette**: Run **Open session manager** (`Cmd/Ctrl + P`)
 
 The view opens in the left sidebar by default. You can drag it to a different location like any other Obsidian view.
 
 ::: tip
-Assign a keyboard shortcut to **"Open session manager"** in **Settings → Hotkeys** for quick access.
+Assign a keyboard shortcut to **Open session manager** in **Settings → Hotkeys** for quick access.
 :::
 
 ## Status Icons
@@ -43,35 +42,24 @@ Each session entry shows an icon reflecting its current state:
 | <img src="/images/status-permission.webp" alt="Permission" width="32" /> | **Permission** | The agent is waiting for you to approve or reject an action |
 | <img src="/images/status-error.webp" alt="Error" width="32" /> | **Error** | The session encountered an error |
 
-## Actions
+## Starting a session
 
-### Switch to a Session
+Click **New session** to open the creation modal: name the project and (optionally) pick an agent working directory. The `.session` entry stays in your vault while the agent works in the chosen `cwd`.
 
-Click any session entry to focus that chat view. If the view is in the sidebar, Obsidian reveals it. If it is a floating window, it is brought to the front.
+## Project actions
 
-### Session Menu
+Each project row's menu (click the **⋯** button, or right-click the row) offers:
 
-Click the **⋮** (more) button on the right of any session entry, or right-click the entry, to open the action menu:
+- **New session here** — start a session whose `cwd` is this project
+- **Open in system file manager** — reveal the project folder in your OS file manager
+- **Copy path** — copy the project's `cwd` to the clipboard
 
-<p align="center">
-  <img src="/images/session-manager-context-menu.webp" alt="Session entry context menu showing Rename and Close" width="400" />
-</p>
+## Search
 
-| Action | Description |
-|--------|-------------|
-| **Rename** | Edit the session title. The new title is shown both in the Session Manager and on the chat view's tab |
-| **Close** | Close the chat view (the underlying session remains in History) |
-
-::: tip
-Renaming is also available from the chat header (**⋮** menu → **Rename session**) and from [Session History](/usage/session-history).
-:::
-
-## Empty State
-
-If no chat views are open, the Session Manager shows **"No active sessions"**. Open a chat view (ribbon icon or the **"Open chat view"** command) to populate the list.
+Use the search field to filter sessions across all fields; the Navigator restores Project expansion state after a search.
 
 ## See Also
 
-- [Multi-Session Chat](/usage/multi-session) for opening multiple chat views and broadcasting prompts
+- [Multi-Session Chat](/usage/multi-session) for opening multiple sessions and broadcasting prompts
 - [Session History](/usage/session-history) for resuming or forking past sessions
 - [Floating Chat](/usage/floating-chat) for floating chat windows

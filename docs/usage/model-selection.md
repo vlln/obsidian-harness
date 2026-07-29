@@ -11,7 +11,7 @@ Models are different versions of the AI with varying capabilities:
 
 ## Changing Models
 
-1. Open the chat panel
+1. Open a session (`.session` workspace)
 2. Look for the **model dropdown** below the input field
 3. Select the desired model from the available options
 

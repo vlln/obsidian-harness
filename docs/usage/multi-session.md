@@ -8,7 +8,7 @@ Run multiple independent agent conversations simultaneously.
 
 ## Overview
 
-Obsidian Harness supports opening multiple chat views, each with its own:
+Obsidian Harness supports opening multiple sessions at once — each an independent `.session` workspace (or legacy chat view) with its own:
 - Independent agent process
 - Separate session and message history
 - Individual agent selection
