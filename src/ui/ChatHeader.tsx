@@ -17,8 +17,9 @@ export interface SidebarHeaderProps {
 	agentLabel: string;
 	/** Whether a plugin update is available */
 	isUpdateAvailable: boolean;
-	/** Callback to open the Session Navigator (sidebar variant only, BR-066) */
-	onOpenNavigator: () => void;
+	/** Callback to open the Session Navigator (.session FileView only, BR-066/067).
+	 * When omitted, the toggle button is not rendered (legacy ChatView). */
+	onOpenNavigator?: () => void;
 	/** Callback to show the header menu at the click position */
 	onShowMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
@@ -121,11 +122,13 @@ function SidebarHeader({
 						Plugin update available!
 					</span>
 				)}
-				<NavActionButton
-					icon="panel-left"
-					label="Open session navigator"
-					onClick={onOpenNavigator}
-				/>
+				{onOpenNavigator && (
+					<NavActionButton
+						icon="panel-left"
+						label="Open session navigator"
+						onClick={onOpenNavigator}
+					/>
+				)}
 				<NavActionButton
 					icon="more-vertical"
 					label="More"

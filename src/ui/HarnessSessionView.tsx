@@ -43,6 +43,7 @@ function SessionChatComponent({
 				initialSessionId={config.acpBinding?.sessionId}
 				sessionEntry={config}
 				showTurnNavigator
+				showNavigatorToggle
 				viewHost={view}
 				onSessionTitleChanged={() => view.refreshDisplayText()}
 				onAgentIdChanged={(agentId: string) => {
