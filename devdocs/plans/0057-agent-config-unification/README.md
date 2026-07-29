@@ -6,4 +6,4 @@ v0.6.0 主体需求（BL-0009）实现容器。分支 `feat/0057-agent-config-un
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Unified agents[] model + single Agents settings UI | pending | [01-plan-agent-config-unification.md](01-plan-agent-config-unification.md) | — |
+| Unified agents[] model + single Agents settings UI | done | [01-plan-agent-config-unification.md](01-plan-agent-config-unification.md) | [01-report-agent-config-unification.md](01-report-agent-config-unification.md) |
