@@ -179,3 +179,58 @@ div[class*="language-"] {
   border-radius: 8px;
   border: 1px solid var(--vp-c-border);
 }
+
+/* ── Home: demo + feature grid ────────────────────────── */
+
+.oh-demo {
+  max-width: 800px;
+  margin: 2rem auto;
+}
+
+.oh-demo video {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.oh-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin: 1.5rem 0;
+}
+
+.oh-feature {
+  border: 1px solid var(--vp-c-border);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  background: var(--vp-c-bg-elv);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.oh-feature:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(124, 95, 214, 0.14);
+  border-color: var(--vp-c-brand-2);
+}
+
+.oh-feature h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--vp-c-brand-1);
+  border: none;
+  padding: 0;
+}
+
+.oh-feature p {
+  margin: 0;
+  color: var(--vp-c-text-2);
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .oh-features {
+    grid-template-columns: 1fr;
+  }
+}
