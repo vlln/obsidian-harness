@@ -6,4 +6,4 @@ v0.6.0 增量需求（BL-0010）实现容器。分支 `feat/0058-navigator-toggl
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Navigator toggle button in session view header | pending | [01-plan-navigator-toggle-button.md](01-plan-navigator-toggle-button.md) | — |
+| Navigator toggle button in session view header | done | [01-plan-navigator-toggle-button.md](01-plan-navigator-toggle-button.md) | [01-report-navigator-toggle-button.md](01-report-navigator-toggle-button.md) |

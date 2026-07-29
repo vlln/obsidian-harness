@@ -431,6 +431,12 @@ export function ChatPanel({
 		],
 	);
 
+	const handleOpenNavigator = useCallback(() => {
+		void plugin.activateSessionManager().catch(() => {
+			new Notice("Failed to open the session navigator");
+		});
+	}, [plugin]);
+
 	const sessionTitle = useMemo(
 		() => computeSessionTitle(messages),
 		[messages],
@@ -460,7 +466,14 @@ export function ChatPanel({
 				});
 			}
 
-			menu.showAtMouseEvent(e.nativeEvent);
+			// Keyboard activation passes a KeyboardEvent without pointer
+			// coordinates — fall back to the button's bounding rect.
+			if (e.nativeEvent instanceof MouseEvent) {
+				menu.showAtMouseEvent(e.nativeEvent);
+			} else {
+				const rect = e.currentTarget.getBoundingClientRect();
+				menu.showAtPosition({ x: rect.left, y: rect.bottom });
+			}
 		},
 		[
 			availableAgents,
@@ -1036,6 +1049,7 @@ export function ChatPanel({
 				variant="sidebar"
 				agentLabel={activeAgentLabel}
 				isUpdateAvailable={isUpdateAvailable}
+				onOpenNavigator={handleOpenNavigator}
 				onShowMenu={handleShowSidebarMenu}
 			/>
 		) : (
