@@ -88,6 +88,7 @@ https://github.com/user-attachments/assets/0fcb6751-84cb-4eb9-b373-adb28e8115e0
 - [Claude Code](https://vlln.github.io/obsidian-harness/agent-setup/claude-code.html)
 - [Codex](https://vlln.github.io/obsidian-harness/agent-setup/codex.html)
 - [Gemini CLI](https://vlln.github.io/obsidian-harness/agent-setup/gemini-cli.html)
+- [Pi](https://vlln.github.io/obsidian-harness/agent-setup/pi.html)
 - [カスタムエージェント](https://vlln.github.io/obsidian-harness/agent-setup/custom-agents.html)（OpenCode、Qwen Code、Kiro、Mistral Vibeなど）
 
 **[ドキュメント全文](https://vlln.github.io/obsidian-harness/)**

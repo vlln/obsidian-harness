@@ -11,6 +11,7 @@ Obsidian Harness supports multiple AI agents. Choose one to start:
 | **[Claude Code](/agent-setup/claude-code)** | Anthropic | via [ACP adapter](https://github.com/agentclientprotocol/claude-agent-acp) |
 | **[Codex](/agent-setup/codex)** | OpenAI | via [Zed's adapter](https://github.com/zed-industries/codex-acp) |
 | **[Gemini CLI](/agent-setup/gemini-cli)** | Google | with `--experimental-acp` option |
+| **[Pi](/agent-setup/pi)** | Pi | built-in preset, runs `pi-acp` |
 | **[Custom](/agent-setup/custom-agents)** | Various | [Any ACP-compatible agent](https://agentclientprotocol.com/overview/agents) (e.g., OpenCode, Qwen Code, Kiro) |
 
 ## Step 2: Install and Configure the Agent
