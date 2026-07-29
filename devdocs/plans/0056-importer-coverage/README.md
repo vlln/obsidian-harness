@@ -6,4 +6,4 @@
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| Restore importer Python coverage to ≥85% | pending | [01-plan-importer-coverage.md](01-plan-importer-coverage.md) | — |
+| Restore importer Python coverage to ≥85% | done | [01-plan-importer-coverage.md](01-plan-importer-coverage.md) | [01-report-importer-coverage.md](01-report-importer-coverage.md) |
