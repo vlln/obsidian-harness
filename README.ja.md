@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English version</a>
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 > Obsidian をコックピットに、Agent をエンジンに — ナレッジベースから AI コーディングエージェントを管理。
@@ -78,7 +78,7 @@ https://github.com/vlln/obsidian-harness-frontend/releases/download/v0.6.0/demo.
 
 4. **設定 → Obsidian Harness** で設定:
    - **Node.js path**: 例: `/usr/local/bin/node`
-   - **Built-in agents → Claude Code → Path**: 例: `/usr/local/bin/claude-agent-acp`（`claude`ではない）
+   - **Agents → Claude Code → Path**: 例: `/usr/local/bin/claude-agent-acp`（`claude`ではない）
    - **API key**: キーを追加、またはCLIでログイン済みの場合は空欄
 
 5. **チャット開始**: リボンのロボットアイコンをクリック
@@ -107,7 +107,3 @@ npm run build
 ## ライセンス
 
 Apache License 2.0 - 詳細は [LICENSE](LICENSE) を参照。
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=vlln/obsidian-harness-frontend&type=Date)](https://www.star-history.com/#vlln/obsidian-harness-frontend&Date)
