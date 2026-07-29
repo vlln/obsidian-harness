@@ -83,11 +83,9 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-      60% 50% at 50% 0%,
-      rgba(168, 139, 250, 0.16) 0%,
-      transparent 70%
-    );
+  background:
+    radial-gradient(70% 60% at 50% 0%, rgba(168, 139, 250, 0.18) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(168, 139, 250, 0.04) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -233,4 +231,34 @@ div[class*="language-"] {
   .oh-features {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── Home: badge row ─────────────────────────────────── */
+
+.oh-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1.25rem 0 0;
+}
+
+.oh-badges img {
+  height: 22px;
+}
+
+/* ── Home: agent badges ───────────────────────────────── */
+
+.oh-agent-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--c, #a88bfa);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }

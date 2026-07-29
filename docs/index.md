@@ -14,6 +14,13 @@ hero:
       link: https://github.com/vlln/obsidian-harness-frontend
 ---
 
+<p class="oh-badges">
+  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness-frontend?label=release&color=a88bfa" alt="GitHub release" />
+  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness-frontend/total?label=installs&color=a88bfa" alt="Downloads" />
+  <img src="https://img.shields.io/github/license/vlln/obsidian-harness-frontend?label=license&color=a88bfa" alt="License" />
+  <img src="https://img.shields.io/github/stars/vlln/obsidian-harness-frontend?label=stars&color=a88bfa" alt="Stars" />
+</p>
+
 <div class="oh-demo">
   <video controls autoplay loop muted playsinline poster="/demo-poster.png">
     <source src="/demo.mp4" type="video/mp4">
@@ -28,12 +35,12 @@ Built on [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/ag
 
 ### Supported Agents
 
-| Agent | Provider | Integration |
-|-------|----------|-------------|
-| **[Claude Code](https://github.com/anthropics/claude-code)** | Anthropic | via [ACP adapter](https://github.com/agentclientprotocol/claude-agent-acp) |
-| **[Codex](https://github.com/openai/codex)** | OpenAI | via [Zed's adapter](https://github.com/zed-industries/codex-acp) |
-| **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | Google | with `--experimental-acp` option |
-| **Custom** | Various | [Any ACP-compatible agent](https://agentclientprotocol.com/overview/agents) (e.g., OpenCode, Qwen Code, Kiro) |
+| | Agent | Provider | Integration |
+|---|-------|----------|-------------|
+| <span class="oh-agent-badge" style="--c:#d97757">C</span> | **[Claude Code](https://github.com/anthropics/claude-code)** | Anthropic | via [ACP adapter](https://github.com/agentclientprotocol/claude-agent-acp) |
+| <span class="oh-agent-badge" style="--c:#10a37f">Co</span> | **[Codex](https://github.com/openai/codex)** | OpenAI | via [Zed's adapter](https://github.com/zed-industries/codex-acp) |
+| <span class="oh-agent-badge" style="--c:#4285f4">G</span> | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | Google | with `--experimental-acp` option |
+| <span class="oh-agent-badge" style="--c:#a88bfa">◇</span> | **Custom** | Various | [Any ACP-compatible agent](https://agentclientprotocol.com/overview/agents) (e.g., OpenCode, Qwen Code, Kiro) |
 
 ### Key capabilities
 
