@@ -6,4 +6,4 @@ v0.6.0 SYSTEM_TEST 容器。分支 `test/0059-v0.6.0-system-test`，从 `develop
 
 | Task | Status | Plan | Report |
 |------|--------|------|--------|
-| AC-0029/AC-0027 WDIO E2E + develop 全量回归 | pending | [01-plan-v0.6.0-system-test.md](01-plan-v0.6.0-system-test.md) | — |
+| AC-0029/AC-0027 WDIO E2E + develop 全量回归 | done | [01-plan-v0.6.0-system-test.md](01-plan-v0.6.0-system-test.md) | [01-report-v0.6.0-system-test.md](01-report-v0.6.0-system-test.md) |

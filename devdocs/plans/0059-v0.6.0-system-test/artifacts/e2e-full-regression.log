@@ -1,0 +1,635 @@
+
+> obsidian-harness@0.5.1 test:e2e
+> wdio run wdio.conf.mts
+
+
+Execution of 9 workers started at 2026-07-29T11:29:45.950Z
+
+[0-0] RUNNING in chrome(120.0.6099.283) - file:///e2e/demo-vault-verify.spec.ts
+[0-0] Error in "demo vault.lists 3 projects / 4 sessions + pi-acp transcript renders"
+Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: "harness-alpha"
+Received string:    "harness
+new session
+projects
+simple
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+debug toggle fixture
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+harness-demo
+importing a claude code session
+recents
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+debug toggle fixture
+new session
+new session
+new session
+show more"
+    at Context.<anonymous> (/Users/vlln/GithubProjects/obsidian-harness-frontend/e2e/demo-vault-verify.spec.ts:7:30)
+[0-0] FAILED in chrome(120.0.6099.283) - file:///e2e/demo-vault-verify.spec.ts
+[0-1] RUNNING in chrome(120.0.6099.283) - file:///e2e/marketing-demo.spec.ts
+[0-1] 2026-07-29T11:29:56.383Z WARN webdriver: WebDriverError: javascript error: No tab group found.
+[0-1]   (Session info: chrome=142.0.7444.265) when running "execute/sync" with method "POST"
+[0-1] PASSED in chrome(120.0.6099.283) - file:///e2e/marketing-demo.spec.ts
+[0-2] RUNNING in chrome(120.0.6099.283) - file:///e2e/marketing-shots.spec.ts
+[0-2] PASSED in chrome(120.0.6099.283) - file:///e2e/marketing-shots.spec.ts
+[0-3] RUNNING in chrome(120.0.6099.283) - file:///e2e/navigator-toggle.spec.ts
+[0-3] PASSED in chrome(120.0.6099.283) - file:///e2e/navigator-toggle.spec.ts
+[0-4] RUNNING in chrome(120.0.6099.283) - file:///e2e/offline-transcript.spec.ts
+[0-4] PASSED in chrome(120.0.6099.283) - file:///e2e/offline-transcript.spec.ts
+[0-5] RUNNING in chrome(120.0.6099.283) - file:///e2e/plugin-load.spec.ts
+[0-5] PASSED in chrome(120.0.6099.283) - file:///e2e/plugin-load.spec.ts
+[0-6] RUNNING in chrome(120.0.6099.283) - file:///e2e/session-navigator.spec.ts
+[0-6] PASSED in chrome(120.0.6099.283) - file:///e2e/session-navigator.spec.ts
+[0-7] RUNNING in chrome(120.0.6099.283) - file:///e2e/session-workspace.spec.ts
+[0-7] PASSED in chrome(120.0.6099.283) - file:///e2e/session-workspace.spec.ts
+[0-8] RUNNING in chrome(120.0.6099.283) - file:///e2e/settings-agents.spec.ts
+[0-8] [AC-0029-N-2] dropdown refresh latency: 25ms
+[0-8] PASSED in chrome(120.0.6099.283) - file:///e2e/settings-agents.spec.ts
+
+ "spec" Reporter:
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-0] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-0] Session ID: c1e668df21a0ea4ab09d760c3bd8e061
+[chrome 142.0.7444.265 mac #0-0]
+[chrome 142.0.7444.265 mac #0-0] » e2e/demo-vault-verify.spec.ts
+[chrome 142.0.7444.265 mac #0-0] demo vault
+[chrome 142.0.7444.265 mac #0-0]    ✖ lists 3 projects / 4 sessions + pi-acp transcript renders
+[chrome 142.0.7444.265 mac #0-0]
+[chrome 142.0.7444.265 mac #0-0] 1 failing (2.2s)
+[chrome 142.0.7444.265 mac #0-0]
+[chrome 142.0.7444.265 mac #0-0] 1) demo vault lists 3 projects / 4 sessions + pi-acp transcript renders
+[chrome 142.0.7444.265 mac #0-0] expect(received).toContain(expected) // indexOf
+
+Expected substring: "harness-alpha"
+Received string:    "harness
+new session
+projects
+simple
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+debug toggle fixture
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+harness-demo
+importing a claude code session
+recents
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+new session
+debug toggle fixture
+new session
+new session
+new session
+show more"
+[chrome 142.0.7444.265 mac #0-0] Error: expect(received).toContain(expected) // indexOf
+[chrome 142.0.7444.265 mac #0-0]
+[chrome 142.0.7444.265 mac #0-0] Expected substring: "harness-alpha"
+[chrome 142.0.7444.265 mac #0-0] Received string:    "harness
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] projects
+[chrome 142.0.7444.265 mac #0-0] simple
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] debug toggle fixture
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] harness-demo
+[chrome 142.0.7444.265 mac #0-0] importing a claude code session
+[chrome 142.0.7444.265 mac #0-0] recents
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] debug toggle fixture
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] new session
+[chrome 142.0.7444.265 mac #0-0] show more"
+[chrome 142.0.7444.265 mac #0-0]     at Context.<anonymous> (/Users/vlln/GithubProjects/obsidian-harness-frontend/e2e/demo-vault-verify.spec.ts:7:30)
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-1] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-1] Session ID: b4953db8d32d505f697f01b1329fa580
+[chrome 142.0.7444.265 mac #0-1]
+[chrome 142.0.7444.265 mac #0-1] » e2e/marketing-demo.spec.ts
+[chrome 142.0.7444.265 mac #0-1] marketing demo walkthrough
+[chrome 142.0.7444.265 mac #0-1]    ✓ walks the cockpit story for the recorder
+[chrome 142.0.7444.265 mac #0-1]
+[chrome 142.0.7444.265 mac #0-1] 1 passing (11.8s)
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-2] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-2] Session ID: 99932dd67ca4923453bec500a186adc6
+[chrome 142.0.7444.265 mac #0-2]
+[chrome 142.0.7444.265 mac #0-2] » e2e/marketing-shots.spec.ts
+[chrome 142.0.7444.265 mac #0-2] marketing screenshots
+[chrome 142.0.7444.265 mac #0-2]    ✓ captures a transcript view (light + dark)
+[chrome 142.0.7444.265 mac #0-2]    ✓ captures the session manager (light)
+[chrome 142.0.7444.265 mac #0-2]    ✓ captures the chat view (light)
+[chrome 142.0.7444.265 mac #0-2]    ✓ captures the floating chat (light)
+[chrome 142.0.7444.265 mac #0-2]
+[chrome 142.0.7444.265 mac #0-2] 4 passing (10.2s)
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-3] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-3] Session ID: d16140548af3a4080651333b916a9d25
+[chrome 142.0.7444.265 mac #0-3]
+[chrome 142.0.7444.265 mac #0-3] » e2e/navigator-toggle.spec.ts
+[chrome 142.0.7444.265 mac #0-3] AC-0027 Navigator toggle in session view header
+[chrome 142.0.7444.265 mac #0-3]    ✓ AC-0027-N-1: renders the toggle before More and activates the navigator
+[chrome 142.0.7444.265 mac #0-3]    ✓ AC-0027-N-2: activates via keyboard with focus and stable layout
+[chrome 142.0.7444.265 mac #0-3]    ✓ AC-0027-B-1: only the .session FileView sidebar header shows the toggle
+[chrome 142.0.7444.265 mac #0-3]    ✓ AC-0027-B-2: reuses the existing navigator leaf instead of duplicating it
+[chrome 142.0.7444.265 mac #0-3]    ✓ AC-0027-E-1: preserves session view state across the toggle
+[chrome 142.0.7444.265 mac #0-3]    ✓ AC-0027-F-1: surfaces a non-blocking Notice on failure and recovers
+[chrome 142.0.7444.265 mac #0-3]
+[chrome 142.0.7444.265 mac #0-3] 6 passing (861ms)
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-4] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-4] Session ID: cba23f5ef6f44024cc9281b3c8938697
+[chrome 142.0.7444.265 mac #0-4]
+[chrome 142.0.7444.265 mac #0-4] » e2e/offline-transcript.spec.ts
+[chrome 142.0.7444.265 mac #0-4] offline transcript workspace
+[chrome 142.0.7444.265 mac #0-4]    ✓ AC-0007-N-1/B-1 and AC-0010-B-1: opens missing-cwd history without starting an Agent
+[chrome 142.0.7444.265 mac #0-4]    ✓ AC-0010-N-1: offers continuation with the binding Agent without connecting
+[chrome 142.0.7444.265 mac #0-4]    ✓ AC-0011-N-1/B-1: explicit continuation restores the opaque binding without creating a session
+[chrome 142.0.7444.265 mac #0-4]    ✓ AC-0010-F-1 and AC-0011-E-1/F-1: failed continuation preserves local identities and never creates a session
+[chrome 142.0.7444.265 mac #0-4]    ✓ AC-0010-E-1: keeps history visible when the binding Agent is unavailable
+[chrome 142.0.7444.265 mac #0-4]    ✓ AC-0007-B-2: rejects a v1 entry without starting an Agent
+[chrome 142.0.7444.265 mac #0-4]    ✓ AC-0007-F-1: reports a missing transcript instead of an empty valid history
+[chrome 142.0.7444.265 mac #0-4]
+[chrome 142.0.7444.265 mac #0-4] 7 passing (623ms)
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-5] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-5] Session ID: d9ee7e05b0896e0dfe6bba02a511eb68
+[chrome 142.0.7444.265 mac #0-5]
+[chrome 142.0.7444.265 mac #0-5] » e2e/plugin-load.spec.ts
+[chrome 142.0.7444.265 mac #0-5] Obsidian Harness Plugin
+[chrome 142.0.7444.265 mac #0-5]    ✓ should load the plugin
+[chrome 142.0.7444.265 mac #0-5]    ✓ should create a .session file via command
+[chrome 142.0.7444.265 mac #0-5]    ✓ should have valid JSON content in .session file
+[chrome 142.0.7444.265 mac #0-5]    ✓ should create an unconnected session entry with a valid UUID entryId
+[chrome 142.0.7444.265 mac #0-5]    ✓ should create a second .session file with different name
+[chrome 142.0.7444.265 mac #0-5]    ✓ should create a .session file in a requested folder
+[chrome 142.0.7444.265 mac #0-5]    ✓ should create a .session file when opening the chat view
+[chrome 142.0.7444.265 mac #0-5]    ✓ should create a .session file when opening floating chat
+[chrome 142.0.7444.265 mac #0-5]    ✓ should keep a command-created .session file unconnected on first open
+[chrome 142.0.7444.265 mac #0-5]
+[chrome 142.0.7444.265 mac #0-5] 9 passing (2.5s)
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-6] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-6] Session ID: f1151d14d62987765dbdb79fba370884
+[chrome 142.0.7444.265 mac #0-6]
+[chrome 142.0.7444.265 mac #0-6] » e2e/session-navigator.spec.ts
+[chrome 142.0.7444.265 mac #0-6] Session Navigator
+[chrome 142.0.7444.265 mac #0-6]    ✓ AC-0017: renders Harness, New session, 5 Projects and 12 Recents without Active
+[chrome 142.0.7444.265 mac #0-6]    ✓ AC-0023-N-1/B-1/F-1: separates labels, expansion commands and selectable rows
+[chrome 142.0.7444.265 mac #0-6]    ✓ AC-0023-E-1: preserves non-color hierarchy when theme text roles collapse
+[chrome 142.0.7444.265 mac #0-6]    ✓ AC-0017-B-2: expands Projects and Recents independently
+[chrome 142.0.7444.265 mac #0-6]    ✓ AC-0020: searches one flat list and restores Project expansion state
+[chrome 142.0.7444.265 mac #0-6]    ✓ AC-0019: keeps status geometry fixed and selects both projections
+[chrome 142.0.7444.265 mac #0-6]    ✓ AC-0026-N-1: keeps Open on the row and exposes three Session commands
+[chrome 142.0.7444.265 mac #0-6]    ✓ AC-0022: saves 260/420 px light/dark visual evidence
+[chrome 142.0.7444.265 mac #0-6]
+[chrome 142.0.7444.265 mac #0-6] 8 passing (3.6s)
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-7] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-7] Session ID: 678e1a827e72a02299f1a00e15239fe7
+[chrome 142.0.7444.265 mac #0-7]
+[chrome 142.0.7444.265 mac #0-7] » e2e/session-workspace.spec.ts
+[chrome 142.0.7444.265 mac #0-7] v0.5 Session workspace
+[chrome 142.0.7444.265 mac #0-7]    ✓ AC-0024-N-1/N-4/B-1/B-3: opens a side-effect-free validated creation modal
+[chrome 142.0.7444.265 mac #0-7]    ✓ AC-0026-N-1/N-2/N-3/B-1: separates Session and Project destinations
+[chrome 142.0.7444.265 mac #0-7]    ✓ AC-0026-B-2/E-1/F-1/F-2: keeps host failures isolated and Copy path available
+[chrome 142.0.7444.265 mac #0-7]    ✓ AC-0025-N-1/N-2/N-4/B-1/B-4: renders, previews and navigates user turns
+[chrome 142.0.7444.265 mac #0-7]    ✓ AC-0025 scroll synchronization: keeps distant Turn navigation continuous across virtual messages
+[chrome 142.0.7444.265 mac #0-7]    ✓ AC-0025 scroll synchronization: follows manual viewport movement
+[chrome 142.0.7444.265 mac #0-7]    ✓ AC-0025 scroll synchronization: coalesces the bottom action against live container geometry
+[chrome 142.0.7444.265 mac #0-7]    ✓ release visual review: keeps long Turn rails quiet and scrollable
+[chrome 142.0.7444.265 mac #0-7]    ✓ AC-0024-N-4 and AC-0025-N-4/B-1: saves responsive light/dark visual evidence
+[chrome 142.0.7444.265 mac #0-7]
+[chrome 142.0.7444.265 mac #0-7] 9 passing (17.5s)
+------------------------------------------------------------------
+[chrome 142.0.7444.265 mac #0-8] Running: chrome (v142.0.7444.265) on mac
+[chrome 142.0.7444.265 mac #0-8] Session ID: dba4aef382fb98e3e22f6eb381dc9f3d
+[chrome 142.0.7444.265 mac #0-8]
+[chrome 142.0.7444.265 mac #0-8] » e2e/settings-agents.spec.ts
+[chrome 142.0.7444.265 mac #0-8] AC-0029 Agents settings section
+[chrome 142.0.7444.265 mac #0-8]    ✓ AC-0029-N-1: renders a single Agents section with the unified editor
+[chrome 142.0.7444.265 mac #0-8]    ✓ AC-0029-N-2: edits a built-in entry through the same editor path
+[chrome 142.0.7444.265 mac #0-8]    ✓ AC-0029-N-3: adds an agent and edits its fields
+[chrome 142.0.7444.265 mac #0-8]    ✓ AC-0029-N-4: shows the mandated secret-handling descriptions
+[chrome 142.0.7444.265 mac #0-8]    ✓ AC-0029-B-1: regenerates a cleared Agent ID and syncs the default
+[chrome 142.0.7444.265 mac #0-8]    ✓ AC-0029-B-2: falls back after deleting the default and shows an empty state
+[chrome 142.0.7444.265 mac #0-8]    ✓ AC-0029-E-1: persists an entry with an empty command as-is
+[chrome 142.0.7444.265 mac #0-8]    ✓ AC-0029-F-1: keeps settings and UI consistent across rapid add/delete
+[chrome 142.0.7444.265 mac #0-8]
+[chrome 142.0.7444.265 mac #0-8] 8 passing (760ms)
+
+
+Spec Files:	 8 passed, 1 failed, 9 total (100% completed) in 00:01:12  
+

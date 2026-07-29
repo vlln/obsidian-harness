@@ -2,7 +2,7 @@
 title: Plan-0059-01: v0.6.0 System Test
 description: 交付 AC-0029/AC-0027 的 WDIO E2E 用例并在 develop 上执行全量系统测试回归，产出 SYSTEM_TEST 测试报告与失败分类。
 type: plan
-status: pending
+status: done
 created: 2026-07-29T07:35:40Z
 ---
 
