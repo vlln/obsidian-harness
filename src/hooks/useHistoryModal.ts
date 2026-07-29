@@ -3,7 +3,7 @@ import { Notice, Platform, TFile } from "obsidian";
 import { SessionHistoryModal } from "../ui/SessionHistoryModal";
 import { getLogger } from "../utils/logger";
 import { convertWslPathToWindows } from "../utils/platform";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type { UseAgentReturn } from "./useAgent";
 import type { UseSessionHistoryReturn } from "./useSessionHistory";
 
@@ -21,7 +21,7 @@ import type { UseSessionHistoryReturn } from "./useSessionHistory";
  * @param debugMode - Whether debug mode is enabled
  */
 export function useHistoryModal(
-	plugin: AgentClientPlugin,
+	plugin: HarnessPlugin,
 	agent: UseAgentReturn,
 	sessionHistory: UseSessionHistoryReturn,
 	vaultPath: string,

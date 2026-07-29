@@ -1,9 +1,5 @@
 # Gemini CLI Setup
 
-::: warning Gemini CLI is being discontinued
-Google is retiring account login for Gemini CLI (Pro / Ultra / free tiers) on **June 18, 2026**. Google states Gemini CLI stays accessible via a **paid** Gemini API key. See **[Gemini CLI Discontinuation & Migration](/announcements/gemini-cli-deprecation)**.
-:::
-
 Gemini CLI is Google's AI assistant. You can authenticate using your **Google account**, an **API key**, or **Vertex AI**.
 
 ## Install and Configure
@@ -32,7 +28,7 @@ where.exe gemini
 
 :::
 
-3. Open **Settings → Agent Client**. The default command (`gemini`) works in many cases. If the agent is not found automatically, set the **Gemini CLI path** to the path found above, or click **Auto-detect**.
+3. Open **Settings → Obsidian Harness**. The default command (`gemini`) works in many cases. If the agent is not found automatically, set the **Gemini CLI path** to the path found above, or click **Auto-detect**.
 
 4. Ensure **Arguments** contains `--experimental-acp` (this is set by default).
 
@@ -44,10 +40,6 @@ Choose one of the following methods:
 
 If you have a Google account and prefer not to use an API key, you can log in directly.
 
-::: warning
-Account login is being discontinued for Pro / Ultra / free tiers on June 18, 2026. See [Gemini CLI Discontinuation & Migration](/announcements/gemini-cli-deprecation).
-:::
-
 1. Run Gemini CLI in your terminal and choose "Login with Google":
 
 ```bash
@@ -56,7 +48,7 @@ gemini
 
 2. Follow the browser authentication flow.
 
-3. In **Settings → Agent Client**, leave the **API key field empty**.
+3. In **Settings → Obsidian Harness**, leave the **API key field empty**.
 
 ::: tip
 If you have a Gemini Code Assist License from your organization, add `GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID` in the **Environment variables** field.
@@ -67,7 +59,7 @@ If you have a Gemini Code Assist License from your organization, add `GOOGLE_CLO
 If you prefer to use an API key for authentication:
 
 1. Get your API key from [Google AI Studio](https://aistudio.google.com/apikey)
-2. Open **Settings → Agent Client → Built-in agents → Gemini CLI → API key**
+2. Open **Settings → Obsidian Harness → Built-in agents → Gemini CLI → API key**
 3. Click the **Link...** button next to the API key field
 4. In the **Select secret** dialog:
    - To use an existing secret: select it from the list and click **Save**
@@ -82,18 +74,18 @@ API keys are stored in **Obsidian's Keychain** (Settings → Keychain). You can 
 ::: info Upgrading from a previous version
 If you previously stored your Gemini API key in this plugin (v0.10.x or earlier), it is automatically migrated to Obsidian's Keychain as `gemini-api-key` the first time you load the upgraded plugin. A one-time notification confirms the migration.
 
-If `gemini-api-key` is already in use by another plugin with a different value, your key is preserved under `agent-client-gemini-api-key` instead. You can rename it from **Settings → Keychain** if you prefer.
+If `gemini-api-key` is already in use by another plugin with a different value, your key is preserved under `harness-gemini-api-key` instead. You can rename it from **Settings → Keychain** if you prefer.
 :::
 
 ::: tip If the key isn't picked up
-If authentication still fails, set the key on the Gemini CLI side instead: run `gemini` in your terminal, type `/auth`, choose **Use Gemini API Key**, and paste your key (it's stored in your system keychain). Then leave the **API key field empty** in Agent Client.
+If authentication still fails, set the key on the Gemini CLI side instead: run `gemini` in your terminal, type `/auth`, choose **Use Gemini API Key**, and paste your key (it's stored in your system keychain). Then leave the **API key field empty** in Obsidian Harness.
 :::
 
 ### Option C: Vertex AI
 
 If you are using Vertex AI for enterprise workloads:
 
-1. In **Settings → Agent Client → Built-in agents → Gemini CLI → Environment variables**, add:
+1. In **Settings → Obsidian Harness → Built-in agents → Gemini CLI → Environment variables**, add:
 
 ```
 GOOGLE_API_KEY=YOUR_API_KEY

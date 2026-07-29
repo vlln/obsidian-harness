@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type { SessionFileData, SessionIndexEntry } from "../types/session";
 import {
 	TRANSCRIPT_SCHEMA_VERSION,
@@ -206,7 +206,7 @@ export class SessionStorage {
 	private readonly sessionIndexListeners = new Set<SessionIndexListener>();
 	private sessionIndexMutationTail: Promise<void> = Promise.resolve();
 
-	constructor(pluginOrOptions: AgentClientPlugin | TranscriptStorageOptions) {
+	constructor(pluginOrOptions: HarnessPlugin | TranscriptStorageOptions) {
 		if ("adapter" in pluginOrOptions) {
 			this.adapter = pluginOrOptions.adapter;
 			this.sessionsDir = pluginOrOptions.sessionsDir;

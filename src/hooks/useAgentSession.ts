@@ -80,7 +80,7 @@ export interface UseAgentSessionReturn {
 // ============================================================================
 
 export function useAgentSession(
-	agentClient: AcpClient,
+	harness: AcpClient,
 	settingsAccess: ISettingsAccess,
 	workingDirectory: string,
 	setErrorInfo: (error: ErrorInfo | null) => void,
@@ -214,20 +214,18 @@ export function useAgentSession(
 				}
 
 				const agentConfig = buildAgentConfigWithApiKey(
-					settings,
 					agentSettings,
-					agentId,
 					effectiveCwd,
 				);
 
 				const initResult =
-					!agentClient.isInitialized() ||
-					agentClient.getCurrentAgentId() !== agentId
-						? await agentClient.initialize(agentConfig)
+					!harness.isInitialized() ||
+					harness.getCurrentAgentId() !== agentId
+						? await harness.initialize(agentConfig)
 						: null;
 
 				const sessionResult =
-					await agentClient.newSession(effectiveCwd);
+					await harness.newSession(effectiveCwd);
 
 				// Pre-compute restored modes/configOptions BEFORE
 				// marking state as "ready" to avoid a UI race: without this,
@@ -241,20 +239,20 @@ export function useAgentSession(
 				if (sessionResult.configOptions && sessionResult.sessionId) {
 					let configOptions = sessionResult.configOptions;
 					configOptions = await restoreSavedConfigOptions(
-						agentClient,
+						harness,
 						sessionResult.sessionId,
 						configOptions,
 						settings.lastUsedConfigOptions[agentId],
 					);
 					configOptions = await tryRestoreConfigOption(
-						agentClient,
+						harness,
 						sessionResult.sessionId,
 						configOptions,
 						"model",
 						settings.lastUsedModels[agentId],
 					);
 					configOptions = await tryRestoreConfigOption(
-						agentClient,
+						harness,
 						sessionResult.sessionId,
 						configOptions,
 						"mode",
@@ -263,7 +261,7 @@ export function useAgentSession(
 					finalConfigOptions = configOptions;
 				} else if (sessionResult.sessionId) {
 					const restored = await restoreLegacyConfig(
-						agentClient,
+						harness,
 						sessionResult,
 						settings.lastUsedModes[agentId],
 					);
@@ -305,7 +303,7 @@ export function useAgentSession(
 				return null;
 			}
 		},
-		[agentClient, settingsAccess, workingDirectory, setErrorInfo],
+		[harness, settingsAccess, workingDirectory, setErrorInfo],
 	);
 
 	const selectAgent = useCallback(
@@ -357,9 +355,7 @@ export function useAgentSession(
 					throw new Error(`Agent not found: ${agentId}`);
 
 				const agentConfig = buildAgentConfigWithApiKey(
-					settings,
 					agentSettings,
-					agentId,
 					cwd,
 				);
 
@@ -368,18 +364,18 @@ export function useAgentSession(
 					ReturnType<AcpClient["initialize"]>
 				> | null = null;
 				if (
-					!agentClient.isInitialized() ||
-					agentClient.getCurrentAgentId() !== agentId
+					!harness.isInitialized() ||
+					harness.getCurrentAgentId() !== agentId
 				) {
-					initResult = await agentClient.initialize(agentConfig);
+					initResult = await harness.initialize(agentConfig);
 				}
 
 				const capabilities =
 					initResult?.agentCapabilities ?? s.agentCapabilities;
 				const result = capabilities?.sessionCapabilities?.resume
-					? await agentClient.resumeSession(sessionId, cwd)
+					? await harness.resumeSession(sessionId, cwd)
 					: capabilities?.loadSession
-						? await agentClient.loadSession(sessionId, cwd)
+						? await harness.loadSession(sessionId, cwd)
 						: (() => {
 								throw new Error(
 									"Session restoration is not supported",
@@ -403,7 +399,7 @@ export function useAgentSession(
 				throw error;
 			}
 		},
-		[agentClient, settingsAccess],
+		[harness, settingsAccess],
 	);
 
 	const restartSession = useCallback(
@@ -419,7 +415,7 @@ export function useAgentSession(
 		// interruption signal that can affect persistence, so normal close only
 		// tears down the process. The Stop action still uses cancelOperation().
 		try {
-			await agentClient.disconnect();
+			await harness.disconnect();
 		} catch (error) {
 			getLogger().warn("Failed to disconnect:", error);
 		}
@@ -428,25 +424,25 @@ export function useAgentSession(
 			sessionId: null,
 			state: "disconnected",
 		}));
-	}, [agentClient]);
+	}, [harness]);
 
 	const forceRestartAgent = useCallback(async () => {
 		const currentAgentId = sessionRef.current.agentId;
-		await agentClient.disconnect();
+		await harness.disconnect();
 		await createSession(currentAgentId);
-	}, [agentClient, createSession]);
+	}, [harness, createSession]);
 
 	const cancelOperation = useCallback(async () => {
 		const s = sessionRef.current;
 		if (!s.sessionId) return;
 		try {
-			await agentClient.cancel(s.sessionId);
+			await harness.cancel(s.sessionId);
 			setSession((prev) => ({ ...prev, state: "ready" }));
 		} catch (error) {
 			getLogger().warn("Failed to cancel operation:", error);
 			setSession((prev) => ({ ...prev, state: "ready" }));
 		}
-	}, [agentClient]);
+	}, [harness]);
 
 	const getAvailableAgents = useCallback(() => {
 		const settings = settingsAccess.getSnapshot();
@@ -473,20 +469,20 @@ export function useAgentSession(
 			if (configOptions && sessionId) {
 				let restored = configOptions;
 				restored = await restoreSavedConfigOptions(
-					agentClient,
+					harness,
 					sessionId,
 					restored,
 					settings.lastUsedConfigOptions[agentId],
 				);
 				restored = await tryRestoreConfigOption(
-					agentClient,
+					harness,
 					sessionId,
 					restored,
 					"model",
 					settings.lastUsedModels[agentId],
 				);
 				restored = await tryRestoreConfigOption(
-					agentClient,
+					harness,
 					sessionId,
 					restored,
 					"mode",
@@ -495,7 +491,7 @@ export function useAgentSession(
 				finalConfigOptions = restored;
 			} else if (sessionId && modes) {
 				const restored = await restoreLegacyConfig(
-					agentClient,
+					harness,
 					{ sessionId, modes, configOptions: undefined },
 					settings.lastUsedModes[agentId],
 				);
@@ -511,7 +507,7 @@ export function useAgentSession(
 				lastActivityAt: new Date(),
 			}));
 		},
-		[agentClient, settingsAccess],
+		[harness, settingsAccess],
 	);
 
 	// ============================================================
@@ -531,7 +527,7 @@ export function useAgentSession(
 			setSession((prev) => applyLegacyValue(prev, value));
 
 			try {
-				await agentClient.setSessionMode(s.sessionId, value);
+				await harness.setSessionMode(s.sessionId, value);
 
 				if (s.agentId) {
 					const currentSettings = settingsAccess.getSnapshot();
@@ -549,7 +545,7 @@ export function useAgentSession(
 				}
 			}
 		},
-		[agentClient, settingsAccess],
+		[harness, settingsAccess],
 	);
 
 	const setMode = useCallback(
@@ -582,7 +578,7 @@ export function useAgentSession(
 			});
 
 			try {
-				const updatedOptions = await agentClient.setSessionConfigOption(
+				const updatedOptions = await harness.setSessionConfigOption(
 					s.sessionId,
 					configId,
 					value,
@@ -639,7 +635,7 @@ export function useAgentSession(
 				}
 			}
 		},
-		[agentClient, settingsAccess],
+		[harness, settingsAccess],
 	);
 
 	// ============================================================

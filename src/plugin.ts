@@ -10,10 +10,9 @@ import {
 	Menu,
 	Platform,
 } from "obsidian";
-import { existsSync } from "fs";
 import { mkdir, stat } from "fs/promises";
 import { homedir } from "os";
-import { dirname, join, posix, win32 } from "path";
+import { dirname, posix, win32 } from "path";
 import * as semver from "semver";
 import { ChatView, VIEW_TYPE_CHAT } from "./ui/ChatView";
 import {
@@ -38,13 +37,12 @@ import {
 	createSettingsService,
 	type SettingsService,
 } from "./services/settings-service";
-import { AgentClientSettingTab } from "./ui/SettingsTab";
+import { HarnessSettingTab } from "./ui/SettingsTab";
 import { AcpClient } from "./acp/acp-client";
 import {
-	sanitizeArgs,
-	normalizeEnvVars,
-	normalizeCustomAgent,
-	ensureUniqueCustomAgentIds,
+	normalizeAgents,
+	resolveDefaultAgentId,
+	DEFAULT_AGENT_SETTINGS,
 	parseChatFontSize,
 	str,
 	bool,
@@ -55,10 +53,6 @@ import {
 	nestedStrRecord,
 	xyPoint,
 } from "./services/settings-normalizer";
-import {
-	selectPreferredDefaultAgentId,
-	uniqueNonEmpty,
-} from "./services/session-helpers";
 import { resolveSessionFolderFromFileMenuTarget } from "./services/session-entry-target";
 import { parseSessionFileData } from "./services/session-entry";
 import {
@@ -78,20 +72,14 @@ import {
 	SessionEntryLifecycleQueue,
 } from "./services/session-materialization";
 import { SessionCreationModal } from "./ui/SessionCreationModal";
-import {
-	AgentEnvVar,
-	GeminiAgentSettings,
-	ClaudeAgentSettings,
-	CodexAgentSettings,
-	CustomAgentSettings,
-} from "./types/agent";
+import { AgentEnvVar, AgentSettings } from "./types/agent";
 import type { SessionFileData } from "./types/session";
 import { initializeLogger, getLogger } from "./utils/logger";
 
 const PLUGIN_RELEASE_REPO = "vlln/obsidian-harness-frontend";
 
 // Re-export for backward compatibility
-export type { AgentEnvVar, CustomAgentSettings };
+export type { AgentEnvVar, AgentSettings };
 
 /**
  * Send message shortcut configuration.
@@ -113,12 +101,14 @@ export type ChatViewLocation =
 	| "editor-tab"
 	| "editor-split";
 
-export interface AgentClientPluginSettings {
-	gemini: GeminiAgentSettings;
-	claude: ClaudeAgentSettings;
-	codex: CodexAgentSettings;
-	customAgents: CustomAgentSettings[];
-	/** Default agent ID for new views (renamed from activeAgentId for multi-session) */
+export interface HarnessPluginSettings {
+	/**
+	 * Unified agent backend configurations (Spec-0008 §4.2).
+	 * The single source for all agent backends — built-in agents are merely
+	 * prefilled default entries in this array (BR-068).
+	 */
+	agents: AgentSettings[];
+	/** Default agent ID for new views; must reference an agents[] entry (BR-070) */
 	defaultAgentId: string;
 	/** Vault-relative folder where default .session files are created */
 	sessionFolder: string;
@@ -169,32 +159,8 @@ export interface AgentClientPluginSettings {
 	floatingButtonPosition: { x: number; y: number } | null;
 }
 
-const DEFAULT_SETTINGS: AgentClientPluginSettings = {
-	claude: {
-		id: "claude-code-acp",
-		displayName: "Claude Code",
-		apiKeySecretId: "",
-		command: "claude-agent-acp",
-		args: [],
-		env: [],
-	},
-	codex: {
-		id: "codex-acp",
-		displayName: "Codex",
-		apiKeySecretId: "",
-		command: "codex-acp",
-		args: [],
-		env: [],
-	},
-	gemini: {
-		id: "gemini-cli",
-		displayName: "Gemini CLI",
-		apiKeySecretId: "",
-		command: "gemini",
-		args: ["--experimental-acp"],
-		env: [],
-	},
-	customAgents: [],
+const DEFAULT_SETTINGS: HarnessPluginSettings = {
+	agents: DEFAULT_AGENT_SETTINGS,
 	defaultAgentId: "claude-code-acp",
 	sessionFolder: "Sessions",
 	autoAllowPermissions: false,
@@ -203,15 +169,15 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 	debugMode: false,
 	nodePath: "",
 	exportSettings: {
-		defaultFolder: "Agent Client",
-		filenameTemplate: "agent_client_{date}_{time}",
+		defaultFolder: "Harness",
+		filenameTemplate: "harness_{date}_{time}",
 		autoExportOnNewChat: false,
 		autoExportOnCloseChat: false,
 		openFileAfterExport: true,
 		includeImages: true,
 		imageLocation: "obsidian",
-		imageCustomFolder: "Agent Client",
-		frontmatterTag: "agent-client",
+		imageCustomFolder: "Harness",
+		frontmatterTag: "harness",
 	},
 	windowsWslMode: false,
 	windowsWslDistribution: undefined,
@@ -235,9 +201,9 @@ const DEFAULT_SETTINGS: AgentClientPluginSettings = {
 	floatingButtonPosition: null,
 };
 
-export default class AgentClientPlugin extends Plugin {
+export default class HarnessPlugin extends Plugin {
 	private readonly sessionEntryLifecycle = new SessionEntryLifecycleQueue();
-	settings: AgentClientPluginSettings;
+	settings: HarnessPluginSettings;
 	settingsService!: SettingsService;
 
 	/** Registry for all chat view containers (sidebar + floating) */
@@ -302,6 +268,10 @@ export default class AgentClientPlugin extends Plugin {
 		// Detach stale leaves from a previous plugin instance to prevent
 		// "Attempting to register an existing view type" when Obsidian's
 		// hot-reload races onunload/onload (e.g. rapid toggle or npm run dev).
+		// Phase 2 migration: clean up old view-type strings from prior versions
+		// so stale leaves don't linger as blank panels after the rename.
+		this.app.workspace.detachLeavesOfType("agent-client-chat-view");
+		this.app.workspace.detachLeavesOfType("agent-client-session-manager");
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_CHAT);
 		this.registerView(VIEW_TYPE_CHAT, (leaf) => new ChatView(leaf, this));
 
@@ -326,7 +296,7 @@ export default class AgentClientPlugin extends Plugin {
 				void this.activateSessionManager();
 			},
 		);
-		ribbonIconEl.addClass("agent-client-ribbon-icon");
+		ribbonIconEl.addClass("harness-ribbon-icon");
 
 		this.addCommand({
 			id: "open-chat-view",
@@ -359,7 +329,7 @@ export default class AgentClientPlugin extends Plugin {
 			}),
 		);
 
-		this.addSettingTab(new AgentClientSettingTab(this.app, this));
+		this.addSettingTab(new HarnessSettingTab(this.app, this));
 
 		// Mount floating button (always present; visibility controlled by settings inside component)
 		this.floatingButton = new FloatingButtonContainer(this);
@@ -378,7 +348,7 @@ export default class AgentClientPlugin extends Plugin {
 				for (const [viewId, client] of this._acpClients) {
 					client.disconnect().catch((error) => {
 						getLogger().warn(
-							`[AgentClient] Quit cleanup error for view ${viewId}:`,
+							`[Harness] Quit cleanup error for view ${viewId}:`,
 							error,
 						);
 					});
@@ -482,7 +452,7 @@ export default class AgentClientPlugin extends Plugin {
 				await client.disconnect();
 			} catch (error) {
 				getLogger().warn(
-					`[AgentClient] Failed to disconnect client for view ${viewId}:`,
+					`[Harness] Failed to disconnect client for view ${viewId}:`,
 					error,
 				);
 			}
@@ -578,7 +548,7 @@ export default class AgentClientPlugin extends Plugin {
 		if (viewContainerEl) {
 			window.setTimeout(() => {
 				const textarea = viewContainerEl.querySelector(
-					"textarea.agent-client-chat-input-textarea",
+					"textarea.harness-chat-input-textarea",
 				);
 				if (textarea instanceof HTMLTextAreaElement) {
 					textarea.focus();
@@ -650,7 +620,7 @@ export default class AgentClientPlugin extends Plugin {
 	async openNewChatViewWithAgent(agentId: string): Promise<void> {
 		const leaf = this.createNewChatLeaf(true);
 		if (!leaf) {
-			getLogger().warn("[AgentClient] Failed to create new leaf");
+			getLogger().warn("[Harness] Failed to create new leaf");
 			return;
 		}
 
@@ -667,7 +637,7 @@ export default class AgentClientPlugin extends Plugin {
 		if (viewContainerEl) {
 			window.setTimeout(() => {
 				const textarea = viewContainerEl.querySelector(
-					"textarea.agent-client-chat-input-textarea",
+					"textarea.harness-chat-input-textarea",
 				);
 				if (textarea instanceof HTMLTextAreaElement) {
 					textarea.focus();
@@ -723,160 +693,34 @@ export default class AgentClientPlugin extends Plugin {
 	/**
 	 * Get all available agents.
 	 *
-	 * Locally discovered backends are listed first because they are known to be
-	 * present in this environment. Built-ins remain visible as configurable
-	 * options, but their commands may still need user setup.
+	 * Direct mapping of the unified agents[] array — built-in and user-added
+	 * entries are isomorphic and always listed (BR-068/BR-075).
 	 */
 	getAvailableAgents(): Array<{ id: string; displayName: string }> {
-		const discovered = this.getDiscoveredAgents();
-		const configured = [
-			{
-				id: this.settings.claude.id,
-				displayName:
-					this.settings.claude.displayName || this.settings.claude.id,
-			},
-			{
-				id: this.settings.codex.id,
-				displayName:
-					this.settings.codex.displayName || this.settings.codex.id,
-			},
-			{
-				id: this.settings.gemini.id,
-				displayName:
-					this.settings.gemini.displayName || this.settings.gemini.id,
-			},
-			...this.settings.customAgents.map((agent) => ({
-				id: agent.id,
-				displayName: agent.displayName || agent.id,
-			})),
-		];
-
-		const discoveredIds = new Set(discovered.map((agent) => agent.id));
-		return [
-			...discovered,
-			...configured.filter((agent) => !discoveredIds.has(agent.id)),
-		];
-	}
-
-	private getDiscoveredAgents(): Array<{ id: string; displayName: string }> {
-		const agents: Array<{ id: string; displayName: string }> = [];
-		if (this.isPiAcpAvailable()) {
-			agents.push({ id: "pi-acp", displayName: "pi-acp" });
-		}
-		return agents;
-	}
-
-	/**
-	 * Check if pi-acp is installed as a pi plugin.
-	 * Detection: ~/.pi/pi-acp/ directory exists.
-	 */
-	isPiAcpAvailable(): boolean {
-		try {
-			return existsSync(join(homedir(), ".pi", "pi-acp"));
-		} catch {
-			return false;
-		}
+		return this.settings.agents.map((agent) => ({
+			id: agent.id,
+			displayName: agent.displayName || agent.id,
+		}));
 	}
 
 	async loadSettings() {
 		const raw = ((await this.loadData()) ?? {}) as Record<string, unknown>;
 		const D = DEFAULT_SETTINGS;
-		let migratedSecrets = false;
 
-		// Extract agent sub-objects
-		const rc = obj(raw.claude) ?? {};
-		const rk = obj(raw.codex) ?? {};
-		const rg = obj(raw.gemini) ?? {};
+		// Unified agents[] model (Spec-0008). Legacy schema fields
+		// (claude/codex/gemini/customAgents/plaintext apiKey) are silently
+		// ignored — never read, never migrated, never written back (BR-074).
+		const agents = normalizeAgents(raw.agents, DEFAULT_AGENT_SETTINGS);
+		const defaultAgentId = resolveDefaultAgentId(
+			raw.defaultAgentId ?? D.defaultAgentId,
+			agents,
+		);
+
 		const re = obj(raw.exportSettings) ?? {};
 		const rd = obj(raw.displaySettings) ?? {};
 
-		// Normalize custom agents
-		const customAgents = Array.isArray(raw.customAgents)
-			? ensureUniqueCustomAgentIds(
-					raw.customAgents.map((a: unknown) =>
-						normalizeCustomAgent(obj(a) ?? {}),
-					),
-				)
-			: [];
-
-		// Migration: defaultAgentId ← activeAgentId (old name)
-		const availableAgentIds = [
-			D.claude.id,
-			D.codex.id,
-			D.gemini.id,
-			...customAgents.map((a) => a.id),
-		];
-		const rawDefaultId =
-			str(raw.defaultAgentId, "") || str(raw.activeAgentId, "");
-		const defaultAgentId =
-			rawDefaultId && availableAgentIds.includes(rawDefaultId)
-				? rawDefaultId
-				: availableAgentIds[0] || D.claude.id;
-
 		this.settings = {
-			claude: {
-				id: D.claude.id, // Fixed — never from raw
-				displayName: str(rc.displayName, D.claude.displayName),
-				apiKeySecretId: this.migrateLegacyApiKey(
-					"claude-api-key",
-					"agent-client-claude-api-key",
-					str(rc.apiKeySecretId, D.claude.apiKeySecretId),
-					str(rc.apiKey, ""),
-					"Claude",
-					() => {
-						migratedSecrets = true;
-					},
-				),
-				// Migration: claude.command ← claudeCodeAcpCommandPath (old name)
-				command:
-					str(rc.command, "") ||
-					str(raw.claudeCodeAcpCommandPath, "") ||
-					D.claude.command,
-				args: sanitizeArgs(rc.args),
-				env: normalizeEnvVars(rc.env),
-			},
-			codex: {
-				id: D.codex.id,
-				displayName: str(rk.displayName, D.codex.displayName),
-				apiKeySecretId: this.migrateLegacyApiKey(
-					"openai-api-key",
-					"agent-client-openai-api-key",
-					str(rk.apiKeySecretId, D.codex.apiKeySecretId),
-					str(rk.apiKey, ""),
-					"Codex",
-					() => {
-						migratedSecrets = true;
-					},
-				),
-				command: str(rk.command, "") || D.codex.command,
-				args: sanitizeArgs(rk.args),
-				env: normalizeEnvVars(rk.env),
-			},
-			gemini: {
-				id: D.gemini.id,
-				displayName: str(rg.displayName, D.gemini.displayName),
-				apiKeySecretId: this.migrateLegacyApiKey(
-					"gemini-api-key",
-					"agent-client-gemini-api-key",
-					str(rg.apiKeySecretId, D.gemini.apiKeySecretId),
-					str(rg.apiKey, ""),
-					"Gemini",
-					() => {
-						migratedSecrets = true;
-					},
-				),
-				// Migration: gemini.command ← geminiCommandPath (old name)
-				command:
-					str(rg.command, "") ||
-					str(raw.geminiCommandPath, "") ||
-					D.gemini.command,
-				args:
-					sanitizeArgs(rg.args).length > 0
-						? sanitizeArgs(rg.args)
-						: D.gemini.args,
-				env: normalizeEnvVars(rg.env),
-			},
-			customAgents,
+			agents,
 			defaultAgentId,
 			sessionFolder: str(raw.sessionFolder, D.sessionFolder),
 			autoAllowPermissions: bool(
@@ -996,7 +840,7 @@ export default class AgentClientPlugin extends Plugin {
 
 		const defaultAgentChanged = this.ensureDefaultAgentId();
 
-		if (migratedSecrets || defaultAgentChanged) {
+		if (defaultAgentChanged) {
 			await this.saveSettings();
 		}
 	}
@@ -1005,82 +849,8 @@ export default class AgentClientPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	async saveSettingsAndNotify(nextSettings: AgentClientPluginSettings) {
+	async saveSettingsAndNotify(nextSettings: HarnessPluginSettings) {
 		await this.settingsService.updateSettings(nextSettings);
-	}
-
-	/**
-	 * Migrate legacy plaintext apiKey (v0.10.x) to secretStorage.
-	 *
-	 * Returns the secretId to use for this agent.
-	 *
-	 * Behavior:
-	 * - If apiKeySecretId is already set, return it as-is. If a legacy
-	 *   plaintext apiKey still lingers in data.json (orphaned from prior
-	 *   experimental state), trigger onMigrate to schedule a save that
-	 *   cleans it up.
-	 * - If legacy apiKey is empty, return empty string (no migration needed).
-	 * - Otherwise, migrate to secretStorage:
-	 *   - Use defaultSecretId (e.g. "claude-api-key") for cross-plugin sharing.
-	 *   - On collision (defaultSecretId exists with a different value, e.g.
-	 *     from another plugin), fall back to fallbackSecretId
-	 *     (e.g. "agent-client-claude-api-key") to preserve the user's key
-	 *     and notify them.
-	 *
-	 * This method is for upgrading from v0.10.x or experimental builds and
-	 * can be removed in a future major version once we're confident no
-	 * users have legacy plaintext apiKey fields in data.json.
-	 */
-	private migrateLegacyApiKey(
-		defaultSecretId: string,
-		fallbackSecretId: string,
-		currentSecretId: string,
-		legacyApiKey: string,
-		agentLabel: string,
-		onMigrate: () => void,
-	): string {
-		const trimmed = legacyApiKey.trim();
-
-		// Already migrated
-		if (currentSecretId.length > 0) {
-			// Clean up orphaned plaintext apiKey if still in data.json
-			if (trimmed.length > 0) {
-				onMigrate();
-			}
-			return currentSecretId;
-		}
-
-		if (trimmed.length === 0) {
-			return "";
-		}
-
-		const existing = this.app.secretStorage.getSecret(defaultSecretId);
-
-		if (existing === null) {
-			// No collision — create the secret with the preferred ID
-			this.app.secretStorage.setSecret(defaultSecretId, trimmed);
-			new Notice(
-				`[Agent Client] Your ${agentLabel} API key has been migrated to Obsidian's Keychain as "${defaultSecretId}".`,
-			);
-			onMigrate();
-			return defaultSecretId;
-		}
-
-		if (existing === trimmed) {
-			// Idempotent re-migration (same value already stored)
-			onMigrate();
-			return defaultSecretId;
-		}
-
-		// Collision: defaultSecretId exists with a different value (likely
-		// another plugin). Fall back to a plugin-prefixed ID to preserve
-		// the user's key without overwriting other plugins' secrets.
-		this.app.secretStorage.setSecret(fallbackSecretId, trimmed);
-		new Notice(
-			`[Agent Client] "${defaultSecretId}" was already in use. Your ${agentLabel} API key was migrated to "${fallbackSecretId}". You can rename it in Obsidian's Keychain settings.`,
-		);
-		onMigrate();
-		return fallbackSecretId;
 	}
 
 	/**
@@ -1168,42 +938,13 @@ export default class AgentClientPlugin extends Plugin {
 	}
 
 	ensureDefaultAgentId(): boolean {
-		const configuredIds = this.collectConfiguredAgentIds();
-		const discoveredIds = this.collectDiscoveredAgentIds();
-		const nextDefaultAgentId = selectPreferredDefaultAgentId({
-			currentDefaultId: this.settings.defaultAgentId,
-			configuredAgentIds: configuredIds,
-			discoveredAgentIds: discoveredIds,
-			fallbackAgentId: DEFAULT_SETTINGS.claude.id,
-		});
+		const nextDefaultAgentId = resolveDefaultAgentId(
+			this.settings.defaultAgentId,
+			this.settings.agents,
+		);
 		if (nextDefaultAgentId === this.settings.defaultAgentId) return false;
 		this.settings.defaultAgentId = nextDefaultAgentId;
 		return true;
-	}
-
-	private collectAvailableAgentIds(): string[] {
-		return uniqueNonEmpty([
-			...this.collectDiscoveredAgentIds(),
-			...this.collectConfiguredAgentIds(),
-		]);
-	}
-
-	private collectConfiguredAgentIds(): string[] {
-		const ids = [
-			this.settings.claude.id,
-			this.settings.codex.id,
-			this.settings.gemini.id,
-		];
-		for (const agent of this.settings.customAgents) {
-			if (agent.id && agent.id.length > 0) {
-				ids.push(agent.id);
-			}
-		}
-		return uniqueNonEmpty(ids);
-	}
-
-	private collectDiscoveredAgentIds(): string[] {
-		return this.getDiscoveredAgents().map((agent) => agent.id);
 	}
 
 	getVaultRootPath(): string {

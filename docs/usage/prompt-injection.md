@@ -22,7 +22,7 @@ Instructions are only injected on the **first message** of each session, not on 
 
 ## Settings
 
-Configure in **Settings → Agent Client → Prompt injection**:
+Configure in **Settings → Obsidian Harness → Prompt injection**:
 
 <p align="center">
   <img src="/images/prompt-injection-settings.webp" alt="Prompt injection settings" width="600" />

@@ -16,7 +16,7 @@ import { TerminalManager } from "./terminal-handler";
 import { PermissionManager } from "./permission-handler";
 import { AcpHandler } from "./acp-handler";
 import { getLogger, Logger } from "../utils/logger";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import {
 	convertWindowsPathToWsl,
 	getEnhancedWindowsEnv,
@@ -38,7 +38,7 @@ import {
 
 /**
  * Runtime configuration for launching an AI agent process.
- * Converted from BaseAgentSettings by toAgentConfig() in settings-service.
+ * Converted from AgentSettings by toAgentConfig() in settings-normalizer.
  */
 export interface AgentConfig {
 	id: string;
@@ -51,8 +51,10 @@ export interface AgentConfig {
 	 * Optional API key injection intent.
 	 * When present, AcpClient.initialize() resolves the secret value from
 	 * Obsidian's secret storage and injects it into the spawn environment
-	 * as `envVarName`. Custom agents typically don't set this (they use
-	 * env vars directly).
+	 * as `envVarName`, overriding any same-named manual `env` entry.
+	 * Attached for any agent entry whose apiKeySecretId and apiKeyEnvVarName
+	 * are both set (BR-072); absent when the backend relies on its own
+	 * login state or manual env vars.
 	 */
 	apiKey?: {
 		/** Secret storage ID to look up at spawn time */
@@ -101,7 +103,7 @@ export class AcpClient {
 
 	private logger: Logger;
 
-	constructor(private plugin: AgentClientPlugin) {
+	constructor(private plugin: HarnessPlugin) {
 		this.logger = getLogger();
 
 		// Initialize managers
@@ -206,7 +208,8 @@ export class AcpClient {
 		}
 
 		// Resolve API key secret just before spawn so the latest value is used.
-		// Custom agents don't set config.apiKey and inject keys via env directly.
+		// The injection intent comes from the agent entry's own apiKeySecretId /
+		// apiKeyEnvVarName fields and overrides any same-named manual env entry.
 		if (config.apiKey) {
 			const secretValue =
 				this.plugin.app.secretStorage.getSecret(
@@ -217,10 +220,10 @@ export class AcpClient {
 
 		// In WSL mode, forward the configured env var NAMES into WSL via WSLENV
 		// (Windows env vars are otherwise invisible to the Linux agent process,
-		// so the plugin's API key field would have no effect in WSL). Built-in
-		// agents resolve the API key into baseEnv above — not into config.env —
-		// so its var name must be added explicitly, or the key would never cross
-		// into WSL. Must run AFTER the secret is injected into baseEnv. (#312)
+		// so the plugin's API key field would have no effect in WSL). The API key
+		// is resolved into baseEnv above — not into config.env — so its var name
+		// must be added explicitly, or the key would never cross into WSL.
+		// Must run AFTER the secret is injected into baseEnv. (#312)
 		if (Platform.isWin && this.plugin.settings.windowsWslMode) {
 			const wslEnvNames = Object.keys(config.env || {});
 			if (config.apiKey?.envVarName) {
@@ -394,7 +397,7 @@ export class AcpClient {
 		// hold the persistent connection. This is the same builder the deprecated
 		// ClientSideConnection constructed internally (legacyClientApp), inlined.
 		const app = acp
-			.client({ name: "obsidian-agent-client" })
+			.client({ name: "obsidian-harness" })
 			.onNotification("session/update", (ctx) =>
 				this.handler.sessionUpdate(ctx.params),
 			)
@@ -439,8 +442,8 @@ export class AcpClient {
 						terminal: true,
 					},
 					clientInfo: {
-						name: "obsidian-agent-client",
-						title: "Agent Client for Obsidian",
+						name: "obsidian-harness",
+						title: "Harness for Obsidian",
 						version: this.plugin.manifest.version,
 					},
 				},

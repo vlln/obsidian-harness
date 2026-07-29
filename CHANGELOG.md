@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-07-29
+
+### Added
+- **Navigator toggle in the Session header**: Open `.session` workspaces now show a `panel-left` button before the More menu that opens or reveals the Session Navigator through the same action as the ribbon icon and the `open-session-manager` command, with full keyboard support.
+- **Unified Agents settings section**: A single section edits every backend — built-in or user-added — with the same per-entry fields: Agent ID, display name, path with auto-detect, arguments, optional API key, API key env var name, and environment variables. Any entry can be added or deleted, including the built-in defaults.
+- **Optional API key injection**: Each agent entry can reference a key stored in Obsidian's Keychain (`apiKeySecretId`) plus the environment variable name to inject it as when spawning the backend. Keys are never written to `data.json`.
+
+### Changed
+- **Unified agent configuration model**: All backends now live in a single `agents[]` array. Built-in backends are simply prefilled entries, and the previous `claude`/`codex`/`gemini`/`customAgents` settings fields are ignored (no migration; no existing users to preserve).
+
+### Fixed
+- **Navigator toggle scope**: The legacy chat view no longer renders the Session header's Navigator toggle; it remains exclusive to `.session` FileViews.
+
 ## [0.5.1] — 2026-07-27
 
 ### Fixed

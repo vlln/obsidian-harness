@@ -6,7 +6,7 @@
  * and editor selection tracking into a single service.
  */
 
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import {
 	TFile,
 	MarkdownView,
@@ -132,7 +132,7 @@ export class VaultService implements IVaultAccess {
 	private selectionCompartment: Compartment | null = null;
 	private lastSelectionKey = "";
 
-	constructor(private plugin: AgentClientPlugin) {
+	constructor(private plugin: HarnessPlugin) {
 		// File index init
 		this.logger = getLogger();
 		this.rebuildIndex();

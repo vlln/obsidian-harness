@@ -3,7 +3,7 @@ const { useState, useMemo } = React;
 import { FileSystemAdapter } from "obsidian";
 import type { MessageContent } from "../types/chat";
 import type { AcpClient } from "../acp/acp-client";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import { TerminalBlock } from "./TerminalBlock";
 import { PermissionBanner } from "./PermissionBanner";
 import { LucideIcon } from "./shared/IconButton";
@@ -17,7 +17,7 @@ import * as Diff from "diff";
 
 interface ToolCallBlockProps {
 	content: Extract<MessageContent, { type: "tool_call" }>;
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	terminalClient?: AcpClient;
 	/** Callback to approve a permission request */
 	onApprovePermission?: (
@@ -116,13 +116,13 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 
 	return (
 		<div
-			className={`agent-client-message-tool-call agent-client-message-tool-call-${status}`}
+			className={`harness-message-tool-call harness-message-tool-call-${status}`}
 		>
 			{/* Header */}
-			<div className="agent-client-message-tool-call-header">
+			<div className="harness-message-tool-call-header">
 				<button
 					type="button"
-					className="agent-client-message-tool-call-title"
+					className="harness-message-tool-call-title"
 					onClick={() => {
 						if (hasDetails) setIsExpanded((expanded) => !expanded);
 					}}
@@ -132,34 +132,34 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 					{showEmojis && (
 						<LucideIcon
 							name={getKindIconName(kind)}
-							className="agent-client-message-tool-call-icon"
+							className="harness-message-tool-call-icon"
 						/>
 					)}
-					<span className="agent-client-message-tool-call-title-text">
+					<span className="harness-message-tool-call-title-text">
 						{title}
 					</span>
 					{summary && (
-						<span className="agent-client-message-tool-call-summary">
+						<span className="harness-message-tool-call-summary">
 							{summary}
 						</span>
 					)}
 					<LucideIcon
 						name={getStatusIconName(status)}
-						className={`agent-client-message-tool-call-status-icon agent-client-status-${status}`}
+						className={`harness-message-tool-call-status-icon harness-status-${status}`}
 					/>
 					{hasDetails && (
 						<LucideIcon
 							name={isExpanded ? "chevron-down" : "chevron-right"}
-							className="agent-client-message-tool-call-toggle-icon"
+							className="harness-message-tool-call-toggle-icon"
 						/>
 					)}
 				</button>
 				{locations && locations.length > 0 && (
-					<div className="agent-client-message-tool-call-locations">
+					<div className="harness-message-tool-call-locations">
 						{locations.map((loc, idx) => (
 							<span
 								key={idx}
-								className="agent-client-message-tool-call-location"
+								className="harness-message-tool-call-location"
 							>
 								{toRelativePath(loc.path, vaultPath)}
 								{loc.line != null && `:${loc.line}`}
@@ -170,13 +170,13 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 			</div>
 
 			{isExpanded && hasDetails && (
-				<div className="agent-client-message-tool-call-body">
+				<div className="harness-message-tool-call-body">
 					{fullInput && (
-						<div className="agent-client-tool-json-section">
-							<div className="agent-client-tool-json-label">
+						<div className="harness-tool-json-section">
+							<div className="harness-tool-json-label">
 								Input
 							</div>
-							<pre className="agent-client-tool-json-block">
+							<pre className="harness-tool-json-block">
 								{fullInput}
 							</pre>
 						</div>
@@ -215,11 +215,11 @@ export const ToolCallBlock = React.memo(function ToolCallBlock({
 						})}
 
 					{fullOutput && (
-						<div className="agent-client-tool-json-section">
-							<div className="agent-client-tool-json-label">
+						<div className="harness-tool-json-section">
+							<div className="harness-tool-json-label">
 								Output
 							</div>
-							<pre className="agent-client-tool-json-block">
+							<pre className="harness-tool-json-block">
 								{fullOutput}
 							</pre>
 						</div>
@@ -253,7 +253,7 @@ interface DiffRendererProps {
 		oldText?: string | null;
 		newText: string;
 	};
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	autoCollapse?: boolean;
 	collapseThreshold?: number;
 }
@@ -320,7 +320,7 @@ function renderWordDiff(
 					return (
 						<span
 							key={partIdx}
-							className="agent-client-diff-word-added"
+							className="harness-diff-word-added"
 						>
 							{part.value}
 						</span>
@@ -329,7 +329,7 @@ function renderWordDiff(
 					return (
 						<span
 							key={partIdx}
-							className="agent-client-diff-word-removed"
+							className="harness-diff-word-removed"
 						>
 							{part.value}
 						</span>
@@ -445,25 +445,25 @@ function DiffRenderer({
 
 		if (isHunkHeader) {
 			return (
-				<div key={idx} className="agent-client-diff-hunk-header">
+				<div key={idx} className="harness-diff-hunk-header">
 					{line.content}
 				</div>
 			);
 		}
 
-		let lineClass = "agent-client-diff-line";
+		let lineClass = "harness-diff-line";
 
 		if (line.type === "added") {
-			lineClass += " agent-client-diff-line-added";
+			lineClass += " harness-diff-line-added";
 		} else if (line.type === "removed") {
-			lineClass += " agent-client-diff-line-removed";
+			lineClass += " harness-diff-line-removed";
 		} else {
-			lineClass += " agent-client-diff-line-context";
+			lineClass += " harness-diff-line-context";
 		}
 
 		return (
 			<div key={idx} className={lineClass}>
-				<span className="agent-client-diff-line-content">
+				<span className="harness-diff-line-content">
 					{line.wordDiff &&
 					(line.type === "added" || line.type === "removed")
 						? renderWordDiff(line.wordDiff, line.type)
@@ -488,26 +488,26 @@ function DiffRenderer({
 	const remainingLines = diffLines.length - collapseThreshold;
 
 	return (
-		<div className="agent-client-tool-call-diff">
+		<div className="harness-tool-call-diff">
 			{isNewFile(diff) ? (
-				<div className="agent-client-diff-line-info">New file</div>
+				<div className="harness-diff-line-info">New file</div>
 			) : null}
-			<div className="agent-client-tool-call-diff-content">
+			<div className="harness-tool-call-diff-content">
 				{visibleLines.map((line, idx) => renderLine(line, idx))}
 			</div>
 			{shouldCollapse && (
 				<div
-					className="agent-client-diff-expand-bar"
+					className="harness-diff-expand-bar"
 					onClick={() => setIsCollapsed(!isCollapsed)}
 				>
-					<span className="agent-client-diff-expand-text">
+					<span className="harness-diff-expand-text">
 						{isCollapsed
 							? `${remainingLines} more lines`
 							: "Collapse"}
 					</span>
 					<LucideIcon
 						name={isCollapsed ? "chevron-right" : "chevron-up"}
-						className="agent-client-diff-expand-icon"
+						className="harness-diff-expand-icon"
 					/>
 				</div>
 			)}

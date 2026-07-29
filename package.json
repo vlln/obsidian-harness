@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-harness",
-	"version": "0.5.1",
+	"version": "0.6.0",
 	"description": "Obsidian as cockpit, Agent as engine — manage AI coding agents from your knowledge base",
 	"main": "main.js",
 	"scripts": {

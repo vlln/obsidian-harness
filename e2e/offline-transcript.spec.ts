@@ -11,7 +11,7 @@ async function getSessionViewSnapshot(path: string) {
 					text: leaf.view.containerEl.innerText as string,
 					hasInput: Boolean(
 						leaf.view.containerEl.querySelector(
-							".agent-client-chat-input-container",
+							".harness-chat-input-container",
 						),
 					),
 				}
@@ -239,7 +239,7 @@ describe("offline transcript workspace", () => {
 			};
 			const entry = JSON.parse(await app.vault.read(file));
 			leaf.view.containerEl
-				.querySelector(".agent-client-continuation-status button")
+				.querySelector(".harness-continuation-status button")
 				.click();
 			return entry;
 		});
@@ -318,7 +318,7 @@ describe("offline transcript workspace", () => {
 			);
 			const entry = JSON.parse(await app.vault.read(file));
 			leaf.view.containerEl
-				.querySelector(".agent-client-continuation-status button")
+				.querySelector(".harness-continuation-status button")
 				.click();
 			return entry;
 		});

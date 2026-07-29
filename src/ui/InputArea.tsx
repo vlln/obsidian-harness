@@ -2,7 +2,7 @@ import * as React from "react";
 const { useRef, useState, useEffect, useCallback, useMemo } = React;
 import { setIcon, Notice } from "obsidian";
 
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type { IChatViewHost } from "./view-host";
 import type { NoteMetadata } from "../services/vault-service";
 import type {
@@ -195,7 +195,7 @@ export interface InputAreaProps {
 	/** Input suggestions (mentions + slash commands) */
 	suggestions: UseSuggestionsReturn;
 	/** Plugin instance */
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	/** View instance for event registration */
 	view: IChatViewHost;
 	/** Callback to send a message with optional attachments */
@@ -240,10 +240,6 @@ export interface InputAreaProps {
 	agentUpdateNotification: AgentUpdateNotification | null;
 	/** Callback to dismiss the agent update notification */
 	onClearAgentUpdate: () => void;
-	/** Gemini CLI deprecation notice (shown while Gemini agent is selected) */
-	geminiNotice: AgentUpdateNotification | null;
-	/** Callback to dismiss the Gemini notice */
-	onClearGeminiNotice: () => void;
 	/** Messages array for input history navigation */
 	messages: ChatMessage[];
 }
@@ -293,9 +289,6 @@ export function InputArea({
 	// Agent update notification props
 	agentUpdateNotification,
 	onClearAgentUpdate,
-	// Gemini CLI deprecation notice props
-	geminiNotice,
-	onClearGeminiNotice,
 	// Input history
 	messages,
 }: InputAreaProps) {
@@ -338,14 +331,14 @@ export function InputArea({
 			const remaining = MAX_ATTACHMENT_COUNT - attachedFiles.length;
 			if (remaining <= 0) {
 				new Notice(
-					`[Agent Client] Maximum ${MAX_ATTACHMENT_COUNT} attachments allowed`,
+					`[Harness] Maximum ${MAX_ATTACHMENT_COUNT} attachments allowed`,
 				);
 				return;
 			}
 			const toAdd = newFiles.slice(0, remaining);
 			if (toAdd.length < newFiles.length) {
 				new Notice(
-					`[Agent Client] Maximum ${MAX_ATTACHMENT_COUNT} attachments allowed`,
+					`[Harness] Maximum ${MAX_ATTACHMENT_COUNT} attachments allowed`,
 				);
 			}
 			onAttachedFilesChange([...attachedFiles, ...toAdd]);
@@ -391,7 +384,7 @@ export function InputArea({
 			for (const file of files) {
 				if (file.size > MAX_IMAGE_SIZE_BYTES) {
 					new Notice(
-						`[Agent Client] Image too large (max ${MAX_IMAGE_SIZE_MB}MB)`,
+						`[Harness] Image too large (max ${MAX_IMAGE_SIZE_MB}MB)`,
 					);
 					continue;
 				}
@@ -686,12 +679,12 @@ export function InputArea({
 		if (textarea) {
 			// Remove previous dynamic height classes
 			textarea.classList.remove(
-				"agent-client-textarea-auto-height",
-				"agent-client-textarea-expanded",
+				"harness-textarea-auto-height",
+				"harness-textarea-expanded",
 			);
 
 			// Temporarily use auto to measure
-			textarea.classList.add("agent-client-textarea-auto-height");
+			textarea.classList.add("harness-textarea-auto-height");
 			const scrollHeight = textarea.scrollHeight;
 			const minHeight = 80;
 			const maxHeight = 300;
@@ -704,7 +697,7 @@ export function InputArea({
 
 			// Apply expanded class if needed
 			if (calculatedHeight > minHeight) {
-				textarea.classList.add("agent-client-textarea-expanded");
+				textarea.classList.add("harness-textarea-expanded");
 				// Set CSS variable for dynamic height
 				textarea.style.setProperty(
 					"--textarea-height",
@@ -714,7 +707,7 @@ export function InputArea({
 				textarea.style.removeProperty("--textarea-height");
 			}
 
-			textarea.classList.remove("agent-client-textarea-auto-height");
+			textarea.classList.remove("harness-textarea-auto-height");
 		}
 	}, []);
 
@@ -944,7 +937,7 @@ export function InputArea({
 	const placeholder = `Message ${agentLabel} - @ to mention notes${availableCommands.length > 0 ? ", / for commands" : ""}`;
 
 	return (
-		<div className="agent-client-chat-input-container">
+		<div className="harness-chat-input-container">
 			{/* Error Overlay - displayed above input */}
 			{errorInfo && (
 				<ErrorBanner
@@ -963,17 +956,6 @@ export function InputArea({
 					showEmojis={showEmojis}
 					view={view}
 					variant={agentUpdateNotification.variant}
-				/>
-			)}
-
-			{/* Gemini CLI deprecation notice - lowest priority overlay */}
-			{!errorInfo && !agentUpdateNotification && geminiNotice && (
-				<ErrorBanner
-					errorInfo={geminiNotice}
-					onClose={onClearGeminiNotice}
-					showEmojis={showEmojis}
-					view={view}
-					variant={geminiNotice.variant}
 				/>
 			)}
 
@@ -1001,7 +983,7 @@ export function InputArea({
 
 			{/* Input Box - flexbox container with border */}
 			<div
-				className={`agent-client-chat-input-box ${isDraggingOver ? "agent-client-dragging-over" : ""}`}
+				className={`harness-chat-input-box ${isDraggingOver ? "harness-dragging-over" : ""}`}
 				onDragOver={handleDragOver}
 				onDragEnter={handleDragEnter}
 				onDragLeave={handleDragLeave}
@@ -1010,7 +992,7 @@ export function InputArea({
 				{/* Auto-mention Badge */}
 				{mentions.activeNote && (
 					<button
-						className="agent-client-auto-mention-inline"
+						className="harness-auto-mention-inline"
 						onClick={() =>
 							mentions.toggleAutoMention(
 								!mentions.isAutoMentionDisabled,
@@ -1023,11 +1005,11 @@ export function InputArea({
 						}
 					>
 						<span
-							className={`agent-client-mention-badge ${mentions.isAutoMentionDisabled ? "agent-client-disabled" : ""}`}
+							className={`harness-mention-badge ${mentions.isAutoMentionDisabled ? "harness-disabled" : ""}`}
 						>
 							@{mentions.activeNote.name}
 							{mentions.activeNote.selection && (
-								<span className="agent-client-selection-indicator">
+								<span className="harness-selection-indicator">
 									{":"}
 									{mentions.activeNote.selection.from.line +
 										1}
@@ -1036,7 +1018,7 @@ export function InputArea({
 							)}
 						</span>
 						<span
-							className="agent-client-auto-mention-toggle-icon"
+							className="harness-auto-mention-toggle-icon"
 							ref={(el) => {
 								if (el) {
 									const iconName =
@@ -1051,7 +1033,7 @@ export function InputArea({
 				)}
 
 				{/* Textarea with Hint Overlay */}
-				<div className="agent-client-textarea-wrapper">
+				<div className="harness-textarea-wrapper">
 					<textarea
 						ref={textareaRef}
 						value={inputValue}
@@ -1059,19 +1041,19 @@ export function InputArea({
 						onKeyDown={handleKeyDown}
 						onPaste={(e) => void handlePaste(e)}
 						placeholder={placeholder}
-						className={`agent-client-chat-input-textarea ${mentions.activeNote ? "has-auto-mention" : ""}`}
+						className={`harness-chat-input-textarea ${mentions.activeNote ? "has-auto-mention" : ""}`}
 						rows={1}
 						spellCheck={obsidianSpellcheck}
 					/>
 					{hintText && (
 						<div
-							className="agent-client-hint-overlay"
+							className="harness-hint-overlay"
 							aria-hidden="true"
 						>
-							<span className="agent-client-invisible">
+							<span className="harness-invisible">
 								{commandText}
 							</span>
-							<span className="agent-client-hint-text">
+							<span className="harness-hint-text">
 								{hintText}
 							</span>
 						</div>

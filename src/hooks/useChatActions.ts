@@ -8,7 +8,7 @@
 import { useState, useCallback } from "react";
 import { Notice, Platform } from "obsidian";
 
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type { UseAgentReturn } from "./useAgent";
 import type { UseSuggestionsReturn } from "./useSuggestions";
 import type { ChatSession } from "../types/session";
@@ -18,7 +18,7 @@ import type {
 	ImagePromptContent,
 	ResourceLinkPromptContent,
 } from "../types/chat";
-import type { AgentClientPluginSettings } from "../plugin";
+import type { HarnessPluginSettings } from "../plugin";
 import type { AgentUpdateNotification } from "../services/update-checker";
 import { ChatExporter } from "../services/chat-exporter";
 import { getLogger } from "../utils/logger";
@@ -66,12 +66,12 @@ export interface UseChatActionsReturn {
 // ============================================================================
 
 export function useChatActions(
-	plugin: AgentClientPlugin,
+	plugin: HarnessPlugin,
 	agent: UseAgentReturn,
 	suggestions: UseSuggestionsReturn,
 	session: ChatSession,
 	messages: ChatMessage[],
-	settings: AgentClientPluginSettings,
+	settings: HarnessPluginSettings,
 	vaultPath: string,
 ): UseChatActionsReturn {
 	const logger = getLogger();

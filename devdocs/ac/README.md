@@ -12,3 +12,4 @@
 | [0004](0004-harness-session-importer.md) | Harness Session Importer Skill | active |
 | [0005](0005-session-navigator.md) | Session Navigator | active |
 | [0006](0006-session-workspace-experience.md) | Session Workspace Experience | active |
+| [0007](0007-agent-configuration-unification.md) | Agent Configuration Unification | active |

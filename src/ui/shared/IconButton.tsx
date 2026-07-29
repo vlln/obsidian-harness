@@ -48,7 +48,7 @@ export const HeaderButton = forwardRef<HTMLButtonElement, HeaderButtonProps>(
 				ref={buttonRef}
 				title={tooltip}
 				onClick={onClick}
-				className="clickable-icon agent-client-header-button"
+				className="clickable-icon harness-header-button"
 			/>
 		);
 	},

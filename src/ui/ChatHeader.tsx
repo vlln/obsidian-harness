@@ -17,6 +17,9 @@ export interface SidebarHeaderProps {
 	agentLabel: string;
 	/** Whether a plugin update is available */
 	isUpdateAvailable: boolean;
+	/** Callback to open the Session Navigator (.session FileView only, BR-066/067).
+	 * When omitted, the toggle button is not rendered (legacy ChatView). */
+	onOpenNavigator?: () => void;
 	/** Callback to show the header menu at the click position */
 	onShowMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
@@ -78,8 +81,16 @@ function NavActionButton({
 		<div
 			ref={ref}
 			className="clickable-icon nav-action-button"
+			role="button"
+			tabIndex={0}
 			aria-label={label}
 			onClick={onClick}
+			onKeyDown={(event) => {
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					onClick(event as unknown as React.MouseEvent<HTMLDivElement>);
+				}
+			}}
 		/>
 	);
 }
@@ -97,18 +108,26 @@ function NavActionButton({
 function SidebarHeader({
 	agentLabel,
 	isUpdateAvailable,
+	onOpenNavigator,
 	onShowMenu,
 }: SidebarHeaderProps) {
 	return (
-		<div className="nav-header agent-client-chat-view-header">
+		<div className="nav-header harness-chat-view-header">
 			<div className="nav-buttons-container">
-				<span className="agent-client-chat-view-header-title">
+				<span className="harness-chat-view-header-title">
 					{agentLabel}
 				</span>
 				{isUpdateAvailable && (
-					<span className="agent-client-chat-view-header-update">
+					<span className="harness-chat-view-header-update">
 						Plugin update available!
 					</span>
+				)}
+				{onOpenNavigator && (
+					<NavActionButton
+						icon="panel-left"
+						label="Open session navigator"
+						onClick={onOpenNavigator}
+					/>
 				)}
 				<NavActionButton
 					icon="more-vertical"
@@ -204,31 +223,31 @@ function FloatingHeader({
 
 	return (
 		<div
-			className={`agent-client-inline-header agent-client-inline-header-floating`}
+			className={`harness-inline-header harness-inline-header-floating`}
 		>
-			<div className="agent-client-inline-header-main">
+			<div className="harness-inline-header-main">
 				{availableAgents.length > 1 ? (
-					<div className="agent-client-agent-selector">
+					<div className="harness-agent-selector">
 						<div ref={agentDropdownRef} />
 						<span
-							className="agent-client-agent-selector-icon"
+							className="harness-agent-selector-icon"
 							ref={(el) => {
 								if (el) setIcon(el, "chevron-down");
 							}}
 						/>
 					</div>
 				) : (
-					<span className="agent-client-agent-label">
+					<span className="harness-agent-label">
 						{agentLabel}
 					</span>
 				)}
 			</div>
 			{isUpdateAvailable && (
-				<p className="agent-client-chat-view-header-update">
+				<p className="harness-chat-view-header-update">
 					Plugin update available!
 				</p>
 			)}
-			<div className="agent-client-inline-header-actions">
+			<div className="harness-inline-header-actions">
 				<HeaderButton
 					iconName="more-vertical"
 					tooltip="More"

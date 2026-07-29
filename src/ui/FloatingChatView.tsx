@@ -2,7 +2,7 @@ import * as React from "react";
 const { useState, useRef, useEffect, useCallback, useMemo } = React;
 import { createRoot, type Root } from "react-dom/client";
 
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type {
 	IChatViewContainer,
 	ChatViewType,
@@ -77,7 +77,7 @@ export class FloatingViewContainer implements IChatViewContainer {
 	readonly viewType: ChatViewType = "floating";
 	readonly viewId: string;
 
-	private plugin: AgentClientPlugin;
+	private plugin: HarnessPlugin;
 	private root: Root | null = null;
 	private containerEl: HTMLElement;
 	private callbacks: ChatPanelCallbacks | null = null;
@@ -85,12 +85,12 @@ export class FloatingViewContainer implements IChatViewContainer {
 	private isExpandedState = false;
 	private containerRefEl: HTMLElement | null = null;
 
-	constructor(plugin: AgentClientPlugin, instanceId: string) {
+	constructor(plugin: HarnessPlugin, instanceId: string) {
 		this.plugin = plugin;
 		// viewId format: "floating-chat-{instanceId}" to match adapter key
 		this.viewId = `floating-chat-${instanceId}`;
 		this.containerEl = activeDocument.body.createDiv({
-			cls: "agent-client-floating-view-root",
+			cls: "harness-floating-view-root",
 		});
 	}
 
@@ -181,7 +181,7 @@ export class FloatingViewContainer implements IChatViewContainer {
 		// Focus after next render (expansion may need a frame)
 		window.requestAnimationFrame(() => {
 			const textarea = this.containerRefEl?.querySelector(
-				"textarea.agent-client-chat-input-textarea",
+				"textarea.harness-chat-input-textarea",
 			);
 			if (textarea instanceof HTMLTextAreaElement) {
 				textarea.focus();
@@ -241,7 +241,7 @@ export class FloatingViewContainer implements IChatViewContainer {
 // ============================================================
 
 interface FloatingChatComponentProps {
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	viewId: string;
 	initialExpanded?: boolean;
 	initialPosition?: { x: number; y: number };
@@ -546,7 +546,7 @@ function FloatingChatComponent({
 	return (
 		<div
 			ref={containerRef}
-			className="agent-client-floating-window"
+			className="harness-floating-window"
 			style={{
 				left: position.x,
 				top: position.y,
@@ -604,7 +604,7 @@ function FloatingChatComponent({
  * @returns The FloatingViewContainer instance
  */
 export function createFloatingChat(
-	plugin: AgentClientPlugin,
+	plugin: HarnessPlugin,
 	instanceId: string,
 	initialExpanded = false,
 	initialPosition?: { x: number; y: number },

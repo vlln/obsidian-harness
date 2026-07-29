@@ -97,7 +97,7 @@ export interface UseAgentMessagesReturn {
 // ============================================================================
 
 export function useAgentMessages(
-	agentClient: AcpClient,
+	harness: AcpClient,
 	settingsAccess: ISettingsAccess,
 	vaultAccess: IVaultAccess & IMentionService,
 	session: ChatSession,
@@ -384,7 +384,7 @@ export function useAgentMessages(
 							displayContent: prepared.displayContent,
 							authMethods: activeSession.authMethods,
 						},
-						agentClient,
+						harness,
 					);
 
 					// Discard results if a newer send has started
@@ -428,7 +428,7 @@ export function useAgentMessages(
 			}
 		},
 		[
-			agentClient,
+			harness,
 			vaultAccess,
 			settingsAccess,
 			session.sessionId,
@@ -454,7 +454,7 @@ export function useAgentMessages(
 	const approvePermission = useCallback(
 		async (requestId: string, optionId: string): Promise<void> => {
 			try {
-				await agentClient.respondToPermission(requestId, optionId);
+				await harness.respondToPermission(requestId, optionId);
 			} catch (error) {
 				setErrorInfo({
 					title: "Permission Error",
@@ -462,7 +462,7 @@ export function useAgentMessages(
 				});
 			}
 		},
-		[agentClient, setErrorInfo],
+		[harness, setErrorInfo],
 	);
 
 	const approveActivePermission = useCallback(async (): Promise<boolean> => {

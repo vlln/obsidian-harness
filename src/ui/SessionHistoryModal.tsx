@@ -46,23 +46,23 @@ class ConfirmDeleteModal extends Modal {
 		// Message
 		contentEl.createEl("p", {
 			text: `Are you sure you want to delete "${this.sessionTitle}"?`,
-			cls: "agent-client-confirm-delete-message",
+			cls: "harness-confirm-delete-message",
 		});
 
 		contentEl.createEl("p", {
 			text: "This removes the .session file and its local transcript.",
-			cls: "agent-client-confirm-delete-warning",
+			cls: "harness-confirm-delete-warning",
 		});
 
 		// Buttons container
 		const buttonContainer = contentEl.createDiv({
-			cls: "agent-client-confirm-delete-buttons",
+			cls: "harness-confirm-delete-buttons",
 		});
 
 		// Cancel button
 		const cancelButton = buttonContainer.createEl("button", {
 			text: "Cancel",
-			cls: "agent-client-confirm-delete-cancel",
+			cls: "harness-confirm-delete-cancel",
 		});
 		cancelButton.addEventListener("click", () => {
 			this.close();
@@ -71,7 +71,7 @@ class ConfirmDeleteModal extends Modal {
 		// Delete button
 		const deleteButton = buttonContainer.createEl("button", {
 			text: "Delete",
-			cls: "agent-client-confirm-delete-confirm mod-warning",
+			cls: "harness-confirm-delete-confirm mod-warning",
 		});
 		deleteButton.addEventListener("click", () => {
 			this.close();
@@ -235,49 +235,49 @@ function DebugForm({
 	}, [sessionId, cwd, currentCwd, onForkSession, onClose]);
 
 	return (
-		<div className="agent-client-session-history-debug">
+		<div className="harness-session-history-debug">
 			<h3>Debug: Manual Session Input</h3>
 
-			<div className="agent-client-session-history-debug-group">
+			<div className="harness-session-history-debug-group">
 				<label htmlFor="debug-session-id">Session ID:</label>
 				<input
 					id="debug-session-id"
 					type="text"
 					placeholder="Enter session ID..."
-					className="agent-client-session-history-debug-input"
+					className="harness-session-history-debug-input"
 					value={sessionId}
 					onChange={(e) => setSessionId(e.target.value)}
 				/>
 			</div>
 
-			<div className="agent-client-session-history-debug-group">
+			<div className="harness-session-history-debug-group">
 				<label htmlFor="debug-cwd">Working Directory (cwd):</label>
 				<input
 					id="debug-cwd"
 					type="text"
 					placeholder="Enter working directory..."
-					className="agent-client-session-history-debug-input"
+					className="harness-session-history-debug-input"
 					value={cwd}
 					onChange={(e) => setCwd(e.target.value)}
 				/>
 			</div>
 
-			<div className="agent-client-session-history-debug-actions">
+			<div className="harness-session-history-debug-actions">
 				<button
-					className="agent-client-session-history-debug-button"
+					className="harness-session-history-debug-button"
 					onClick={handleRestore}
 				>
 					Restore
 				</button>
 				<button
-					className="agent-client-session-history-debug-button"
+					className="harness-session-history-debug-button"
 					onClick={handleFork}
 				>
 					Fork
 				</button>
 			</div>
 
-			<hr className="agent-client-session-history-debug-separator" />
+			<hr className="harness-session-history-debug-separator" />
 		</div>
 	);
 }
@@ -319,22 +319,22 @@ function SessionItem({
 	}, [session.sessionId, onDeleteSession]);
 
 	return (
-		<div className="agent-client-session-history-item">
-			<div className="agent-client-session-history-item-content">
-				<div className="agent-client-session-history-item-title">
+		<div className="harness-session-history-item">
+			<div className="harness-session-history-item-content">
+				<div className="harness-session-history-item-title">
 					<span>
 						{truncateTitle(session.title ?? "Untitled Session")}
 					</span>
 				</div>
-				<div className="agent-client-session-history-item-metadata">
+				<div className="harness-session-history-item-metadata">
 					{session.updatedAt && (
-						<span className="agent-client-session-history-item-timestamp">
+						<span className="harness-session-history-item-timestamp">
 							{formatRelativeTime(new Date(session.updatedAt))}
 						</span>
 					)}
 					{session.cwd !== currentCwd && (
 						<span
-							className="agent-client-session-history-item-cwd"
+							className="harness-session-history-item-cwd"
 							title={session.cwd}
 						>
 							{session.cwd}
@@ -343,12 +343,12 @@ function SessionItem({
 				</div>
 			</div>
 
-			<div className="agent-client-session-history-item-actions">
+			<div className="harness-session-history-item-actions">
 				{canRestore && (
 					<IconButton
 						iconName="play"
 						label="Restore session"
-						className="agent-client-session-history-action-icon agent-client-session-history-restore-icon"
+						className="harness-session-history-action-icon harness-session-history-restore-icon"
 						onClick={handleRestore}
 					/>
 				)}
@@ -356,14 +356,14 @@ function SessionItem({
 					<IconButton
 						iconName="git-branch"
 						label="Fork session (create new branch)"
-						className="agent-client-session-history-action-icon agent-client-session-history-fork-icon"
+						className="harness-session-history-action-icon harness-session-history-fork-icon"
 						onClick={handleFork}
 					/>
 				)}
 				<IconButton
 					iconName="trash-2"
 					label="Delete session"
-					className="agent-client-session-history-action-icon agent-client-session-history-delete-icon"
+					className="harness-session-history-action-icon harness-session-history-delete-icon"
 					onClick={handleDelete}
 				/>
 			</div>
@@ -450,7 +450,7 @@ function SessionHistoryContent({
 	// Show preparing message if agent is not ready
 	if (!isAgentReady) {
 		return (
-			<div className="agent-client-session-history-loading">
+			<div className="harness-session-history-loading">
 				<p>Preparing agent...</p>
 			</div>
 		);
@@ -479,25 +479,25 @@ function SessionHistoryContent({
 
 			{/* Warning banner for agents that don't support restoration */}
 			{!canPerformAnyOperation && (
-				<div className="agent-client-session-history-warning-banner">
+				<div className="harness-session-history-warning-banner">
 					<p>This agent does not support session restoration.</p>
 				</div>
 			)}
 
 			{/* Session files banner */}
 			{(isUsingLocalSessions || !canPerformAnyOperation) && (
-				<div className="agent-client-session-history-local-banner">
+				<div className="harness-session-history-local-banner">
 					<span>These sessions are backed by .session files.</span>
 				</div>
 			)}
 
 			{/* No list capability message */}
 			{!canShowList && !debugMode && (
-				<div className="agent-client-session-history-empty">
-					<p className="agent-client-session-history-empty-text">
+				<div className="harness-session-history-empty">
+					<p className="harness-session-history-empty-text">
 						Session list is not available for this agent.
 					</p>
-					<p className="agent-client-session-history-empty-text">
+					<p className="harness-session-history-empty-text">
 						Enable Debug Mode in settings to manually enter session
 						IDs.
 					</p>
@@ -508,8 +508,8 @@ function SessionHistoryContent({
 				<>
 					{/* Filter toggles */}
 					{canList && !isUsingLocalSessions && (
-						<div className="agent-client-session-history-filter">
-							<label className="agent-client-session-history-filter-label">
+						<div className="harness-session-history-filter">
+							<label className="harness-session-history-filter-label">
 								<input
 									type="checkbox"
 									checked={filterByCurrentVault}
@@ -517,7 +517,7 @@ function SessionHistoryContent({
 								/>
 								<span>Show current vault only</span>
 							</label>
-							<label className="agent-client-session-history-filter-label">
+							<label className="harness-session-history-filter-label">
 								<input
 									type="checkbox"
 									checked={hideNonLocalSessions}
@@ -534,12 +534,12 @@ function SessionHistoryContent({
 
 					{/* Error state */}
 					{error && (
-						<div className="agent-client-session-history-error">
-							<p className="agent-client-session-history-error-text">
+						<div className="harness-session-history-error">
+							<p className="harness-session-history-error-text">
 								{error}
 							</p>
 							<button
-								className="agent-client-session-history-retry-button"
+								className="harness-session-history-retry-button"
 								onClick={handleRetry}
 							>
 								Retry
@@ -549,15 +549,15 @@ function SessionHistoryContent({
 
 					{/* Loading state */}
 					{!error && loading && filteredSessions.length === 0 && (
-						<div className="agent-client-session-history-loading">
+						<div className="harness-session-history-loading">
 							<p>Loading sessions...</p>
 						</div>
 					)}
 
 					{/* Empty state */}
 					{!error && !loading && filteredSessions.length === 0 && (
-						<div className="agent-client-session-history-empty">
-							<p className="agent-client-session-history-empty-text">
+						<div className="harness-session-history-empty">
+							<p className="harness-session-history-empty-text">
 								No previous sessions
 							</p>
 						</div>
@@ -565,7 +565,7 @@ function SessionHistoryContent({
 
 					{/* Session list */}
 					{!error && filteredSessions.length > 0 && (
-						<div className="agent-client-session-history-list">
+						<div className="harness-session-history-list">
 							{filteredSessions.map((session) => (
 								<SessionItem
 									key={session.sessionId}
@@ -586,9 +586,9 @@ function SessionHistoryContent({
 
 					{/* Load more button */}
 					{!error && hasMore && (
-						<div className="agent-client-session-history-load-more">
+						<div className="harness-session-history-load-more">
 							<button
-								className="agent-client-session-history-load-more-button"
+								className="harness-session-history-load-more-button"
 								disabled={loading}
 								onClick={onLoadMore}
 							>

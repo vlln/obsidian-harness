@@ -1,0 +1,13 @@
+{
+  "ahsVersion": "0.1.0",
+  "harness": "codex",
+  "harnessVersion": "1.0.0",
+  "sessionId": "large-fixture",
+  "cwd": "/fixture/project",
+  "model": "test-model",
+  "HEAD": { "branch": "main", "recordId": "r-end" },
+  "branches": {
+    "main": { "parentBranch": null, "parentRecordId": null }
+  },
+  "stats": { "turnCount": 1 }
+}

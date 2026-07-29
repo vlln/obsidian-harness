@@ -39,7 +39,7 @@ export function applyLegacyValue(
  * Returns updated configOptions if restored, or the original if unchanged.
  */
 export async function tryRestoreConfigOption(
-	agentClient: AcpClient,
+	harness: AcpClient,
 	sessionId: string,
 	configOptions: SessionConfigOption[],
 	category: string,
@@ -58,7 +58,7 @@ export async function tryRestoreConfigOption(
 		return configOptions;
 
 	try {
-		return await agentClient.setSessionConfigOption(
+		return await harness.setSessionConfigOption(
 			sessionId,
 			option.id,
 			savedValue,
@@ -76,7 +76,7 @@ export async function tryRestoreConfigOption(
  * in tryRestoreConfigOption but keyed by id instead of category.
  */
 export async function restoreSavedConfigOptions(
-	agentClient: AcpClient,
+	harness: AcpClient,
 	sessionId: string,
 	configOptions: SessionConfigOption[],
 	savedById: Record<string, string> | undefined,
@@ -95,7 +95,7 @@ export async function restoreSavedConfigOptions(
 		)
 			continue;
 		try {
-			result = await agentClient.setSessionConfigOption(
+			result = await harness.setSessionConfigOption(
 				sessionId,
 				optionId,
 				savedValue,
@@ -120,7 +120,7 @@ export async function restoreSavedConfigOptions(
  * the user's saved selection is re-applied.
  */
 export async function restoreLegacyConfig(
-	agentClient: AcpClient,
+	harness: AcpClient,
 	sessionResult: SessionResult,
 	savedModeId: string | undefined,
 ): Promise<{
@@ -137,7 +137,7 @@ export async function restoreLegacyConfig(
 			modes.availableModes.some((m) => m.id === savedModeId)
 		) {
 			try {
-				await agentClient.setSessionMode(
+				await harness.setSessionMode(
 					sessionResult.sessionId,
 					savedModeId,
 				);

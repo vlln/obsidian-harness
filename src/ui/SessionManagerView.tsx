@@ -11,7 +11,7 @@ const { useCallback, useEffect, useMemo, useRef, useState } = React;
 import { useSyncExternalStore } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import {
 	getVisibleNavigatorItems,
 	searchSessionCatalog,
@@ -22,7 +22,7 @@ import type {
 	SessionRuntimeStatus,
 } from "../types/session-catalog";
 
-export const VIEW_TYPE_SESSION_MANAGER = "agent-client-session-manager";
+export const VIEW_TYPE_SESSION_MANAGER = "harness-session-manager";
 
 function ObsidianIcon({
 	name,
@@ -82,7 +82,7 @@ function restoreMenuFocus(menu: Menu, target: HTMLElement | null): void {
 
 class RenameSessionModal extends Modal {
 	constructor(
-		app: AgentClientPlugin["app"],
+		app: HarnessPlugin["app"],
 		private readonly currentTitle: string,
 		private readonly onSubmit: (name: string) => void | Promise<void>,
 	) {
@@ -95,11 +95,11 @@ class RenameSessionModal extends Modal {
 		const input = this.contentEl.createEl("input", {
 			type: "text",
 			value: this.currentTitle,
-			cls: "agent-client-session-rename-input",
+			cls: "harness-session-rename-input",
 			attr: { "aria-label": "Session name" },
 		});
 		const actions = this.contentEl.createDiv({
-			cls: "agent-client-session-modal-actions",
+			cls: "harness-session-modal-actions",
 		});
 		const cancel = actions.createEl("button", { text: "Cancel" });
 		const rename = actions.createEl("button", {
@@ -134,7 +134,7 @@ const SessionRow = React.memo(function SessionRow({
 	plugin,
 }: {
 	item: SessionCatalogItem;
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 }) {
 	const moreButtonRef = useRef<HTMLButtonElement>(null);
 	const showMenu = useCallback(
@@ -182,7 +182,7 @@ const SessionRow = React.memo(function SessionRow({
 
 	return (
 		<div
-			className={`agent-client-navigator-session-row ${item.isSelected ? "is-selected" : ""}`}
+			className={`harness-navigator-session-row ${item.isSelected ? "is-selected" : ""}`}
 			role="button"
 			tabIndex={0}
 			aria-current={item.isSelected ? "page" : undefined}
@@ -199,24 +199,24 @@ const SessionRow = React.memo(function SessionRow({
 			}}
 		>
 			<span
-				className="agent-client-navigator-session-title"
+				className="harness-navigator-session-title"
 				title={item.title}
 			>
 				{item.title}
 			</span>
-			<span className="agent-client-navigator-status-slot">
+			<span className="harness-navigator-status-slot">
 				{status && (
 					<ObsidianIcon
 						name={status.icon}
 						label={status.label}
-						className={`agent-client-navigator-status is-${item.runtimeStatus}`}
+						className={`harness-navigator-status is-${item.runtimeStatus}`}
 					/>
 				)}
 			</span>
 			<button
 				ref={moreButtonRef}
 				type="button"
-				className="agent-client-navigator-more clickable-icon"
+				className="harness-navigator-more clickable-icon"
 				aria-label={`Actions for ${item.title}`}
 				onClick={(event) => {
 					event.stopPropagation();
@@ -238,7 +238,7 @@ const ProjectRow = React.memo(function ProjectRow({
 	project: SessionProjectGroup;
 	collapsed: boolean;
 	onToggle: () => void;
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 }) {
 	const moreButtonRef = useRef<HTMLButtonElement>(null);
 	const showMenu = useCallback(
@@ -281,9 +281,9 @@ const ProjectRow = React.memo(function ProjectRow({
 	);
 
 	return (
-		<div className="agent-client-navigator-project">
+		<div className="harness-navigator-project">
 			<div
-				className="agent-client-navigator-project-row-shell"
+				className="harness-navigator-project-row-shell"
 				onContextMenu={(event) => {
 					event.preventDefault();
 					showMenu(getMenuPosition(event), moreButtonRef.current);
@@ -291,7 +291,7 @@ const ProjectRow = React.memo(function ProjectRow({
 			>
 				<button
 					type="button"
-					className="agent-client-navigator-project-row"
+					className="harness-navigator-project-row"
 					aria-expanded={!collapsed}
 					onClick={onToggle}
 				>
@@ -304,7 +304,7 @@ const ProjectRow = React.memo(function ProjectRow({
 				<button
 					ref={moreButtonRef}
 					type="button"
-					className="agent-client-navigator-more clickable-icon"
+					className="harness-navigator-more clickable-icon"
 					aria-label={`Actions for ${project.displayName}`}
 					onClick={(event) => {
 						event.stopPropagation();
@@ -315,7 +315,7 @@ const ProjectRow = React.memo(function ProjectRow({
 				</button>
 			</div>
 			{!collapsed && (
-				<div className="agent-client-navigator-project-sessions">
+				<div className="harness-navigator-project-sessions">
 					{project.sessions.map((item) => (
 						<SessionRow
 							key={item.entryId}
@@ -329,7 +329,7 @@ const ProjectRow = React.memo(function ProjectRow({
 	);
 });
 
-function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
+function SessionManagerComponent({ plugin }: { plugin: HarnessPlugin }) {
 	const snapshot = useSyncExternalStore(
 		plugin.sessionCatalog.subscribe,
 		plugin.sessionCatalog.getSnapshot,
@@ -373,17 +373,17 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 	);
 
 	return (
-		<div className="agent-client-session-manager">
-			<header className="agent-client-navigator-header">
+		<div className="harness-session-manager">
+			<header className="harness-navigator-header">
 				{searchOpen ? (
 					<>
 						<ObsidianIcon
 							name="search"
-							className="agent-client-navigator-search-leading"
+							className="harness-navigator-search-leading"
 						/>
 						<input
 							ref={searchRef}
-							className="agent-client-navigator-search-input"
+							className="harness-navigator-search-input"
 							value={query}
 							onChange={(event) => setQuery(event.target.value)}
 							onKeyDown={(event) => {
@@ -397,7 +397,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 						/>
 						<button
 							type="button"
-							className="agent-client-navigator-icon-button clickable-icon"
+							className="harness-navigator-icon-button clickable-icon"
 							aria-label="Close search"
 							onClick={() => {
 								setQuery("");
@@ -412,7 +412,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 						<h1>Harness</h1>
 						<button
 							type="button"
-							className="agent-client-navigator-icon-button clickable-icon"
+							className="harness-navigator-icon-button clickable-icon"
 							aria-label="Search sessions"
 							onClick={() => setSearchOpen(true)}
 						>
@@ -424,7 +424,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 
 			<button
 				type="button"
-				className="agent-client-navigator-new-session"
+				className="harness-navigator-new-session"
 				onClick={() => plugin.openSessionCreationModal()}
 			>
 				<ObsidianIcon name="square-pen" />
@@ -432,7 +432,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 			</button>
 
 			{refreshIssue && (
-				<div className="agent-client-navigator-issue" role="status">
+				<div className="harness-navigator-issue" role="status">
 					<span title={refreshIssue.message}>
 						{refreshIssue.message}
 					</span>
@@ -445,11 +445,11 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 				</div>
 			)}
 
-			<main className="agent-client-navigator-content">
+			<main className="harness-navigator-content">
 				{snapshot.phase === "loading" &&
 					snapshot.items.length === 0 && (
 						<div
-							className="agent-client-navigator-loading"
+							className="harness-navigator-loading"
 							aria-label="Loading sessions"
 						>
 							<span />
@@ -460,7 +460,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 
 				{searchOpen && normalizedQuery ? (
 					<section aria-label="Search results">
-						<div className="agent-client-navigator-section-title">
+						<div className="harness-navigator-section-title">
 							Search results
 						</div>
 						{searchResults.map((item) => (
@@ -471,7 +471,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 							/>
 						))}
 						{searchResults.length === 0 && (
-							<div className="agent-client-session-manager-empty">
+							<div className="harness-session-manager-empty">
 								No matching sessions
 							</div>
 						)}
@@ -480,7 +480,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 					<>
 						{snapshot.projects.length > 0 && (
 							<section aria-label="Projects">
-								<div className="agent-client-navigator-section-title">
+								<div className="harness-navigator-section-title">
 									Projects
 								</div>
 								{visible.projects.map((project) => {
@@ -521,7 +521,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 								{visible.hasMoreProjects && (
 									<button
 										type="button"
-										className="agent-client-navigator-show-more"
+										className="harness-navigator-show-more"
 										onClick={() => setShowAllProjects(true)}
 									>
 										Show more
@@ -532,7 +532,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 
 						{snapshot.recents.length > 0 && (
 							<section aria-label="Recents">
-								<div className="agent-client-navigator-section-title">
+								<div className="harness-navigator-section-title">
 									Recents
 								</div>
 								{visible.recents.map((item) => (
@@ -545,7 +545,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 								{visible.hasMoreRecents && (
 									<button
 										type="button"
-										className="agent-client-navigator-show-more"
+										className="harness-navigator-show-more"
 										onClick={() => setShowAllRecents(true)}
 									>
 										Show more
@@ -559,7 +559,7 @@ function SessionManagerComponent({ plugin }: { plugin: AgentClientPlugin }) {
 				{snapshot.phase !== "loading" &&
 					snapshot.items.length === 0 &&
 					!normalizedQuery && (
-						<div className="agent-client-session-manager-empty">
+						<div className="harness-session-manager-empty">
 							{snapshot.phase === "error"
 								? "Sessions unavailable"
 								: snapshot.issues.length > 0
@@ -577,7 +577,7 @@ export class SessionManagerView extends ItemView {
 
 	constructor(
 		leaf: WorkspaceLeaf,
-		private readonly plugin: AgentClientPlugin,
+		private readonly plugin: HarnessPlugin,
 	) {
 		super(leaf);
 		this.navigation = false;

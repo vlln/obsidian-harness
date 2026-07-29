@@ -1,11 +1,11 @@
 import { createContext, useContext } from "react";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type { AcpClient } from "../acp/acp-client";
 import type { VaultService } from "../services/vault-service";
 import type { SettingsService } from "../services/settings-service";
 
 export interface ChatContextValue {
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	acpClient: AcpClient;
 	vaultService: VaultService;
 	settingsService: SettingsService;

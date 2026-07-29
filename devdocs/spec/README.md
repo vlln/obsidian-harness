@@ -12,4 +12,5 @@
 | [0004](0004-acp-turn-transcript.md) | ACP Turn Transcript | active |
 | [0005](0005-harness-session-importer.md) | Harness Session Importer Skill | active |
 | [0006](0006-session-navigator.md) | Session Navigator | active (v2) |
-| [0007](0007-session-workspace-experience.md) | Session Workspace Experience | active (v2) |
+| [0007](0007-session-workspace-experience.md) | Session Workspace Experience | active (v3) |
+| [0008](0008-agent-configuration-unification.md) | Agent Configuration Unification | active |

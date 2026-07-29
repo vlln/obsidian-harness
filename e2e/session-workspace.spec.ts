@@ -26,22 +26,22 @@ async function openProjectMenu(kind: "click" | "contextmenu"): Promise<void> {
 	await browser.execute((eventKind) => {
 		const session = Array.from(
 			document.querySelectorAll<HTMLElement>(
-				".agent-client-navigator-session-row",
+				".harness-navigator-session-row",
 			),
 		).find((element) =>
 			element.innerText.includes("Workspace action fixture"),
 		);
 		const project = session?.closest(
-			".agent-client-navigator-project",
+			".harness-navigator-project",
 		) as HTMLElement | null;
 		const shell = project?.querySelector<HTMLElement>(
-			".agent-client-navigator-project-row-shell",
+			".harness-navigator-project-row-shell",
 		);
 		if (!shell) throw new Error("Workspace action Project is unavailable");
 		if (eventKind === "click") {
 			shell
 				.querySelector<HTMLButtonElement>(
-					".agent-client-navigator-more",
+					".harness-navigator-more",
 				)
 				?.click();
 		} else {
@@ -102,10 +102,10 @@ async function setTurnViewportWidth(width: number): Promise<void> {
 			.setSize(Math.max(targetWidth + 420, 900), 900);
 		const shell =
 			document.querySelector<HTMLElement>(
-				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+				'.workspace-leaf[data-workspace-turn-visual="true"] .harness-message-list-shell.has-turn-navigator',
 			) ??
 			document.querySelector<HTMLElement>(
-				".agent-client-message-list-shell.has-turn-navigator",
+				".harness-message-list-shell.has-turn-navigator",
 			);
 		if (!shell) throw new Error("Turn Navigator shell is unavailable");
 		const leaf = shell.closest<HTMLElement>(".workspace-leaf");
@@ -141,13 +141,13 @@ async function setTheme(theme: "light" | "dark"): Promise<void> {
 async function getTurnGeometry() {
 	return browser.execute(() => {
 		const shell = document.querySelector<HTMLElement>(
-			".agent-client-message-list-shell.has-turn-navigator",
+			".harness-message-list-shell.has-turn-navigator",
 		)!;
 		const rail = shell.querySelector<HTMLElement>(
-			".agent-client-turn-navigator",
+			".harness-turn-navigator",
 		)!;
 		const messages = shell.querySelector<HTMLElement>(
-			".agent-client-chat-view-messages",
+			".harness-chat-view-messages",
 		)!;
 		const shellRect = shell.getBoundingClientRect();
 		const messageRect = messages.getBoundingClientRect();
@@ -429,7 +429,7 @@ describe("v0.5 Session workspace", () => {
 			];
 			await plugin.activateSessionManager();
 		});
-		await browser.$(".agent-client-session-manager").waitForDisplayed();
+		await browser.$(".harness-session-manager").waitForDisplayed();
 		const before = await browser.execute(async () => {
 			const app = (window as any).app;
 			const plugin = app.plugins.plugins["obsidian-harness"];
@@ -440,17 +440,17 @@ describe("v0.5 Session workspace", () => {
 				index: (await plugin.settingsService.getSessionIndex()).length,
 			};
 		});
-		const trigger = await browser.$(".agent-client-navigator-new-session");
+		const trigger = await browser.$(".harness-navigator-new-session");
 		await trigger.click();
-		const modal = await browser.$(".agent-client-session-creation-modal");
+		const modal = await browser.$(".harness-session-creation-modal");
 		await modal.waitForDisplayed();
-		const name = await browser.$("#agent-client-project-name");
+		const name = await browser.$("#harness-project-name");
 		await browser.waitUntil(
 			() =>
 				browser.execute(
 					() =>
 						document.activeElement?.id ===
-						"agent-client-project-name",
+						"harness-project-name",
 				),
 			{ timeout: 2000 },
 		);
@@ -460,7 +460,7 @@ describe("v0.5 Session workspace", () => {
 			async () =>
 				(
 					await browser
-						.$(".agent-client-session-creation-location")
+						.$(".harness-session-creation-location")
 						.getAttribute("aria-label")
 				)?.endsWith(`/Documents/${uniqueName}`) ?? false,
 			{ timeout: 2000 },
@@ -470,14 +470,14 @@ describe("v0.5 Session workspace", () => {
 			async () =>
 				(
 					await browser
-						.$(".agent-client-session-creation-issue")
+						.$(".harness-session-creation-issue")
 						.getText()
 				).includes("cannot be . or .."),
 			{ timeout: 2000 },
 		);
 		expect(
 			await browser
-				.$(".agent-client-session-modal-actions .mod-cta")
+				.$(".harness-session-modal-actions .mod-cta")
 				.isEnabled(),
 		).toBe(false);
 		await browser.keys(["Escape"]);
@@ -491,7 +491,7 @@ describe("v0.5 Session workspace", () => {
 					.filter((file: any) => file.extension === "session").length,
 				index: (await plugin.settingsService.getSessionIndex()).length,
 				focused: document.activeElement?.classList.contains(
-					"agent-client-navigator-new-session",
+					"harness-navigator-new-session",
 				),
 			};
 		});
@@ -511,7 +511,7 @@ describe("v0.5 Session workspace", () => {
 			() =>
 				browser.execute(() =>
 					document.activeElement?.classList.contains(
-						"agent-client-navigator-more",
+						"harness-navigator-more",
 					),
 				),
 			{ timeout: 2000 },
@@ -520,19 +520,19 @@ describe("v0.5 Session workspace", () => {
 		const stateBefore = await browser.execute(() => {
 			const session = Array.from(
 				document.querySelectorAll<HTMLElement>(
-					".agent-client-navigator-session-row",
+					".harness-navigator-session-row",
 				),
 			).find((element) =>
 				element.innerText.includes("Workspace action fixture"),
 			)!;
-			const shell = session.closest(".agent-client-navigator-project")!
+			const shell = session.closest(".harness-navigator-project")!
 				.firstElementChild as HTMLElement;
 			return {
 				childTags: Array.from(shell.children).map(
 					(child) => child.tagName,
 				),
 				expanded: shell
-					.querySelector(".agent-client-navigator-project-row")
+					.querySelector(".harness-navigator-project-row")
 					?.getAttribute("aria-expanded"),
 			};
 		});
@@ -571,32 +571,32 @@ describe("v0.5 Session workspace", () => {
 
 		await openProjectMenu("click");
 		await clickMenuItem("New session here");
-		const modal = await browser.$(".agent-client-session-creation-modal");
+		const modal = await browser.$(".harness-session-creation-modal");
 		await modal.waitForDisplayed();
-		expect(await browser.$("#agent-client-project-name").isEnabled()).toBe(
+		expect(await browser.$("#harness-project-name").isEnabled()).toBe(
 			false,
 		);
 		const selectedCwd = await browser
-			.$(".agent-client-session-creation-source > span")
+			.$(".harness-session-creation-source > span")
 			.getAttribute("title");
 		expect(selectedCwd).toBe(
 			await browser.execute(() =>
 				(window as any).app.vault.adapter.getBasePath(),
 			),
 		);
-		await browser.$(".agent-client-session-modal-actions button").click();
+		await browser.$(".harness-session-modal-actions button").click();
 
 		const stateAfter = await browser.execute(() => {
 			const session = Array.from(
 				document.querySelectorAll<HTMLElement>(
-					".agent-client-navigator-session-row",
+					".harness-navigator-session-row",
 				),
 			).find((element) =>
 				element.innerText.includes("Workspace action fixture"),
 			)!;
 			return session
-				.closest(".agent-client-navigator-project")
-				?.querySelector(".agent-client-navigator-project-row")
+				.closest(".harness-navigator-project")
+				?.querySelector(".harness-navigator-project-row")
 				?.getAttribute("aria-expanded");
 		});
 		expect(stateAfter).toBe(stateBefore.expanded);
@@ -669,13 +669,13 @@ describe("v0.5 Session workspace", () => {
 		}, turnEntryPath);
 		await browser.waitUntil(
 			async () =>
-				(await browser.$$(".agent-client-turn-node")).length === 3,
+				(await browser.$$(".harness-turn-node")).length === 3,
 			{ timeout: 5000, interval: 50 },
 		);
 		const labels = await browser.execute(() =>
 			Array.from(
 				document.querySelectorAll<HTMLElement>(
-					".agent-client-turn-node",
+					".harness-turn-node",
 				),
 			).map((node) => node.getAttribute("aria-label")),
 		);
@@ -687,13 +687,13 @@ describe("v0.5 Session workspace", () => {
 
 		await setTurnViewportWidth(800);
 		const second = await browser.$(
-			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-label="Turn 2: Second prompt"]',
+			'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-node[aria-label="Turn 2: Second prompt"]',
 		);
 		await second.moveTo();
 		await browser.execute(() => {
 			document
 				.querySelector<HTMLElement>(
-					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-label="Turn 2: Second prompt"]',
+					'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-node[aria-label="Turn 2: Second prompt"]',
 				)
 				?.dispatchEvent(
 					new MouseEvent("mouseover", {
@@ -711,14 +711,14 @@ describe("v0.5 Session workspace", () => {
 			() =>
 				browser.execute(() => {
 					const shell = document.querySelector<HTMLElement>(
-						".agent-client-message-list-shell.has-turn-navigator",
+						".harness-message-list-shell.has-turn-navigator",
 					)!;
 					const viewport = shell.querySelector<HTMLElement>(
-						".agent-client-chat-view-messages",
+						".harness-chat-view-messages",
 					)!;
 					const message = Array.from(
 						viewport.querySelectorAll<HTMLElement>(
-							".agent-client-virtual-item",
+							".harness-virtual-item",
 						),
 					).find((element) =>
 						element.innerText.includes("Second prompt"),
@@ -770,7 +770,7 @@ describe("v0.5 Session workspace", () => {
 			async () =>
 				(
 					await browser.$$(
-						'.workspace-leaf[data-workspace-turn-smooth="true"] .agent-client-turn-node',
+						'.workspace-leaf[data-workspace-turn-smooth="true"] .harness-turn-node',
 					)
 				).length === 48,
 			{ timeout: 5000, interval: 50 },
@@ -781,10 +781,10 @@ describe("v0.5 Session workspace", () => {
 				'.workspace-leaf[data-workspace-turn-smooth="true"]',
 			)!;
 			leaf.querySelector<HTMLElement>(
-				".agent-client-chat-view-messages",
+				".harness-chat-view-messages",
 			)!.scrollTop = 0;
 			leaf.querySelector<HTMLElement>(
-				".agent-client-turn-navigator",
+				".harness-turn-navigator",
 			)!.scrollTop = 0;
 		});
 		await browser.pause(100);
@@ -793,10 +793,10 @@ describe("v0.5 Session workspace", () => {
 				'.workspace-leaf[data-workspace-turn-smooth="true"]',
 			)!;
 			const viewport = leaf.querySelector<HTMLElement>(
-				".agent-client-chat-view-messages",
+				".harness-chat-view-messages",
 			)!;
 			const rail = leaf.querySelector<HTMLElement>(
-				".agent-client-turn-navigator",
+				".harness-turn-navigator",
 			)!;
 			const scrollCalls: Array<{
 				behavior: ScrollBehavior | undefined;
@@ -817,7 +817,7 @@ describe("v0.5 Session workspace", () => {
 			const activeTrace: number[] = [];
 			const observer = new MutationObserver(() => {
 				const active = rail.querySelector<HTMLElement>(
-					'.agent-client-turn-node[aria-current="step"]',
+					'.harness-turn-node[aria-current="step"]',
 				);
 				const ordinal = Number(
 					active
@@ -842,7 +842,7 @@ describe("v0.5 Session workspace", () => {
 			(window as any).__workspaceTurnSmoothOriginalScrollTo =
 				originalScrollTo;
 			rail.querySelectorAll<HTMLButtonElement>(
-				".agent-client-turn-node",
+				".harness-turn-node",
 			)[40].click();
 		});
 		await browser.waitUntil(
@@ -852,11 +852,11 @@ describe("v0.5 Session workspace", () => {
 						'.workspace-leaf[data-workspace-turn-smooth="true"]',
 					)!;
 					const viewport = leaf.querySelector<HTMLElement>(
-						".agent-client-chat-view-messages",
+						".harness-chat-view-messages",
 					)!;
 					const target = Array.from(
 						viewport.querySelectorAll<HTMLElement>(
-							".agent-client-virtual-item",
+							".harness-virtual-item",
 						),
 					).find((message) =>
 						message.innerText.includes("Long prompt 41"),
@@ -877,7 +877,7 @@ describe("v0.5 Session workspace", () => {
 				'.workspace-leaf[data-workspace-turn-smooth="true"]',
 			)!;
 			const viewport = leaf.querySelector<HTMLElement>(
-				".agent-client-chat-view-messages",
+				".harness-chat-view-messages",
 			)!;
 			const originalScrollTo = (window as any)
 				.__workspaceTurnSmoothOriginalScrollTo as
@@ -894,7 +894,7 @@ describe("v0.5 Session workspace", () => {
 				behavior: ScrollBehavior | undefined;
 			}>;
 			const rail = leaf.querySelector<HTMLElement>(
-				".agent-client-turn-navigator",
+				".harness-turn-navigator",
 			)!;
 			delete leaf.dataset.workspaceTurnSmooth;
 			delete leaf.dataset.workspaceTurnVisual;
@@ -926,7 +926,7 @@ describe("v0.5 Session workspace", () => {
 			async () =>
 				(
 					await browser.$$(
-						'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-turn-node',
+						'.workspace-leaf[data-workspace-turn-manual="true"] .harness-turn-node',
 					)
 				).length === 48,
 			{ timeout: 5000, interval: 50 },
@@ -934,7 +934,7 @@ describe("v0.5 Session workspace", () => {
 		await setTurnViewportWidth(520);
 		await browser.execute(() => {
 			const viewport = document.querySelector<HTMLElement>(
-				'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-chat-view-messages',
+				'.workspace-leaf[data-workspace-turn-manual="true"] .harness-chat-view-messages',
 			)!;
 			viewport.scrollTop = Math.round(viewport.scrollHeight * 0.6);
 			viewport.dispatchEvent(new Event("scroll"));
@@ -948,13 +948,13 @@ describe("v0.5 Session workspace", () => {
 							'.workspace-leaf[data-workspace-turn-manual="true"]',
 						)!;
 						const viewport = leaf.querySelector<HTMLElement>(
-							".agent-client-chat-view-messages",
+							".harness-chat-view-messages",
 						)!;
 						const viewportTop =
 							viewport.getBoundingClientRect().top;
 						const virtualItems = Array.from(
 							viewport.querySelectorAll<HTMLElement>(
-								".agent-client-virtual-item",
+								".harness-virtual-item",
 							),
 						);
 						const firstVisible = virtualItems.find(
@@ -967,7 +967,7 @@ describe("v0.5 Session workspace", () => {
 						);
 						const activeLabel = leaf
 							.querySelector<HTMLElement>(
-								'.agent-client-turn-node[aria-current="step"]',
+								'.harness-turn-node[aria-current="step"]',
 							)
 							?.getAttribute("aria-label");
 						const activeOrdinal = Number(
@@ -1004,7 +1004,7 @@ describe("v0.5 Session workspace", () => {
 		for (const position of ["start", "end"] as const) {
 			await browser.execute((boundary) => {
 				const viewport = document.querySelector<HTMLElement>(
-					'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-chat-view-messages',
+					'.workspace-leaf[data-workspace-turn-manual="true"] .harness-chat-view-messages',
 				)!;
 				viewport.scrollTop =
 					boundary === "start" ? 0 : viewport.scrollHeight;
@@ -1016,7 +1016,7 @@ describe("v0.5 Session workspace", () => {
 						(expected) => {
 							const label = document
 								.querySelector<HTMLElement>(
-									'.workspace-leaf[data-workspace-turn-manual="true"] .agent-client-turn-node[aria-current="step"]',
+									'.workspace-leaf[data-workspace-turn-manual="true"] .harness-turn-node[aria-current="step"]',
 								)
 								?.getAttribute("aria-label");
 							return (
@@ -1050,7 +1050,7 @@ describe("v0.5 Session workspace", () => {
 			async () =>
 				(
 					await browser.$$(
-						'.workspace-leaf[data-workspace-turn-bottom="true"] .agent-client-turn-node',
+						'.workspace-leaf[data-workspace-turn-bottom="true"] .harness-turn-node',
 					)
 				).length === 48,
 			{ timeout: 5000, interval: 50 },
@@ -1061,7 +1061,7 @@ describe("v0.5 Session workspace", () => {
 				'.workspace-leaf[data-workspace-turn-bottom="true"]',
 			)!;
 			const viewport = leaf.querySelector<HTMLElement>(
-				".agent-client-chat-view-messages",
+				".harness-chat-view-messages",
 			)!;
 			viewport.scrollTop = 0;
 			viewport.dispatchEvent(new Event("scroll"));
@@ -1085,19 +1085,19 @@ describe("v0.5 Session workspace", () => {
 		});
 		await browser
 			.$(
-				'.workspace-leaf[data-workspace-turn-bottom="true"] .agent-client-scroll-to-bottom',
+				'.workspace-leaf[data-workspace-turn-bottom="true"] .harness-scroll-to-bottom',
 			)
 			.waitForDisplayed();
 		await browser
 			.$(
-				'.workspace-leaf[data-workspace-turn-bottom="true"] .agent-client-scroll-to-bottom',
+				'.workspace-leaf[data-workspace-turn-bottom="true"] .harness-scroll-to-bottom',
 			)
 			.click();
 		await browser.waitUntil(
 			() =>
 				browser.execute(() => {
 					const viewport = document.querySelector<HTMLElement>(
-						'.workspace-leaf[data-workspace-turn-bottom="true"] .agent-client-chat-view-messages',
+						'.workspace-leaf[data-workspace-turn-bottom="true"] .harness-chat-view-messages',
 					)!;
 					return (
 						viewport.scrollHeight -
@@ -1114,7 +1114,7 @@ describe("v0.5 Session workspace", () => {
 				'.workspace-leaf[data-workspace-turn-bottom="true"]',
 			)!;
 			const viewport = leaf.querySelector<HTMLElement>(
-				".agent-client-chat-view-messages",
+				".harness-chat-view-messages",
 			)!;
 			const original = (window as any).__workspaceBottomOriginal as
 				| typeof viewport.scrollTo
@@ -1137,7 +1137,7 @@ describe("v0.5 Session workspace", () => {
 					viewport.clientHeight -
 					viewport.scrollTop,
 				buttonVisible: Boolean(
-					leaf.querySelector(".agent-client-scroll-to-bottom"),
+					leaf.querySelector(".harness-scroll-to-bottom"),
 				),
 			};
 		});
@@ -1160,7 +1160,7 @@ describe("v0.5 Session workspace", () => {
 			async () =>
 				(
 					await browser.$$(
-						'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+						'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-node',
 					)
 				).length === 3,
 			{ timeout: 5000, interval: 50 },
@@ -1170,7 +1170,7 @@ describe("v0.5 Session workspace", () => {
 		const chrome = await browser.execute(() => {
 			const buttons = Array.from(
 				document.querySelectorAll<HTMLElement>(
-					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+					'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-node',
 				),
 			);
 			const idle = buttons.find(
@@ -1183,7 +1183,7 @@ describe("v0.5 Session workspace", () => {
 			const idleMarker = getComputedStyle(idle.firstElementChild!);
 			const activeMarker = getComputedStyle(active.firstElementChild!);
 			const connector = getComputedStyle(
-				idle.closest(".agent-client-turn-node-wrap")!,
+				idle.closest(".harness-turn-node-wrap")!,
 				"::after",
 			);
 			return {
@@ -1197,7 +1197,7 @@ describe("v0.5 Session workspace", () => {
 			};
 		});
 		const normalShell = await browser.$(
-			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+			'.workspace-leaf[data-workspace-turn-visual="true"] .harness-message-list-shell.has-turn-navigator',
 		);
 		for (const theme of ["light", "dark"] as const) {
 			await setTheme(theme);
@@ -1215,7 +1215,7 @@ describe("v0.5 Session workspace", () => {
 			async () =>
 				(
 					await browser.$$(
-						'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+						'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-node',
 					)
 				).length === 48,
 			{ timeout: 5000, interval: 50 },
@@ -1223,7 +1223,7 @@ describe("v0.5 Session workspace", () => {
 		await setTurnViewportWidth(520);
 		const overflow = await browser.execute(() => {
 			const rail = document.querySelector<HTMLElement>(
-				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
+				'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-navigator',
 			)!;
 			const style = getComputedStyle(rail);
 			const webkitScrollbar = getComputedStyle(
@@ -1240,18 +1240,18 @@ describe("v0.5 Session workspace", () => {
 		});
 		await browser.execute(() => {
 			const rail = document.querySelector<HTMLElement>(
-				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
+				'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-navigator',
 			)!;
 			rail.scrollTop = 0;
 			const buttons = document.querySelectorAll<HTMLButtonElement>(
-				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node',
+				'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-node',
 			);
 			buttons[40].click();
 		});
 		await browser.pause(1500);
 		const followState = await browser.execute(() => {
 			const active = document.querySelector<HTMLElement>(
-				'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-node[aria-current="step"]',
+				'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-node[aria-current="step"]',
 			);
 			const ordinal = Number(
 				active?.getAttribute("aria-label")?.match(/^Turn (\d+):/)?.[1],
@@ -1259,12 +1259,12 @@ describe("v0.5 Session workspace", () => {
 			return {
 				activeOrdinal: ordinal,
 				railScrollTop: document.querySelector<HTMLElement>(
-					'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-turn-navigator',
+					'.workspace-leaf[data-workspace-turn-visual="true"] .harness-turn-navigator',
 				)!.scrollTop,
 			};
 		});
 		const overflowShell = await browser.$(
-			'.workspace-leaf[data-workspace-turn-visual="true"] .agent-client-message-list-shell.has-turn-navigator',
+			'.workspace-leaf[data-workspace-turn-visual="true"] .harness-message-list-shell.has-turn-navigator',
 		);
 		for (const theme of ["light", "dark"] as const) {
 			await setTheme(theme);
@@ -1297,7 +1297,7 @@ describe("v0.5 Session workspace", () => {
 				});
 			document
 				.querySelectorAll<HTMLElement>(
-					".agent-client-message-list-shell",
+					".harness-message-list-shell",
 				)
 				.forEach((shell) => {
 					for (const property of [
@@ -1344,7 +1344,7 @@ describe("v0.5 Session workspace", () => {
 	it("AC-0024-N-4 and AC-0025-N-4/B-1: saves responsive light/dark visual evidence", async () => {
 		if (
 			!(await browser
-				.$(".agent-client-message-list-shell.has-turn-navigator")
+				.$(".harness-message-list-shell.has-turn-navigator")
 				.isExisting())
 		) {
 			await browser.execute(async (entryPath) => {
@@ -1354,12 +1354,12 @@ describe("v0.5 Session workspace", () => {
 			}, turnEntryPath);
 			await browser.waitUntil(
 				async () =>
-					(await browser.$$(".agent-client-turn-node")).length === 3,
+					(await browser.$$(".harness-turn-node")).length === 3,
 				{ timeout: 5000, interval: 50 },
 			);
 		}
 		const shell = await browser.$(
-			".agent-client-message-list-shell.has-turn-navigator",
+			".harness-message-list-shell.has-turn-navigator",
 		);
 		await browser.execute(() => {
 			document
@@ -1372,7 +1372,7 @@ describe("v0.5 Session workspace", () => {
 				await setTurnViewportWidth(width);
 				await browser.execute(() => {
 					const viewport = document.querySelector<HTMLElement>(
-						".agent-client-message-list-shell.has-turn-navigator .agent-client-chat-view-messages",
+						".harness-message-list-shell.has-turn-navigator .harness-chat-view-messages",
 					);
 					if (viewport) viewport.scrollTop = 0;
 				});

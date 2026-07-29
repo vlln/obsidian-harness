@@ -34,7 +34,7 @@ async function waitForFixtureCatalog(): Promise<void> {
 }
 
 async function setNavigatorWidth(width: number): Promise<void> {
-	const navigator = await browser.$(".agent-client-session-manager");
+	const navigator = await browser.$(".harness-session-manager");
 	await navigator.waitForDisplayed();
 	await browser.execute(
 		(element, targetWidth) => {
@@ -62,7 +62,7 @@ async function setTheme(theme: "light" | "dark"): Promise<void> {
 async function getNavigatorRoleStyles() {
 	return browser.execute(() => {
 		const rootElement = document.querySelector(
-			".agent-client-session-manager",
+			".harness-session-manager",
 		)!;
 		const resolveColor = (variable: string) => {
 			const probe = document.createElement("span");
@@ -108,19 +108,19 @@ async function getNavigatorRoleStyles() {
 				semibold: resolveFontWeight("--font-semibold"),
 			},
 			projects: styleOf(
-				'section[aria-label="Projects"] .agent-client-navigator-section-title',
+				'section[aria-label="Projects"] .harness-navigator-section-title',
 			),
 			recents: styleOf(
-				'section[aria-label="Recents"] .agent-client-navigator-section-title',
+				'section[aria-label="Recents"] .harness-navigator-section-title',
 			),
 			showMore: styleOf(
-				'section[aria-label="Projects"] .agent-client-navigator-show-more',
+				'section[aria-label="Projects"] .harness-navigator-show-more',
 			),
 			projectRow: styleOf(
-				'section[aria-label="Projects"] .agent-client-navigator-project-row',
+				'section[aria-label="Projects"] .harness-navigator-project-row',
 			),
 			sessionRow: styleOf(
-				".agent-client-navigator-session-row:not(.is-selected)",
+				".harness-navigator-session-row:not(.is-selected)",
 			),
 		};
 	});
@@ -195,7 +195,7 @@ describe("Session Navigator", () => {
 		);
 		await waitForFixtureCatalog();
 		await setNavigatorWidth(420);
-		await browser.$(".agent-client-session-manager").waitForDisplayed();
+		await browser.$(".harness-session-manager").waitForDisplayed();
 	});
 
 	after(async () => {
@@ -222,7 +222,7 @@ describe("Session Navigator", () => {
 	it("AC-0017: renders Harness, New session, 5 Projects and 12 Recents without Active", async () => {
 		const snapshot = await browser.execute(() => {
 			const rootElement = document.querySelector(
-				".agent-client-session-manager",
+				".harness-session-manager",
 			)!;
 			const projects = rootElement.querySelector(
 				'section[aria-label="Projects"]',
@@ -233,14 +233,14 @@ describe("Session Navigator", () => {
 			return {
 				text: (rootElement as HTMLElement).innerText,
 				projects: projects.querySelectorAll(
-					".agent-client-navigator-project",
+					".harness-navigator-project",
 				).length,
 				recents: recents.querySelectorAll(
-					".agent-client-navigator-session-row",
+					".harness-navigator-session-row",
 				).length,
 				projectNames: Array.from(
 					projects.querySelectorAll(
-						".agent-client-navigator-project-row span:last-child",
+						".harness-navigator-project-row span:last-child",
 					),
 				).map((element) => element.textContent),
 			};
@@ -263,7 +263,7 @@ describe("Session Navigator", () => {
 		expect(
 			await browser
 				.$(
-					'.workspace-tab-header[data-type="agent-client-session-manager"]',
+					'.workspace-tab-header[data-type="harness-session-manager"]',
 				)
 				.isDisplayed(),
 		).toBe(false);
@@ -303,21 +303,21 @@ describe("Session Navigator", () => {
 		await setTheme("light");
 		await setNavigatorWidth(420);
 		const projectStatesBefore = await browser.$$(
-			'.agent-client-navigator-project-row[aria-expanded="true"]',
+			'.harness-navigator-project-row[aria-expanded="true"]',
 		);
 		await browser
 			.$(
-				'section[aria-label="Projects"] .agent-client-navigator-section-title',
+				'section[aria-label="Projects"] .harness-navigator-section-title',
 			)
 			.click();
 		expect(
 			await browser.$$(
-				'.agent-client-navigator-project-row[aria-expanded="true"]',
+				'.harness-navigator-project-row[aria-expanded="true"]',
 			),
 		).toHaveLength(projectStatesBefore.length);
 
 		const hoverBackground = async (selector: string) => {
-			await browser.$(".agent-client-navigator-header h1").moveTo();
+			await browser.$(".harness-navigator-header h1").moveTo();
 			const element = await browser.$(selector);
 			const before = await element.getCSSProperty("background-color");
 			await element.moveTo();
@@ -325,14 +325,14 @@ describe("Session Navigator", () => {
 			return { before: before.value, after: after.value };
 		};
 		const sectionHover = await hoverBackground(
-			'section[aria-label="Projects"] .agent-client-navigator-section-title',
+			'section[aria-label="Projects"] .harness-navigator-section-title',
 		);
 		expect(sectionHover.after).toBe(sectionHover.before);
 		const showMore = await browser.$(
-			'section[aria-label="Projects"] .agent-client-navigator-show-more',
+			'section[aria-label="Projects"] .harness-navigator-show-more',
 		);
 		const showMoreHover = await hoverBackground(
-			'section[aria-label="Projects"] .agent-client-navigator-show-more',
+			'section[aria-label="Projects"] .harness-navigator-show-more',
 		);
 		expect(showMoreHover.after).not.toBe(showMoreHover.before);
 		const showMoreColor = await browser.execute(
@@ -344,7 +344,7 @@ describe("Session Navigator", () => {
 			(await getNavigatorRoleStyles()).colors.normal,
 		);
 		const sessionHover = await hoverBackground(
-			".agent-client-navigator-session-row:not(.is-selected)",
+			".harness-navigator-session-row:not(.is-selected)",
 		);
 		expect(sessionHover.after).not.toBe(sessionHover.before);
 	});
@@ -387,13 +387,13 @@ describe("Session Navigator", () => {
 
 	it("AC-0017-B-2: expands Projects and Recents independently", async () => {
 		const projectShowMore = await browser.$(
-			'section[aria-label="Projects"] .agent-client-navigator-show-more',
+			'section[aria-label="Projects"] .harness-navigator-show-more',
 		);
 		await projectShowMore.click();
 		const projectNames = await browser.execute(() =>
 			Array.from(
 				document.querySelectorAll(
-					'section[aria-label="Projects"] .agent-client-navigator-project-row span:last-child',
+					'section[aria-label="Projects"] .harness-navigator-project-row span:last-child',
 				),
 			).map((element) => element.textContent ?? ""),
 		);
@@ -411,20 +411,20 @@ describe("Session Navigator", () => {
 		expect(
 			await browser
 				.$$(
-					'section[aria-label="Recents"] .agent-client-navigator-session-row',
+					'section[aria-label="Recents"] .harness-navigator-session-row',
 				)
 				.then((elements) => elements.length),
 		).toBe(12);
 
 		await browser
 			.$(
-				'section[aria-label="Recents"] .agent-client-navigator-show-more',
+				'section[aria-label="Recents"] .harness-navigator-show-more',
 			)
 			.click();
 		expect(
 			await browser
 				.$$(
-					'section[aria-label="Recents"] .agent-client-navigator-session-row',
+					'section[aria-label="Recents"] .harness-navigator-session-row',
 				)
 				.then((elements) => elements.length),
 		).toBeGreaterThanOrEqual(15);
@@ -432,7 +432,7 @@ describe("Session Navigator", () => {
 
 	it("AC-0020: searches one flat list and restores Project expansion state", async () => {
 		const firstProject = await browser.$(
-			'section[aria-label="Projects"] .agent-client-navigator-project-row',
+			'section[aria-label="Projects"] .harness-navigator-project-row',
 		);
 		await firstProject.click();
 		expect(await firstProject.getAttribute("aria-expanded")).toBe("false");
@@ -443,7 +443,7 @@ describe("Session Navigator", () => {
 			async () =>
 				(await browser
 					.$$(
-						'section[aria-label="Search results"] .agent-client-navigator-session-row',
+						'section[aria-label="Search results"] .harness-navigator-session-row',
 					)
 					.then((elements) => elements.length)) === 1,
 			{ timeout: 2000, interval: 50 },
@@ -457,13 +457,13 @@ describe("Session Navigator", () => {
 		expect(
 			await browser
 				.$(
-					'section[aria-label="Search results"] .agent-client-navigator-session-row',
+					'section[aria-label="Search results"] .harness-navigator-session-row',
 				)
 				.getText(),
 		).toContain("Release Review");
 		await browser.$('button[aria-label="Close search"]').click();
 		const restoredProject = await browser.$(
-			'section[aria-label="Projects"] .agent-client-navigator-project-row',
+			'section[aria-label="Projects"] .harness-navigator-project-row',
 		);
 		expect(await restoredProject.getAttribute("aria-expanded")).toBe(
 			"false",
@@ -475,13 +475,13 @@ describe("Session Navigator", () => {
 		const geometry = await browser.execute(() => {
 			const rows = Array.from(
 				document.querySelectorAll(
-					".agent-client-navigator-session-row",
+					".harness-navigator-session-row",
 				),
 			) as HTMLElement[];
 			const statusWidths = rows.map(
 				(row) =>
 					row
-						.querySelector(".agent-client-navigator-status-slot")!
+						.querySelector(".harness-navigator-status-slot")!
 						.getBoundingClientRect().width,
 			);
 			return {
@@ -494,7 +494,7 @@ describe("Session Navigator", () => {
 				).length,
 				busyTitles: Array.from(
 					document.querySelectorAll(
-						'.agent-client-navigator-status.is-busy[title="Working"]',
+						'.harness-navigator-status.is-busy[title="Working"]',
 					),
 				).length,
 			};
@@ -507,10 +507,10 @@ describe("Session Navigator", () => {
 
 	it("AC-0026-N-1: keeps Open on the row and exposes three Session commands", async () => {
 		const row = await browser.$(
-			'section[aria-label="Recents"] .agent-client-navigator-session-row',
+			'section[aria-label="Recents"] .harness-navigator-session-row',
 		);
 		await row.moveTo();
-		const menuButton = await row.$(".agent-client-navigator-more");
+		const menuButton = await row.$(".harness-navigator-more");
 		await menuButton.waitForClickable();
 		await menuButton.click();
 		await browser.$(".menu").waitForDisplayed();
@@ -523,9 +523,9 @@ describe("Session Navigator", () => {
 	});
 
 	it("AC-0022: saves 260/420 px light/dark visual evidence", async () => {
-		const navigator = await browser.$(".agent-client-session-manager");
+		const navigator = await browser.$(".harness-session-manager");
 		const projectRows = await browser.$$(
-			'section[aria-label="Projects"] .agent-client-navigator-project-row',
+			'section[aria-label="Projects"] .harness-navigator-project-row',
 		);
 		for (const projectRow of projectRows) {
 			const shouldExpand = (await projectRow.getText()).includes(
@@ -537,7 +537,7 @@ describe("Session Navigator", () => {
 		}
 		await browser.execute(() => {
 			const content = document.querySelector(
-				".agent-client-navigator-content",
+				".harness-navigator-content",
 			) as HTMLElement | null;
 			if (content) content.scrollTop = 0;
 		});
@@ -545,7 +545,7 @@ describe("Session Navigator", () => {
 			await setTheme(theme);
 			for (const width of [260, 420]) {
 				await setNavigatorWidth(width);
-				await browser.$(".agent-client-navigator-header h1").moveTo();
+				await browser.$(".harness-navigator-header h1").moveTo();
 				await browser.pause(100);
 				expect(await navigator.getSize("width")).toBe(width);
 				await navigator.saveScreenshot(

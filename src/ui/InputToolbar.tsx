@@ -189,7 +189,7 @@ function ToolbarDropdown({
 		[items, currentValue, onChange],
 	);
 
-	const wrapperClass = `agent-client-toolbar-dropdown${className ? ` ${className}` : ""}`;
+	const wrapperClass = `harness-toolbar-dropdown${className ? ` ${className}` : ""}`;
 
 	return (
 		<button
@@ -199,22 +199,22 @@ function ToolbarDropdown({
 			title={title}
 			onClick={handleClick}
 		>
-			<span className="agent-client-toolbar-dropdown-label-area">
+			<span className="harness-toolbar-dropdown-label-area">
 				{items.map((item) => (
 					<span
 						key={item.value}
-						className="agent-client-toolbar-dropdown-sizer"
+						className="harness-toolbar-dropdown-sizer"
 					>
 						{item.label}
 					</span>
 				))}
-				<span className="agent-client-toolbar-dropdown-label">
+				<span className="harness-toolbar-dropdown-label">
 					{label}
 				</span>
 			</span>
 			<span
 				ref={chevronRef}
-				className="agent-client-toolbar-dropdown-chevron"
+				className="harness-toolbar-dropdown-chevron"
 				aria-hidden="true"
 			/>
 		</button>
@@ -350,18 +350,18 @@ export function InputToolbar({
 	const updateIconColor = useCallback(
 		(svg: SVGElement) => {
 			svg.classList.remove(
-				"agent-client-icon-sending",
-				"agent-client-icon-active",
-				"agent-client-icon-inactive",
+				"harness-icon-sending",
+				"harness-icon-active",
+				"harness-icon-inactive",
 			);
 
 			if (isSending) {
-				svg.classList.add("agent-client-icon-sending");
+				svg.classList.add("harness-icon-sending");
 			} else {
 				svg.classList.add(
 					hasContent
-						? "agent-client-icon-active"
-						: "agent-client-icon-inactive",
+						? "harness-icon-active"
+						: "harness-icon-inactive",
 				);
 			}
 		},
@@ -431,45 +431,45 @@ export function InputToolbar({
 	// ----- Render -----
 
 	return (
-		<div className="agent-client-chat-input-actions">
-			<div className="agent-client-chat-input-actions-left">
+		<div className="harness-chat-input-actions">
+			<div className="harness-chat-input-actions-left">
 				<button
 					ref={addButtonRef}
 					type="button"
-					className="clickable-icon agent-client-resource-add-button"
+					className="clickable-icon harness-resource-add-button"
 					title="Add context"
 					aria-label="Add context"
 					onClick={handleAddResource}
 				/>
 			</div>
 
-			<div className="agent-client-chat-input-actions-right">
+			<div className="harness-chat-input-actions-right">
 				{usageDisplay && (
 					<span
-						className={`agent-client-usage-indicator agent-client-usage-${usageDisplay.tone}`}
+						className={`harness-usage-indicator harness-usage-${usageDisplay.tone}`}
 						aria-label={usageDisplay.ariaLabel}
 						title={usageDisplay.title}
 					>
 						<svg
-							className="agent-client-usage-ring"
+							className="harness-usage-ring"
 							viewBox="0 0 20 20"
 							aria-hidden="true"
 						>
 							<circle
-								className="agent-client-usage-ring-track"
+								className="harness-usage-ring-track"
 								cx="10"
 								cy="10"
 								r="7"
 							/>
 							<circle
-								className="agent-client-usage-ring-progress"
+								className="harness-usage-ring-progress"
 								cx="10"
 								cy="10"
 								r="7"
 								strokeDasharray={`${(usageDisplay.percentage * 0.4398).toFixed(2)} 43.98`}
 							/>
 						</svg>
-						<span className="agent-client-usage-label">
+						<span className="harness-usage-label">
 							{usageDisplay.percentage}%
 						</span>
 					</span>
@@ -481,7 +481,7 @@ export function InputToolbar({
 						<button
 							ref={modelButtonRef}
 							type="button"
-							className="agent-client-toolbar-dropdown agent-client-config-selector-model"
+							className="harness-toolbar-dropdown harness-config-selector-model"
 							title="Model settings"
 							onClick={(event) => {
 								event.preventDefault();
@@ -495,14 +495,14 @@ export function InputToolbar({
 								modelButtonRef.current?.blur();
 							}}
 						>
-							<span className="agent-client-toolbar-dropdown-label-area">
-								<span className="agent-client-toolbar-dropdown-label">
+							<span className="harness-toolbar-dropdown-label-area">
+								<span className="harness-toolbar-dropdown-label">
 									{modelConfigLabel}
 								</span>
 							</span>
 							<span
 								ref={modelChevronRef}
-								className="agent-client-toolbar-dropdown-chevron"
+								className="harness-toolbar-dropdown-chevron"
 								aria-hidden="true"
 							/>
 						</button>
@@ -530,15 +530,15 @@ export function InputToolbar({
 							<button
 								ref={modelButtonRef}
 								type="button"
-								className="agent-client-toolbar-dropdown agent-client-config-selector-model agent-client-config-selector-pending"
+								className="harness-toolbar-dropdown harness-config-selector-model harness-config-selector-pending"
 								title="Load model options"
 								onClick={(event) => {
 									void handlePrepareModelConfig(event);
 								}}
 								disabled={isPreparingConfig}
 							>
-								<span className="agent-client-toolbar-dropdown-label-area">
-									<span className="agent-client-toolbar-dropdown-label">
+								<span className="harness-toolbar-dropdown-label-area">
+									<span className="harness-toolbar-dropdown-label">
 										{isPreparingConfig
 											? "Loading model..."
 											: "Model"}
@@ -546,7 +546,7 @@ export function InputToolbar({
 								</span>
 								<span
 									ref={modelChevronRef}
-									className="agent-client-toolbar-dropdown-chevron"
+									className="harness-toolbar-dropdown-chevron"
 									aria-hidden="true"
 								/>
 							</button>
@@ -560,7 +560,7 @@ export function InputToolbar({
 					type="button"
 					onClick={onSendOrStop}
 					disabled={isButtonDisabled}
-					className={`agent-client-chat-send-button ${isSending ? "sending" : ""} ${isButtonDisabled ? "agent-client-disabled" : ""}`}
+					className={`harness-chat-send-button ${isSending ? "sending" : ""} ${isButtonDisabled ? "harness-disabled" : ""}`}
 					title={
 						!isSessionReady
 							? "Connecting..."

@@ -45,4 +45,4 @@
 | 0044 | [0044-navigator-actions](0044-navigator-actions/) | `feat/0044-navigator-actions` | done |
 | 0045 | [0045-session-workspace-system-test](0045-session-workspace-system-test/) | `develop` | pending |
 | 0046 | [0046-turn-tooltip-accessibility](0046-turn-tooltip-accessibility/) | `fix/0046-turn-tooltip-accessibility` | done |
-| 0054 | [0054-release-v0.5.1](0054-release-v0.5.1/) | `release/v0.5.1` | pending |
+| 0054 | [0054-release-v0.5.1](0054-release-v0.5.1/) | `release/v0.5.1` | done |

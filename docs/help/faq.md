@@ -1,20 +1,20 @@
 # FAQ
 
-Frequently asked questions about Agent Client.
+Frequently asked questions about Obsidian Harness.
 
 ## General
 
-### What is Agent Client?
+### What is Obsidian Harness?
 
-Agent Client is an Obsidian plugin that lets you chat with AI agents directly within Obsidian. It supports Claude Code, Codex, Gemini CLI, and any ACP-compatible agent. The plugin uses the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/) to communicate with agents.
+Obsidian Harness is an Obsidian plugin that lets you chat with AI agents directly within Obsidian. It supports Claude Code, Codex, Gemini CLI, and any ACP-compatible agent. The plugin uses the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/) to communicate with agents.
 
 ### Is this an official Anthropic/OpenAI/Google plugin?
 
-No. Agent Client is a community-developed plugin. It uses official agent packages but is not affiliated with any AI provider.
+No. Obsidian Harness is a community-developed plugin. It uses official agent packages but is not affiliated with any AI provider.
 
 ### Does this work on mobile?
 
-No. Agent Client is desktop-only. Agents run as local processes, which is not supported on mobile devices.
+No. Obsidian Harness is desktop-only. Agents run as local processes, which is not supported on mobile devices.
 
 ### Is my data sent to AI providers?
 
@@ -30,11 +30,11 @@ See [Note Mentions](/usage/mentions) for details.
 
 ### Can I change the character limit for mentions?
 
-Yes. Configure **Max note length** and **Max selection length** in **Settings → Agent Client → Mentions**. The default is 10,000 characters each.
+Yes. Configure **Max note length** and **Max selection length** in **Settings → Obsidian Harness → Mentions**. The default is 10,000 characters each.
 
 ### What is auto-mention?
 
-When enabled (**Settings → Agent Client → Mentions → Auto-mention active note**), the currently open note is automatically included as context. Unlike manual mentions, auto-mention only sends the note's file path—not its content. The agent can use its Read tool to access the content if needed.
+When enabled (**Settings → Obsidian Harness → Mentions → Auto-mention active note**), the currently open note is automatically included as context. Unlike manual mentions, auto-mention only sends the note's file path—not its content. The agent can use its Read tool to access the content if needed.
 
 ### Can I include just part of a note?
 
@@ -50,7 +50,7 @@ Click the **×** button next to the auto-mention badge above the input field. Cl
 
 Click the **⋮** (ellipsis) menu in the chat header. Under **"Switch agent"**, select the agent you want to use. This is a one-time change for that view only.
 
-To change the default agent for new chat views, go to **Settings → Agent Client → Default agent**.
+To change the default agent for new chat views, go to **Settings → Obsidian Harness → Default agent**.
 
 ### Can I run multiple agents at the same time?
 
@@ -67,11 +67,11 @@ Use the **Broadcast** commands:
 
 ### Where do new chat views open?
 
-By default, new views open in the right pane. You can change this in **Settings → Agent Client → Display → Chat view location** to open in editor tabs or splits instead.
+By default, new views open in the right pane. You can change this in **Settings → Obsidian Harness → Display → Chat view location** to open in editor tabs or splits instead.
 
 ### What is a custom agent?
 
-Any ACP-compatible agent beyond the built-in ones (Claude Code, Codex, Gemini CLI). You can add custom agents in **Settings → Agent Client → Custom agents**. See [Custom Agents](/agent-setup/custom-agents).
+Any ACP-compatible agent beyond the built-in ones (Claude Code, Codex, Gemini CLI). You can add custom agents in **Settings → Obsidian Harness → Custom agents**. See [Custom Agents](/agent-setup/custom-agents).
 
 ### Do all agents support the same features?
 
@@ -95,7 +95,7 @@ Some agents request permission before performing certain actions (like editing f
 
 ### Can I auto-approve all permissions?
 
-Yes. Enable **Settings → Agent Client → Permissions → Auto-allow permissions**. Use with caution—this gives agents full access without confirmation prompts.
+Yes. Enable **Settings → Obsidian Harness → Permissions → Auto-allow permissions**. Use with caution—this gives agents full access without confirmation prompts.
 
 ### Some agents don't ask for permission at all?
 
@@ -109,7 +109,7 @@ Click the **export button** in the chat header. The conversation is saved as a M
 
 ### Where are exports saved?
 
-By default, exports are saved to the `Agent Client` folder in your vault. You can change this in **Settings → Agent Client → Export → Export folder**.
+By default, exports are saved to the `Harness` folder in your vault. You can change this in **Settings → Obsidian Harness → Export → Export folder**.
 
 ### Can I auto-export conversations?
 
@@ -117,7 +117,7 @@ Yes. Enable **Auto-export on new chat** or **Auto-export on close chat** in expo
 
 ### Can I customize the frontmatter tag?
 
-Yes. In **Settings → Agent Client → Export → Frontmatter tag**, you can set a custom tag. Nested tags like `projects/agent-client` are supported.
+Yes. In **Settings → Obsidian Harness → Export → Frontmatter tag**, you can set a custom tag. Nested tags like `projects/harness` are supported.
 
 ## Session History
 
@@ -147,7 +147,7 @@ Yes. Open the session history modal and click the **Delete** button (trash icon)
 
 ### What is WSL mode?
 
-WSL (Windows Subsystem for Linux) mode runs agents inside a Linux environment on Windows. Enable it in **Settings → Agent Client → Windows Subsystem for Linux → Enable WSL mode**. This is useful for agents that work better in Linux environments.
+WSL (Windows Subsystem for Linux) mode runs agents inside a Linux environment on Windows. Enable it in **Settings → Obsidian Harness → Windows Subsystem for Linux → Enable WSL mode**. This is useful for agents that work better in Linux environments.
 
 ### Do I need to specify a WSL distribution?
 
@@ -155,7 +155,7 @@ Only if you have multiple WSL distributions installed and want to use a specific
 
 ## Cost & Billing
 
-### Is Agent Client free?
+### Is Obsidian Harness free?
 
 The plugin itself is free and open source. However, using AI agents may incur costs depending on the agent and your authentication method.
 
@@ -169,13 +169,13 @@ The plugin itself is free and open source. However, using AI agents may incur co
 ### Where can I get help?
 
 1. Check the [Troubleshooting](/help/troubleshooting) page
-2. Search [GitHub Issues](https://github.com/RAIT-09/obsidian-agent-client/issues)
+2. Search [GitHub Issues](https://github.com/vlln/obsidian-harness-frontend/issues)
 3. Open a new issue if your problem isn't covered
 
 ### How do I report a bug?
 
-[Open an issue on GitHub](https://github.com/RAIT-09/obsidian-agent-client/issues/new) with:
+[Open an issue on GitHub](https://github.com/vlln/obsidian-harness-frontend/issues/new) with:
 - Your OS and Obsidian version
 - The agent you're using
 - Steps to reproduce
-- Error messages (enable **Debug Mode** in **Settings → Agent Client → Developer**)
+- Error messages (enable **Debug Mode** in **Settings → Obsidian Harness → Developer**)

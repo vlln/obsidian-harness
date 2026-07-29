@@ -6,8 +6,8 @@
  * via useSyncExternalStore, and handles persistence to Obsidian's data.json.
  */
 
-import type { AgentClientPluginSettings } from "../plugin";
-import type AgentClientPlugin from "../plugin";
+import type { HarnessPluginSettings } from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type { SessionFileData, SessionIndexEntry } from "../types/session";
 import type {
 	ActiveTurnRecord,
@@ -45,7 +45,7 @@ export interface ISettingsAccess {
 	 *
 	 * @returns Current plugin settings
 	 */
-	getSnapshot(): AgentClientPluginSettings;
+	getSnapshot(): HarnessPluginSettings;
 
 	/**
 	 * Update plugin settings.
@@ -56,7 +56,7 @@ export interface ISettingsAccess {
 	 * @param updates - Partial settings object with properties to update
 	 * @returns Promise that resolves when settings are saved
 	 */
-	updateSettings(updates: Partial<AgentClientPluginSettings>): Promise<void>;
+	updateSettings(updates: Partial<HarnessPluginSettings>): Promise<void>;
 
 	/**
 	 * Subscribe to settings changes.
@@ -113,13 +113,13 @@ type Listener = () => void;
  */
 export class SettingsService implements ISettingsAccess {
 	/** Current settings state */
-	private state: AgentClientPluginSettings;
+	private state: HarnessPluginSettings;
 
 	/** Set of registered listeners */
 	private listeners = new Set<Listener>();
 
 	/** Plugin instance for persistence */
-	private plugin: AgentClientPlugin;
+	private plugin: HarnessPlugin;
 
 	/** Session storage delegate */
 	private sessionStorage: SessionStorage;
@@ -130,7 +130,7 @@ export class SettingsService implements ISettingsAccess {
 	 * @param initial - Initial settings state
 	 * @param plugin - Plugin instance for saving settings
 	 */
-	constructor(initial: AgentClientPluginSettings, plugin: AgentClientPlugin) {
+	constructor(initial: HarnessPluginSettings, plugin: HarnessPlugin) {
 		this.state = initial;
 		this.plugin = plugin;
 		this.sessionStorage = new SessionStorage(plugin);
@@ -143,7 +143,7 @@ export class SettingsService implements ISettingsAccess {
 	 *
 	 * @returns Current plugin settings
 	 */
-	getSnapshot = (): AgentClientPluginSettings => this.state;
+	getSnapshot = (): HarnessPluginSettings => this.state;
 
 	/**
 	 * Update plugin settings.
@@ -155,7 +155,7 @@ export class SettingsService implements ISettingsAccess {
 	 * @returns Promise that resolves when settings are saved
 	 */
 	async updateSettings(
-		updates: Partial<AgentClientPluginSettings>,
+		updates: Partial<HarnessPluginSettings>,
 	): Promise<void> {
 		const next = { ...this.state, ...updates };
 		this.state = next;
@@ -197,7 +197,7 @@ export class SettingsService implements ISettingsAccess {
 	 *
 	 * @param next - New settings object
 	 */
-	set(next: AgentClientPluginSettings): void {
+	set(next: HarnessPluginSettings): void {
 		// Delegate to async updateSettings
 		// Note: Fire-and-forget - callers don't expect this to be async
 		void this.updateSettings(next);
@@ -265,6 +265,6 @@ export class SettingsService implements ISettingsAccess {
  * Create a new settings store instance.
  */
 export const createSettingsService = (
-	initial: AgentClientPluginSettings,
-	plugin: AgentClientPlugin,
+	initial: HarnessPluginSettings,
+	plugin: HarnessPlugin,
 ) => new SettingsService(initial, plugin);

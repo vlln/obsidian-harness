@@ -19,7 +19,7 @@ export const TurnNavigator = React.memo(function TurnNavigator({
 	React.useEffect(() => {
 		const rail = railRef.current;
 		const active = rail?.querySelector<HTMLElement>(
-			".agent-client-turn-node.is-active",
+			".harness-turn-node.is-active",
 		);
 		if (!rail || !active || rail.scrollHeight <= rail.clientHeight) return;
 
@@ -47,17 +47,17 @@ export const TurnNavigator = React.memo(function TurnNavigator({
 	return (
 		<nav
 			ref={railRef}
-			className="agent-client-turn-navigator"
+			className="harness-turn-navigator"
 			aria-label="Conversation turns"
 		>
 			{items.map((item) => (
 				<div
-					className="agent-client-turn-node-wrap"
+					className="harness-turn-node-wrap"
 					key={item.messageId}
 				>
 					<button
 						type="button"
-						className={`agent-client-turn-node ${
+						className={`harness-turn-node ${
 							item.messageId === activeMessageId
 								? "is-active"
 								: ""

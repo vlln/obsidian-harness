@@ -16,6 +16,8 @@
  *
  * Used to pass configuration and credentials to agent processes
  * via environment variables (e.g., API keys, paths, feature flags).
+ *
+ * Stored as plain text in data.json — never put secrets here.
  */
 export interface AgentEnvVar {
 	/** Environment variable name (e.g., "ANTHROPIC_API_KEY") */
@@ -30,69 +32,43 @@ export interface AgentEnvVar {
 // ============================================================================
 
 /**
- * Base configuration shared by all agent types.
+ * Unified configuration for any ACP-compatible agent backend.
  *
- * Defines the common properties needed to launch and communicate
- * with any ACP-compatible agent, regardless of the specific
- * implementation (Claude Code, Gemini CLI, custom agents, etc.).
+ * Single model for all backends (Spec-0008 §4.1): built-in agents are merely
+ * prefilled entries in DEFAULT_SETTINGS.agents and are fully isomorphic to
+ * user-added entries once loaded.
+ *
+ * The API key is an optional per-entry capability: when both `apiKeySecretId`
+ * and `apiKeyEnvVarName` are set, the secret value is resolved from Obsidian's
+ * secret storage and injected into the spawn environment under
+ * `apiKeyEnvVarName`. When either is empty, the backend relies on its own
+ * login state or manual `env` entries.
  */
-export interface BaseAgentSettings {
-	/** Unique identifier for this agent (e.g., "claude", "gemini", "custom-1") */
+export interface AgentSettings {
+	/** Unique identifier within the agents[] array (e.g., "claude-code-acp", "custom-agent-2") */
 	id: string;
 
-	/** Human-readable display name shown in UI */
+	/** Human-readable display name shown in UI; falls back to `id` when empty */
 	displayName: string;
 
-	/** Command to execute (full path to executable or command name) */
+	/** Command to execute (full path to executable or command name); may be empty (unconfigured) */
 	command: string;
 
 	/** Command-line arguments passed to the agent */
 	args: string[];
 
-	/** Environment variables for the agent process */
+	/** Manually configured environment variables (plain text, stored in data.json) */
 	env: AgentEnvVar[];
-}
 
-/**
- * Configuration for Gemini CLI agent.
- *
- * Extends base settings with Gemini-specific requirements.
- * The API key (GEMINI_API_KEY) is stored in Obsidian's secret storage
- * and referenced by ID. Empty string means no API key is configured.
- */
-export interface GeminiAgentSettings extends BaseAgentSettings {
-	/** Secret storage ID containing the Gemini API key (GEMINI_API_KEY) */
+	/**
+	 * Reference to the secret storage entry holding the API key.
+	 * This is NOT the key itself. Empty string means no key is configured.
+	 */
 	apiKeySecretId: string;
-}
 
-/**
- * Configuration for Claude Code agent.
- *
- * Extends base settings with Claude-specific requirements.
- * The API key (ANTHROPIC_API_KEY) is stored in Obsidian's secret storage
- * and referenced by ID. Empty string means no API key is configured.
- */
-export interface ClaudeAgentSettings extends BaseAgentSettings {
-	/** Secret storage ID containing the Anthropic API key (ANTHROPIC_API_KEY) */
-	apiKeySecretId: string;
+	/**
+	 * Environment variable name used to inject the resolved API key into the
+	 * agent process. Takes effect only together with `apiKeySecretId`.
+	 */
+	apiKeyEnvVarName: string;
 }
-
-/**
- * Configuration for Codex CLI agent.
- *
- * Extends base settings with Codex-specific requirements.
- * The API key (OPENAI_API_KEY) is stored in Obsidian's secret storage
- * and referenced by ID. Empty string means no API key is configured.
- */
-export interface CodexAgentSettings extends BaseAgentSettings {
-	/** Secret storage ID containing the OpenAI API key (OPENAI_API_KEY) */
-	apiKeySecretId: string;
-}
-
-/**
- * Configuration for custom ACP-compatible agents.
- *
- * Uses only the base settings, allowing users to configure
- * any agent that implements the Agent Client Protocol.
- */
-export type CustomAgentSettings = BaseAgentSettings;

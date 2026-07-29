@@ -157,18 +157,18 @@ describe("session navigator model", () => {
 			"grid-template-columns: minmax(0, 1fr) 18px 24px",
 		);
 		expect(styles).toContain(
-			".agent-client-session-manager button.agent-client-navigator-project-row",
+			".harness-session-manager button.harness-navigator-project-row",
 		);
 		expect(styles).toContain(
-			'.workspace-tab-header[data-type="agent-client-session-manager"]',
+			'.workspace-tab-header[data-type="harness-session-manager"]',
 		);
 		const navigatorButtonReset = styles.match(
-			/\.agent-client-session-manager button\.agent-client-navigator-new-session,[\s\S]*?\{([\s\S]*?)\}/,
+			/\.harness-session-manager button\.harness-navigator-new-session,[\s\S]*?\{([\s\S]*?)\}/,
 		)?.[1];
 		expect(navigatorButtonReset).toContain("justify-content: flex-start;");
 
 		const sectionLabelRole = styles.match(
-			/\.agent-client-navigator-section-title \{([\s\S]*?)\}/,
+			/\.harness-navigator-section-title \{([\s\S]*?)\}/,
 		)?.[1];
 		expect(sectionLabelRole).toContain("font-size: 11px;");
 		expect(sectionLabelRole).toContain("color: var(--text-faint);");
@@ -179,7 +179,7 @@ describe("session navigator model", () => {
 
 		const showMoreRole = [
 			...styles.matchAll(
-				/\.agent-client-session-manager button\.agent-client-navigator-show-more\s*\{([\s\S]*?)\}/g,
+				/\.harness-session-manager button\.harness-navigator-show-more\s*\{([\s\S]*?)\}/g,
 			),
 		].at(-1)?.[1];
 		expect(showMoreRole).toContain("font-size: 11px;");
@@ -189,7 +189,7 @@ describe("session navigator model", () => {
 
 		const showMoreHoverRole = [
 			...styles.matchAll(
-				/\.agent-client-session-manager button\.agent-client-navigator-show-more:hover\s*\{([\s\S]*?)\}/g,
+				/\.harness-session-manager button\.harness-navigator-show-more:hover\s*\{([\s\S]*?)\}/g,
 			),
 		].at(-1)?.[1];
 		expect(showMoreHoverRole).toContain("color: var(--text-normal);");
@@ -227,7 +227,7 @@ describe("session navigator model", () => {
 		expect(projectRow).not.toContain('.setTitle("Rename")');
 		expect(projectRow).not.toContain('.setTitle("Delete")');
 		expect(projectRow).toContain(
-			'className="agent-client-navigator-project-row-shell"',
+			'className="harness-navigator-project-row-shell"',
 		);
 		expect(projectRow).toContain("restoreMenuFocus(menu, focusTarget)");
 		expect(plugin).toContain("shell.openPath(cwd)");

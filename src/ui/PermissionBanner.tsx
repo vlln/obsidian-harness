@@ -43,11 +43,11 @@ export function PermissionBanner({
 	if (!isActive || isSelected || isCancelled) return null;
 
 	return (
-		<div className="agent-client-message-permission-request">
+		<div className="harness-message-permission-request">
 			{permissionRequest.options.map((option) => (
 				<button
 					key={option.optionId}
-					className={`agent-client-permission-option agent-client-permission-kind-${option.kind}`}
+					className={`harness-permission-option harness-permission-kind-${option.kind}`}
 					title={option.name}
 					onClick={() => {
 						if (onOptionSelected) {
@@ -69,10 +69,10 @@ export function PermissionBanner({
 					{showEmojis && (
 						<LucideIcon
 							name={KIND_ICONS[option.kind]}
-							className="agent-client-permission-option-icon"
+							className="harness-permission-option-icon"
 						/>
 					)}
-					<span className="agent-client-permission-option-label">
+					<span className="harness-permission-option-label">
 						{option.name}
 					</span>
 				</button>

@@ -1,0 +1,5 @@
+{"type":"user_message","content":[{"type":"text","text":"Main branch prompt"}],"recordId":"r1","timestamp":"2026-01-01T00:00:00Z"}
+{"type":"assistant_message","content":[{"type":"thinking","text":"Planning"},{"type":"text","text":"Main response"}],"model":"claude-test","recordId":"r2","timestamp":"2026-01-01T00:00:01Z"}
+{"type":"tool_call","toolCallId":"tc1","name":"Read","args":{"path":"/file"},"status":"completed","recordId":"r3","timestamp":"2026-01-01T00:00:02Z"}
+{"type":"tool_result","toolCallId":"tc1","content":"file content","status":"success","recordId":"r4","timestamp":"2026-01-01T00:00:03Z"}
+{"type":"turn_boundary","phase":"end","turnId":"t0","recordId":"r-fork-point","timestamp":"2026-01-01T00:00:04Z"}

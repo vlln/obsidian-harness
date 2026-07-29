@@ -1,5 +1,5 @@
 import { spawn, ChildProcess, SpawnOptions } from "child_process";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import { getLogger, Logger } from "../utils/logger";
 import { Platform } from "obsidian";
 import { resolveNodeDirectory } from "../utils/paths";
@@ -43,9 +43,9 @@ interface TerminalProcess {
 export class TerminalManager {
 	private terminals = new Map<string, TerminalProcess>();
 	private logger: Logger;
-	private plugin: AgentClientPlugin;
+	private plugin: HarnessPlugin;
 
-	constructor(plugin: AgentClientPlugin) {
+	constructor(plugin: HarnessPlugin) {
 		this.logger = getLogger();
 		this.plugin = plugin;
 	}
@@ -55,7 +55,7 @@ export class TerminalManager {
 
 		// Check current platform
 		if (!Platform.isDesktopApp) {
-			throw new Error("Agent Client is only available on desktop");
+			throw new Error("Harness is only available on desktop");
 		}
 
 		// Set up environment variables

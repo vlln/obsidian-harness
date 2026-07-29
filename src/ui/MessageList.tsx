@@ -4,7 +4,7 @@ const { useRef, useState, useEffect, useCallback, useMemo } = React;
 import type { ChatMessage } from "../types/chat";
 import type { SessionState } from "../types/session";
 import type { AcpClient } from "../acp/acp-client";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type { IChatViewHost } from "./view-host";
 import { setIcon } from "obsidian";
 import { MessageBubble } from "./MessageBubble";
@@ -54,7 +54,7 @@ export interface MessageListProps {
 	/** Display name of the active agent */
 	agentLabel: string;
 	/** Plugin instance */
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	/** View instance for event registration */
 	view: IChatViewHost;
 	/** Terminal client for output polling */
@@ -431,12 +431,12 @@ export function MessageList({
 	// Empty state
 	if (messages.length === 0) {
 		return (
-			<div className="agent-client-message-list-shell">
+			<div className="harness-message-list-shell">
 				<div
 					ref={containerRef}
-					className="agent-client-chat-view-messages"
+					className="harness-chat-view-messages"
 				>
-					<div className="agent-client-chat-empty-state">
+					<div className="harness-chat-empty-state">
 						{isRestoringSession
 							? "Restoring session..."
 							: sessionState === "initializing"
@@ -452,17 +452,17 @@ export function MessageList({
 
 	return (
 		<div
-			className={`agent-client-message-list-shell ${turnItems.length > 0 ? "has-turn-navigator" : ""}`}
+			className={`harness-message-list-shell ${turnItems.length > 0 ? "has-turn-navigator" : ""}`}
 		>
 			<TurnNavigator
 				items={turnItems}
 				activeMessageId={activeTurnMessageId}
 				onNavigate={navigateToTurn}
 			/>
-			<div ref={containerRef} className="agent-client-chat-view-messages">
+			<div ref={containerRef} className="harness-chat-view-messages">
 				{/* Virtualized message list */}
 				<div
-					className="agent-client-virtual-list-inner"
+					className="harness-virtual-list-inner"
 					style={{
 						height: virtualizer.getTotalSize(),
 						position: "relative",
@@ -476,7 +476,7 @@ export function MessageList({
 								ref={virtualizer.measureElement}
 								data-index={virtualItem.index}
 								data-msg-id={message.id}
-								className="agent-client-virtual-item"
+								className="harness-virtual-item"
 								style={{
 									position: "absolute",
 									top: 0,
@@ -498,21 +498,21 @@ export function MessageList({
 
 				{/* Loading indicator — outside virtualizer */}
 				<div
-					className={`agent-client-loading-indicator ${!isSending ? "agent-client-hidden" : ""}`}
+					className={`harness-loading-indicator ${!isSending ? "harness-hidden" : ""}`}
 				>
-					<div className="agent-client-loading-dots">
-						<div className="agent-client-loading-dot"></div>
-						<div className="agent-client-loading-dot"></div>
-						<div className="agent-client-loading-dot"></div>
-						<div className="agent-client-loading-dot"></div>
-						<div className="agent-client-loading-dot"></div>
-						<div className="agent-client-loading-dot"></div>
-						<div className="agent-client-loading-dot"></div>
-						<div className="agent-client-loading-dot"></div>
-						<div className="agent-client-loading-dot"></div>
+					<div className="harness-loading-dots">
+						<div className="harness-loading-dot"></div>
+						<div className="harness-loading-dot"></div>
+						<div className="harness-loading-dot"></div>
+						<div className="harness-loading-dot"></div>
+						<div className="harness-loading-dot"></div>
+						<div className="harness-loading-dot"></div>
+						<div className="harness-loading-dot"></div>
+						<div className="harness-loading-dot"></div>
+						<div className="harness-loading-dot"></div>
 					</div>
 					{hasActivePermission && (
-						<span className="agent-client-loading-status">
+						<span className="harness-loading-status">
 							Waiting for permission...
 						</span>
 					)}
@@ -521,7 +521,7 @@ export function MessageList({
 				{/* Scroll to bottom button */}
 				{!isAtBottom && (
 					<button
-						className="agent-client-scroll-to-bottom"
+						className="harness-scroll-to-bottom"
 						onClick={scrollToBottom}
 						ref={(el) => {
 							if (el) setIcon(el, "chevron-down");

@@ -1,6 +1,0 @@
-{"time":"2026-07-20T00:00:01Z","type":"turn.prompt","content":[{"type":"text","text":"Kimi fixture"}]}
-{"time":"2026-07-20T00:00:02Z","type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"think","text":"Thinking fixture"}}}
-{"time":"2026-07-20T00:00:03Z","type":"context.append_loop_event","event":{"type":"tool.call","id":"kimi-tool","name":"Shell","arguments":{"command":"fixture"}}}
-{"time":"2026-07-20T00:00:04Z","type":"context.append_loop_event","event":{"type":"tool.result","tool_call_id":"kimi-tool","result":"fixture output"}}
-{"time":"2026-07-20T00:00:05Z","type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"Kimi done."}}}
-{"time":"2026-07-20T00:00:06Z","type":"context.append_loop_event","event":{"type":"step.end","stop_reason":"end_turn"}}

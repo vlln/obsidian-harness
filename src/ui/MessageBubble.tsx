@@ -3,7 +3,7 @@ const { useState, useCallback } = React;
 import { setIcon } from "obsidian";
 import type { ChatMessage, MessageContent } from "../types/chat";
 import type { AcpClient } from "../acp/acp-client";
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import { MarkdownRenderer } from "./shared/MarkdownRenderer";
 import { TerminalBlock } from "./TerminalBlock";
 import { ToolCallBlock } from "./ToolCallBlock";
@@ -16,7 +16,7 @@ import { formatThoughtDuration } from "../services/workbench-display";
 
 interface TextWithMentionsProps {
 	text: string;
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	autoMentionContext?: {
 		noteName: string;
 		notePath: string;
@@ -46,7 +46,7 @@ function TextWithMentions({
 		parts.push(
 			<span
 				key="auto-mention"
-				className="agent-client-text-mention"
+				className="harness-text-mention"
 				onClick={() => {
 					void plugin.app.workspace.openLinkText(
 						autoMentionContext.notePath,
@@ -82,7 +82,7 @@ function TextWithMentions({
 			parts.push(
 				<span
 					key={match.index}
-					className="agent-client-text-mention"
+					className="harness-text-mention"
 					onClick={() => {
 						void plugin.app.workspace.openLinkText(file.path, "");
 					}}
@@ -103,7 +103,7 @@ function TextWithMentions({
 		parts.push(text.slice(lastIndex));
 	}
 
-	return <div className="agent-client-text-with-mentions">{parts}</div>;
+	return <div className="harness-text-with-mentions">{parts}</div>;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +112,7 @@ function TextWithMentions({
 
 interface CollapsibleThoughtProps {
 	content: Extract<MessageContent, { type: "agent_thought" }>;
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 }
 
 function CollapsibleThought({ content, plugin }: CollapsibleThoughtProps) {
@@ -125,26 +125,26 @@ function CollapsibleThought({ content, plugin }: CollapsibleThoughtProps) {
 
 	return (
 		<div
-			className="agent-client-collapsible-thought"
+			className="harness-collapsible-thought"
 			onClick={() => setIsExpanded(!isExpanded)}
 		>
-			<div className="agent-client-collapsible-thought-header">
+			<div className="harness-collapsible-thought-header">
 				{showEmojis && (
 					<LucideIcon
 						name="sparkles"
-						className="agent-client-collapsible-thought-label-icon"
+						className="harness-collapsible-thought-label-icon"
 					/>
 				)}
-				<span className="agent-client-collapsible-thought-label">
+				<span className="harness-collapsible-thought-label">
 					Thought for {duration}
 				</span>
 				<LucideIcon
 					name={isExpanded ? "chevron-down" : "chevron-right"}
-					className="agent-client-collapsible-thought-icon"
+					className="harness-collapsible-thought-icon"
 				/>
 			</div>
 			{isExpanded && (
-				<div className="agent-client-collapsible-thought-content">
+				<div className="harness-collapsible-thought-content">
 					<MarkdownRenderer text={content.text} plugin={plugin} />
 				</div>
 			)}
@@ -158,7 +158,7 @@ function CollapsibleThought({ content, plugin }: CollapsibleThoughtProps) {
 
 interface ContentBlockProps {
 	content: MessageContent;
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	messageRole?: "user" | "assistant";
 	terminalClient?: AcpClient;
 	/** Callback to approve a permission request */
@@ -210,12 +210,12 @@ function ContentBlock({
 		case "plan": {
 			const showEmojis = plugin.settings.displaySettings.showEmojis;
 			return (
-				<div className="agent-client-message-plan">
-					<div className="agent-client-message-plan-title">
+				<div className="harness-message-plan">
+					<div className="harness-message-plan-title">
 						{showEmojis && (
 							<LucideIcon
 								name="list-checks"
-								className="agent-client-message-plan-label-icon"
+								className="harness-message-plan-label-icon"
 							/>
 						)}
 						Plan
@@ -223,11 +223,11 @@ function ContentBlock({
 					{content.entries.map((entry, idx) => (
 						<div
 							key={idx}
-							className={`agent-client-message-plan-entry agent-client-plan-status-${entry.status}`}
+							className={`harness-message-plan-entry harness-plan-status-${entry.status}`}
 						>
 							{showEmojis && (
 								<span
-									className={`agent-client-message-plan-entry-icon agent-client-status-${entry.status}`}
+									className={`harness-message-plan-entry-icon harness-status-${entry.status}`}
 								>
 									<LucideIcon
 										name={
@@ -257,25 +257,25 @@ function ContentBlock({
 
 		case "image":
 			return (
-				<div className="agent-client-message-image">
+				<div className="harness-message-image">
 					<img
 						src={`data:${content.mimeType};base64,${content.data}`}
 						alt="Attached image"
-						className="agent-client-message-image-thumbnail"
+						className="harness-message-image-thumbnail"
 					/>
 				</div>
 			);
 
 		case "resource_link":
 			return (
-				<div className="agent-client-message-resource-link">
+				<div className="harness-message-resource-link">
 					<span
-						className="agent-client-message-resource-link-icon"
+						className="harness-message-resource-link-icon"
 						ref={(el) => {
 							if (el) setIcon(el, "file");
 						}}
 					/>
-					<span className="agent-client-message-resource-link-name">
+					<span className="harness-message-resource-link-name">
 						{content.name}
 					</span>
 				</div>
@@ -292,7 +292,7 @@ function ContentBlock({
 
 export interface MessageBubbleProps {
 	message: ChatMessage;
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	terminalClient?: AcpClient;
 	/** Callback to approve a permission request */
 	onApprovePermission?: (
@@ -339,7 +339,7 @@ function CopyButton({ contents }: { contents: MessageContent[] }) {
 
 	return (
 		<button
-			className="clickable-icon agent-client-message-action-button"
+			className="clickable-icon harness-message-action-button"
 			onClick={handleCopy}
 			aria-label="Copy message"
 			ref={iconRef}
@@ -401,10 +401,10 @@ export const MessageBubble = React.memo(function MessageBubble({
 
 	return (
 		<div
-			className={`agent-client-message-frame ${message.role === "user" ? "agent-client-message-user-frame" : "agent-client-message-assistant-frame"}`}
+			className={`harness-message-frame ${message.role === "user" ? "harness-message-user-frame" : "harness-message-assistant-frame"}`}
 		>
 			<div
-				className={`agent-client-message-renderer ${message.role === "user" ? "agent-client-message-user" : "agent-client-message-assistant"}`}
+				className={`harness-message-renderer ${message.role === "user" ? "harness-message-user" : "harness-message-assistant"}`}
 			>
 				{groups.map((group, idx) => {
 					if (group.type === "attachments") {
@@ -412,7 +412,7 @@ export const MessageBubble = React.memo(function MessageBubble({
 						return (
 							<div
 								key={idx}
-								className="agent-client-message-images-strip"
+								className="harness-message-images-strip"
 							>
 								{group.items.map((content, imgIdx) => (
 									<ContentBlock
@@ -445,7 +445,7 @@ export const MessageBubble = React.memo(function MessageBubble({
 				})}
 			</div>
 			{hasCopyableText && (
-				<div className="agent-client-message-actions">
+				<div className="harness-message-actions">
 					<CopyButton contents={message.content} />
 				</div>
 			)}

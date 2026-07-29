@@ -1,41 +1,46 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	buildAgentConfigWithApiKey,
 	findAgentSettings,
-	selectPreferredDefaultAgentId,
+	getAvailableAgentsFromSettings,
+	getCurrentAgent,
+	getDefaultAgentId,
 	shouldPersistResolvedSessionId,
 	shouldPersistResolvedAgentId,
-	uniqueNonEmpty,
 } from "../src/services/session-helpers";
-import type { AgentClientPluginSettings } from "../src/plugin";
+import type { AgentSettings } from "../src/types/agent";
+import type { HarnessPluginSettings } from "../src/plugin";
 
-function createMinimalSettings(): AgentClientPluginSettings {
+function createAgent(overrides: Partial<AgentSettings> = {}): AgentSettings {
 	return {
-		claude: {
-			id: "claude-code-acp",
-			displayName: "Claude Code",
-			apiKeySecretId: "",
-			command: "claude-agent-acp",
-			args: [],
-			env: [],
-		},
-		codex: {
-			id: "codex-acp",
-			displayName: "Codex",
-			apiKeySecretId: "",
-			command: "codex-acp",
-			args: [],
-			env: [],
-		},
-		gemini: {
-			id: "gemini-cli",
-			displayName: "Gemini CLI",
-			apiKeySecretId: "",
-			command: "gemini",
-			args: ["--experimental-acp"],
-			env: [],
-		},
-		customAgents: [],
+		id: "claude-code-acp",
+		displayName: "Claude Code",
+		command: "claude-agent-acp",
+		args: [],
+		env: [],
+		apiKeySecretId: "",
+		apiKeyEnvVarName: "",
+		...overrides,
+	};
+}
+
+function createMinimalSettings(): HarnessPluginSettings {
+	return {
+		agents: [
+			createAgent(),
+			createAgent({
+				id: "codex-acp",
+				displayName: "Codex",
+				command: "codex-acp",
+			}),
+			createAgent({
+				id: "gemini-cli",
+				displayName: "Gemini CLI",
+				command: "gemini",
+				args: ["--experimental-acp"],
+			}),
+		],
 		defaultAgentId: "claude-code-acp",
 		sessionFolder: "Sessions",
 		autoAllowPermissions: false,
@@ -106,61 +111,114 @@ describe("session restore helpers", () => {
 			false,
 		);
 	});
+});
 
-	it("resolves auto-discovered pi-acp sessions without custom settings", () => {
-		expect(findAgentSettings(createMinimalSettings(), "pi-acp")).toEqual({
-			id: "pi-acp",
-			displayName: "pi-acp",
-			command: "pi-acp",
+describe("findAgentSettings (unified agents[] lookup)", () => {
+	it("finds every configured entry by id, built-in and user-added alike", () => {
+		const settings = createMinimalSettings();
+		settings.agents.push(createAgent({ id: "my-agent", displayName: "" }));
+		expect(findAgentSettings(settings, "claude-code-acp")?.command).toBe(
+			"claude-agent-acp",
+		);
+		expect(findAgentSettings(settings, "codex-acp")?.command).toBe(
+			"codex-acp",
+		);
+		expect(findAgentSettings(settings, "gemini-cli")?.command).toBe(
+			"gemini",
+		);
+		expect(findAgentSettings(settings, "my-agent")?.id).toBe("my-agent");
+	});
+
+	it("returns null for unknown ids — no per-backend discovery fallbacks (BR-075)", () => {
+		const settings = createMinimalSettings();
+		expect(findAgentSettings(settings, "pi-acp")).toBeNull();
+		expect(findAgentSettings(settings, "missing")).toBeNull();
+	});
+});
+
+describe("available/default agent helpers", () => {
+	it("maps agents[] directly into display info with displayName fallback to id", () => {
+		const settings = createMinimalSettings();
+		settings.agents.push(createAgent({ id: "my-agent", displayName: "" }));
+		expect(getAvailableAgentsFromSettings(settings)).toEqual([
+			{ id: "claude-code-acp", displayName: "Claude Code" },
+			{ id: "codex-acp", displayName: "Codex" },
+			{ id: "gemini-cli", displayName: "Gemini CLI" },
+			{ id: "my-agent", displayName: "my-agent" },
+		]);
+	});
+
+	it("resolves the default agent id with array-order fallback", () => {
+		const settings = createMinimalSettings();
+		expect(getDefaultAgentId(settings)).toBe("claude-code-acp");
+		settings.defaultAgentId = "";
+		expect(getDefaultAgentId(settings)).toBe("claude-code-acp");
+		settings.agents = [];
+		expect(getDefaultAgentId(settings)).toBe("");
+	});
+
+	it("resolves the current agent with graceful fallback for unknown ids", () => {
+		const settings = createMinimalSettings();
+		expect(getCurrentAgent(settings, "codex-acp")).toEqual({
+			id: "codex-acp",
+			displayName: "Codex",
+		});
+		expect(getCurrentAgent(settings, "missing")).toEqual({
+			id: "missing",
+			displayName: "missing",
+		});
+	});
+});
+
+describe("AC-0030: buildAgentConfigWithApiKey injection intent", () => {
+	it("AC-0030-N-1: attaches the injection intent from the entry's own fields — for any entry, not by agentId branch (AR-012-3)", () => {
+		const customEntry = createAgent({
+			id: "my-agent",
+			displayName: "My Agent",
+			command: "my-acp",
+			env: [{ key: "MY_FLAG", value: "1" }],
+			apiKeySecretId: "my-secret",
+			apiKeyEnvVarName: "MY_API_KEY",
+		});
+		const config = buildAgentConfigWithApiKey(customEntry, "/vault");
+		expect(config).toEqual({
+			id: "my-agent",
+			displayName: "My Agent",
+			command: "my-acp",
 			args: [],
-			env: [],
+			env: { MY_FLAG: "1" },
+			workingDirectory: "/vault",
+			apiKey: {
+				secretId: "my-secret",
+				envVarName: "MY_API_KEY",
+			},
 		});
 	});
 
-	it("deduplicates non-empty agent ids", () => {
-		expect(uniqueNonEmpty(["", " pi-acp ", "codex-acp", "pi-acp"])).toEqual(
-			["pi-acp", "codex-acp"],
-		);
-	});
+	it.each([
+		["only apiKeySecretId", { apiKeySecretId: "my-secret" }],
+		["only apiKeyEnvVarName", { apiKeyEnvVarName: "MY_API_KEY" }],
+		["neither field", {}],
+	])(
+		"AC-0030-B-1: %s carries no injection intent (BR-072)",
+		(_label, overrides) => {
+			const entry = createAgent(overrides);
+			const config = buildAgentConfigWithApiKey(entry, "/vault");
+			expect(config).not.toHaveProperty("apiKey");
+		},
+	);
 
-	it("prefers discovered backends over the built-in fallback default", () => {
-		expect(
-			selectPreferredDefaultAgentId({
-				currentDefaultId: "claude-code-acp",
-				configuredAgentIds: [
-					"claude-code-acp",
-					"codex-acp",
-					"gemini-cli",
-				],
-				discoveredAgentIds: ["pi-acp"],
-				fallbackAgentId: "claude-code-acp",
-			}),
-		).toBe("pi-acp");
-	});
-
-	it("keeps an explicit non-fallback default when it is configured", () => {
-		expect(
-			selectPreferredDefaultAgentId({
-				currentDefaultId: "codex-acp",
-				configuredAgentIds: [
-					"claude-code-acp",
-					"codex-acp",
-					"gemini-cli",
-				],
-				discoveredAgentIds: ["pi-acp"],
-				fallbackAgentId: "claude-code-acp",
-			}),
-		).toBe("codex-acp");
-	});
-
-	it("falls back to the first configured agent when no discovered backend exists", () => {
-		expect(
-			selectPreferredDefaultAgentId({
-				currentDefaultId: "missing-agent",
-				configuredAgentIds: ["claude-code-acp", "codex-acp"],
-				discoveredAgentIds: [],
-				fallbackAgentId: "claude-code-acp",
-			}),
-		).toBe("claude-code-acp");
+	it("AC-0030-B-2: keeps manual env in the config so the spawn-time injection can override the same-named entry (BR-073)", () => {
+		const entry = createAgent({
+			env: [{ key: "MY_API_KEY", value: "manual-value" }],
+			apiKeySecretId: "my-secret",
+			apiKeyEnvVarName: "MY_API_KEY",
+		});
+		const config = buildAgentConfigWithApiKey(entry, "/vault");
+		expect(config.env).toEqual({ MY_API_KEY: "manual-value" });
+		expect(config.apiKey).toEqual({
+			secretId: "my-secret",
+			envVarName: "MY_API_KEY",
+		});
 	});
 });

@@ -8,7 +8,7 @@ import * as React from "react";
 const { useState, useEffect, useMemo, useCallback } = React;
 import { createRoot, Root } from "react-dom/client";
 
-import type AgentClientPlugin from "../plugin";
+import type HarnessPlugin from "../plugin";
 import type { ChatInputState } from "../types/chat";
 import type { SessionFileData } from "../types/session";
 
@@ -24,7 +24,7 @@ import { ChatPanel, type ChatPanelCallbacks } from "./ChatPanel";
 // Service imports
 import { VaultService } from "../services/vault-service";
 
-export const VIEW_TYPE_CHAT = "agent-client-chat-view";
+export const VIEW_TYPE_CHAT = "harness-chat-view";
 
 function ChatComponent({
 	plugin,
@@ -33,7 +33,7 @@ function ChatComponent({
 	entryFilePath,
 	config,
 }: {
-	plugin: AgentClientPlugin;
+	plugin: HarnessPlugin;
 	view: ChatView;
 	viewId: string;
 	entryFilePath: string;
@@ -119,7 +119,7 @@ interface ChatViewState extends Record<string, unknown> {
 
 export class ChatView extends ItemView implements IChatViewContainer {
 	private root: Root | null = null;
-	private plugin: AgentClientPlugin;
+	private plugin: HarnessPlugin;
 	private logger: Logger;
 	/** Unique identifier for this view instance (for multi-session support) */
 	readonly viewId: string;
@@ -133,7 +133,7 @@ export class ChatView extends ItemView implements IChatViewContainer {
 
 	// Services owned by this class (lifecycle managed here)
 	/** @internal Exposed to ChatComponent for context creation */
-	acpClient!: ReturnType<AgentClientPlugin["getOrCreateAcpClient"]>;
+	acpClient!: ReturnType<HarnessPlugin["getOrCreateAcpClient"]>;
 	/** @internal Exposed to ChatComponent for context creation */
 	vaultService!: VaultService;
 
@@ -142,7 +142,7 @@ export class ChatView extends ItemView implements IChatViewContainer {
 	private entryFilePath: string | null = null;
 	private sessionConfig: SessionFileData | null = null;
 
-	constructor(leaf: WorkspaceLeaf, plugin: AgentClientPlugin) {
+	constructor(leaf: WorkspaceLeaf, plugin: HarnessPlugin) {
 		super(leaf);
 		this.plugin = plugin;
 		this.logger = getLogger();
@@ -323,7 +323,7 @@ export class ChatView extends ItemView implements IChatViewContainer {
 	focus(): void {
 		void this.app.workspace.revealLeaf(this.leaf).then(() => {
 			const textarea = this.containerEl.querySelector(
-				"textarea.agent-client-chat-input-textarea",
+				"textarea.harness-chat-input-textarea",
 			);
 			if (textarea instanceof HTMLTextAreaElement) {
 				textarea.focus();

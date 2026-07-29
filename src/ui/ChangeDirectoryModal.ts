@@ -30,17 +30,17 @@ export class ChangeDirectoryModal extends Modal {
 
 		contentEl.createEl("p", {
 			text: "Start a new chat session with the agent working in the specified directory.",
-			cls: "agent-client-change-dir-description",
+			cls: "harness-change-dir-description",
 		});
 
 		// Path input row (text input + browse button)
 		const inputRow = contentEl.createDiv({
-			cls: "agent-client-change-dir-input-row",
+			cls: "harness-change-dir-input-row",
 		});
 
 		const inputEl = inputRow.createEl("input", {
 			type: "text",
-			cls: "agent-client-change-dir-input",
+			cls: "harness-change-dir-input",
 			placeholder: "/path/to/directory",
 		});
 		inputEl.value = this.currentPath;
@@ -72,7 +72,7 @@ export class ChangeDirectoryModal extends Modal {
 
 		// Buttons
 		const buttonContainer = contentEl.createDiv({
-			cls: "agent-client-change-dir-buttons",
+			cls: "harness-change-dir-buttons",
 		});
 
 		buttonContainer
