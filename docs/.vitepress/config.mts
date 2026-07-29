@@ -8,6 +8,9 @@ export default defineConfig({
   // GitHub Pages base path
   base: "/obsidian-harness/",
 
+  lastUpdated: true,
+  cleanUrls: true,
+
   head: [
     ["link", { rel: "icon", type: "image/x-icon", href: "/obsidian-harness/favicon.ico" }],
     ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: "/obsidian-harness/favicon-32x32.png" }],
@@ -32,6 +35,19 @@ export default defineConfig({
   ],
 
   themeConfig: {
+    logo: "/apple-touch-icon.png",
+
+    editLink: {
+      pattern:
+        "https://github.com/vlln/obsidian-harness-frontend/edit/master/docs/:path",
+      text: "Edit this page on GitHub",
+    },
+
+    docFooter: {
+      prev: "Previous",
+      next: "Next",
+    },
+
     nav: [
       { text: "Home", link: "/" },
       { text: "Getting Started", link: "/getting-started/" },
@@ -73,7 +89,7 @@ export default defineConfig({
           { text: "Model Selection", link: "/usage/model-selection" },
           { text: "Session History", link: "/usage/session-history" },
           { text: "Multi-Session Chat", link: "/usage/multi-session" },
-          { text: "Session Manager", link: "/usage/session-manager" },
+          { text: "Session Navigator", link: "/usage/session-manager" },
           { text: "Floating Chat", link: "/usage/floating-chat" },
           { text: "Editing", link: "/usage/editing" },
           { text: "Chat Export", link: "/usage/chat-export" },
