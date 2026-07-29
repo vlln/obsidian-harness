@@ -1,11 +1,11 @@
 <h1 align="center">Obsidian Harness</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness-frontend/total" alt="GitHub Downloads">
-  <img src="https://img.shields.io/github/license/vlln/obsidian-harness-frontend" alt="License">
-  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness-frontend" alt="GitHub release">
-  <img src="https://img.shields.io/github/last-commit/vlln/obsidian-harness-frontend" alt="GitHub last commit">
-  <a href="https://github.com/vlln/obsidian-harness-frontend/discussions"><img src="https://img.shields.io/github/discussions/vlln/obsidian-harness-frontend" alt="GitHub Discussions"></a>
+  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness/total" alt="GitHub Downloads">
+  <img src="https://img.shields.io/github/license/vlln/obsidian-harness" alt="License">
+  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness" alt="GitHub release">
+  <img src="https://img.shields.io/github/last-commit/vlln/obsidian-harness" alt="GitHub last commit">
+  <a href="https://github.com/vlln/obsidian-harness/discussions"><img src="https://img.shields.io/github/discussions/vlln/obsidian-harness" alt="GitHub Discussions"></a>
 </p>
 
 <p align="center">
@@ -42,12 +42,12 @@ https://github.com/user-attachments/assets/0fcb6751-84cb-4eb9-b373-adb28e8115e0
 
 1. [BRAT](https://github.com/TfTHacker/obsidian42-brat) プラグインをインストール
 2. **設定 → BRAT → Add Beta Plugin** に移動
-3. 貼り付け: `https://github.com/vlln/obsidian-harness-frontend`
+3. 貼り付け: `https://github.com/vlln/obsidian-harness`
 4. プラグインリストから **Obsidian Harness** を有効化
 
 ### 手動インストール
 
-1. [リリース](https://github.com/vlln/obsidian-harness-frontend/releases)から `main.js`、`manifest.json`、`styles.css` をダウンロード
+1. [リリース](https://github.com/vlln/obsidian-harness/releases)から `main.js`、`manifest.json`、`styles.css` をダウンロード
 2. `VaultFolder/.obsidian/plugins/obsidian-harness/` に配置
 3. **設定 → コミュニティプラグイン** でプラグインを有効化
 

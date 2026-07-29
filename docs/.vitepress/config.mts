@@ -51,7 +51,7 @@ export default defineConfig({
 
     editLink: {
       pattern:
-        "https://github.com/vlln/obsidian-harness-frontend/edit/master/docs/:path",
+        "https://github.com/vlln/obsidian-harness/edit/master/docs/:path",
       text: "Edit this page on GitHub",
     },
 
@@ -65,7 +65,7 @@ export default defineConfig({
       { text: "Getting Started", link: "/getting-started/" },
       { text: "Agent Setup", link: "/agent-setup/" },
       { text: "Usage", link: "/usage/" },
-      { text: "GitHub", link: "https://github.com/vlln/obsidian-harness-frontend" },
+      { text: "GitHub", link: "https://github.com/vlln/obsidian-harness" },
     ],
 
     sidebar: [
@@ -130,7 +130,7 @@ export default defineConfig({
     socialLinks: [
       {
         icon: "github",
-        link: "https://github.com/vlln/obsidian-harness-frontend",
+        link: "https://github.com/vlln/obsidian-harness",
       },
     ],
 

@@ -1,11 +1,11 @@
 <h1 align="center">Obsidian Harness</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness-frontend/total" alt="GitHub Downloads">
-  <img src="https://img.shields.io/github/license/vlln/obsidian-harness-frontend" alt="License">
-  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness-frontend" alt="GitHub release">
-  <img src="https://img.shields.io/github/last-commit/vlln/obsidian-harness-frontend" alt="GitHub last commit">
-  <a href="https://github.com/vlln/obsidian-harness-frontend/discussions"><img src="https://img.shields.io/github/discussions/vlln/obsidian-harness-frontend" alt="GitHub Discussions"></a>
+  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness/total" alt="GitHub Downloads">
+  <img src="https://img.shields.io/github/license/vlln/obsidian-harness" alt="License">
+  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness" alt="GitHub release">
+  <img src="https://img.shields.io/github/last-commit/vlln/obsidian-harness" alt="GitHub last commit">
+  <a href="https://github.com/vlln/obsidian-harness/discussions"><img src="https://img.shields.io/github/discussions/vlln/obsidian-harness" alt="GitHub Discussions"></a>
 </p>
 
 <p align="center">
@@ -60,12 +60,12 @@ https://github.com/user-attachments/assets/0fcb6751-84cb-4eb9-b373-adb28e8115e0
 
 1. 安装 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 插件
 2. 进入 **Settings → BRAT → Add Beta Plugin**
-3. 粘贴：`https://github.com/vlln/obsidian-harness-frontend`
+3. 粘贴：`https://github.com/vlln/obsidian-harness`
 4. 在插件列表中启用 **Obsidian Harness**
 
 ### 手动安装
 
-1. 从 [Releases](https://github.com/vlln/obsidian-harness-frontend/releases) 下载 `main.js`、`manifest.json`、`styles.css`
+1. 从 [Releases](https://github.com/vlln/obsidian-harness/releases) 下载 `main.js`、`manifest.json`、`styles.css`
 2. 放入 `VaultFolder/.obsidian/plugins/obsidian-harness/`
 3. 在 **Settings → Community Plugins** 中启用插件
 
