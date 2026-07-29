@@ -12,30 +12,10 @@ hero:
     - theme: alt
       text: View on GitHub
       link: https://github.com/vlln/obsidian-harness-frontend
-
-features:
-  - icon: 🗂️
-    title: Sessions are vault files
-    details: Every agent session lives as a `.session` note — move it, backlink it, find it via search, and reopen it any time. The IDE becomes a file viewer; the agent does the work.
-  - icon: 🧭
-    title: Session Navigator
-    details: A Codex-style sidebar that organizes sessions by Project and Recents with live run status on every row. Projects are projected from each session's working directory.
-  - icon: 🔁
-    title: Turn Navigator
-    details: A left-rail track on the message list, one node per user turn. Hover to preview, click to smooth-jump, and the active turn highlights as you scroll.
-  - icon: 📥
-    title: Import & resume history
-    details: Convert an existing Claude Code / Codex / Pi Agent / Kimi Code session into a readable-and-resumable Harness session. Resume the real conversation in place when the agent is available.
-  - icon: 🤖
-    title: One cockpit, many agents
-    details: Claude Code, Codex, Gemini CLI, or any ACP-compatible agent — switch backends without losing your session graph.
-  - icon: 📝
-    title: Note mentions & export
-    details: Pull any note into your prompt with `@notename`, and export conversations as Markdown notes with frontmatter tags and wikilinks.
 ---
 
-<div style="max-width: 800px; margin: 2rem auto;">
-  <video controls autoplay loop muted playsinline style="width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+<div class="oh-demo">
+  <video controls autoplay loop muted playsinline>
     <source src="/demo.mp4" type="video/mp4">
   </video>
 </div>
@@ -54,5 +34,34 @@ Built on [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/ag
 | **[Codex](https://github.com/openai/codex)** | OpenAI | via [Zed's adapter](https://github.com/zed-industries/codex-acp) |
 | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | Google | with `--experimental-acp` option |
 | **Custom** | Various | [Any ACP-compatible agent](https://agentclientprotocol.com/overview/agents) (e.g., OpenCode, Qwen Code, Kiro) |
+
+### Key capabilities
+
+<div class="oh-features">
+  <div class="oh-feature">
+    <h3>Sessions are vault files</h3>
+    <p>Every agent session lives as a <code>.session</code> note — move it, backlink it, find it via search, and reopen it any time. The IDE becomes a file viewer; the agent does the work.</p>
+  </div>
+  <div class="oh-feature">
+    <h3>Session Navigator</h3>
+    <p>A Codex-style sidebar that organizes sessions by Project and Recents with live run status on every row. Projects are projected from each session's working directory.</p>
+  </div>
+  <div class="oh-feature">
+    <h3>Turn Navigator</h3>
+    <p>A left-rail track on the message list, one node per user turn. Hover to preview, click to smooth-jump, and the active turn highlights as you scroll.</p>
+  </div>
+  <div class="oh-feature">
+    <h3>Import &amp; resume history</h3>
+    <p>Convert an existing Claude Code / Codex / Pi Agent / Kimi Code session into a readable-and-resumable Harness session. Resume the real conversation in place when the agent is available.</p>
+  </div>
+  <div class="oh-feature">
+    <h3>One cockpit, many agents</h3>
+    <p>Claude Code, Codex, Gemini CLI, or any ACP-compatible agent — switch backends without losing your session graph.</p>
+  </div>
+  <div class="oh-feature">
+    <h3>Note mentions &amp; export</h3>
+    <p>Pull any note into your prompt with <code>@notename</code>, and export conversations as Markdown notes with frontmatter tags and wikilinks.</p>
+  </div>
+</div>
 
 Ready to get started? Check out the [Installation Guide](/getting-started/).
