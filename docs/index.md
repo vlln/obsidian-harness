@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "Obsidian Harness"
-  text: "AI Agents in Obsidian"
-  tagline: Chat with Claude Code, Codex, Gemini CLI, and more — right from your vault
+  text: "Obsidian as cockpit, Agent as engine"
+  tagline: Your knowledge base is the control plane; AI coding agents are the execution layer. Sessions are vault files you can open, link, search, and resume — not just a chat panel.
   actions:
     - theme: brand
       text: Get Started
@@ -14,24 +14,24 @@ hero:
       link: https://github.com/vlln/obsidian-harness-frontend
 
 features:
+  - icon: 🗂️
+    title: Sessions are vault files
+    details: Every agent session lives as a `.session` note — move it, backlink it, find it via search, and reopen it any time. The IDE becomes a file viewer; the agent does the work.
+  - icon: 🧭
+    title: Session Navigator
+    details: A Codex-style sidebar that organizes sessions by Project and Recents with live run status on every row. Projects are projected from each session's working directory.
+  - icon: 🔁
+    title: Turn Navigator
+    details: A left-rail track on the message list, one node per user turn. Hover to preview, click to smooth-jump, and the active turn highlights as you scroll.
+  - icon: 📥
+    title: Import & resume history
+    details: Convert an existing Claude Code / Codex / Pi Agent / Kimi Code session into a readable-and-resumable Harness session. Resume the real conversation in place when the agent is available.
   - icon: 🤖
-    title: Direct Agent Integration
-    details: Chat with AI coding agents in a dedicated right-side panel
+    title: One cockpit, many agents
+    details: Claude Code, Codex, Gemini CLI, or any ACP-compatible agent — switch backends without losing your session graph.
   - icon: 📝
-    title: Note Mentions
-    details: Mention any note with @notename to include its content in your prompt
-  - icon: ⚡
-    title: Slash Commands
-    details: Use / commands to quickly trigger agent actions
-  - icon: 🔄
-    title: Multi-Agent Support
-    details: Switch between Claude Code, Codex, Gemini CLI, and custom agents
-  - icon: 🎛️
-    title: Mode & Model Selection
-    details: Change AI models and agent modes directly from the chat
-  - icon: 💻
-    title: Terminal Integration
-    details: Let your agent execute commands and return results in chat
+    title: Note mentions & export
+    details: Pull any note into your prompt with `@notename`, and export conversations as Markdown notes with frontmatter tags and wikilinks.
 ---
 
 <div style="max-width: 800px; margin: 2rem auto;">
@@ -42,22 +42,17 @@ features:
 
 ## What is Obsidian Harness?
 
-Obsidian Harness is an Obsidian plugin that brings AI coding agents directly into your vault. Built on the [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol), it enables seamless communication with various AI agents.
+Obsidian Harness turns your vault into a cockpit for AI coding agents (Claude Code, Codex, Gemini CLI, and any ACP-compatible agent). Unlike a plain "chat with agents" plugin, Harness treats every **agent session as a first-class file** in your vault — a `.session` note you move, link, and reopen like any other note — and gives you Codex-style navigators to roam your work across projects, turns, and agent backends.
+
+Built on [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol) by Zed.
 
 ### Supported Agents
 
 | Agent | Provider | Integration |
 |-------|----------|-------------|
 | **[Claude Code](https://github.com/anthropics/claude-code)** | Anthropic | via [ACP adapter](https://github.com/agentclientprotocol/claude-agent-acp) |
-| **[Codex](https://github.com/openai/codex)** | OpenAI | via [Zed’s adapter](https://github.com/zed-industries/codex-acp) |
+| **[Codex](https://github.com/openai/codex)** | OpenAI | via [Zed's adapter](https://github.com/zed-industries/codex-acp) |
 | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | Google | with `--experimental-acp` option |
 | **Custom** | Various | [Any ACP-compatible agent](https://agentclientprotocol.com/overview/agents) (e.g., OpenCode, Qwen Code, Kiro) |
-
-### Key Features
-
-- **Note Mentions**: Reference your Obsidian notes in conversations with `@notename`
-- **File Editing**: Let agents read and modify files with permission controls
-- **Chat Export**: Save conversations for future reference
-- **Terminal Integration**: Agents can execute shell commands and show results inline
 
 Ready to get started? Check out the [Installation Guide](/getting-started/).
