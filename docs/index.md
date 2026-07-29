@@ -15,7 +15,7 @@ hero:
 ---
 
 <div class="oh-demo">
-  <video controls autoplay loop muted playsinline>
+  <video controls autoplay loop muted playsinline poster="/demo-poster.png">
     <source src="/demo.mp4" type="video/mp4">
   </video>
 </div>
