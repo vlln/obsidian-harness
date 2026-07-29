@@ -214,9 +214,7 @@ export function useAgentSession(
 				}
 
 				const agentConfig = buildAgentConfigWithApiKey(
-					settings,
 					agentSettings,
-					agentId,
 					effectiveCwd,
 				);
 
@@ -357,9 +355,7 @@ export function useAgentSession(
 					throw new Error(`Agent not found: ${agentId}`);
 
 				const agentConfig = buildAgentConfigWithApiKey(
-					settings,
 					agentSettings,
-					agentId,
 					cwd,
 				);
 

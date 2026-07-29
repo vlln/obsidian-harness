@@ -2,7 +2,7 @@
 title: Plan-0057-01: Agent Config Unification
 description: 按 Spec-0008/ADR-0012 实现统一 agents[] 配置模型与单一 Agents Settings 分区，交付 AC-0028/AC-0030 单元与集成测试及 AR-012 boundary 检查。
 type: plan
-status: pending
+status: done
 created: 2026-07-29T05:12:23Z
 ---
 

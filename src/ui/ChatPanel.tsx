@@ -323,25 +323,10 @@ export function ChatPanel({
 	// ============================================================
 	const activeAgentLabel = useMemo(() => {
 		const activeId = session.agentId;
-		if (activeId === plugin.settings.claude.id) {
-			return (
-				plugin.settings.claude.displayName || plugin.settings.claude.id
-			);
-		}
-		if (activeId === plugin.settings.codex.id) {
-			return (
-				plugin.settings.codex.displayName || plugin.settings.codex.id
-			);
-		}
-		if (activeId === plugin.settings.gemini.id) {
-			return (
-				plugin.settings.gemini.displayName || plugin.settings.gemini.id
-			);
-		}
-		const custom = plugin.settings.customAgents.find(
-			(agent) => agent.id === activeId,
+		const agent = plugin.settings.agents.find(
+			(entry) => entry.id === activeId,
 		);
-		return custom?.displayName || custom?.id || activeId;
+		return agent?.displayName || agent?.id || activeId;
 	}, [session.agentId, plugin.settings]);
 
 	const availableAgents = useMemo(() => {

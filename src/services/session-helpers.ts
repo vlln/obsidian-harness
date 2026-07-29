@@ -4,12 +4,7 @@
  */
 
 import type { HarnessPluginSettings } from "../plugin";
-import type {
-	BaseAgentSettings,
-	ClaudeAgentSettings,
-	GeminiAgentSettings,
-	CodexAgentSettings,
-} from "../types/agent";
+import type { AgentSettings } from "../types/agent";
 import type { ChatSession } from "../types/session";
 import type { ChatMessage } from "../types/chat";
 import { toAgentConfig } from "./settings-normalizer";
@@ -28,42 +23,6 @@ export interface AgentDisplayInfo {
 	id: string;
 	/** Display name for UI */
 	displayName: string;
-}
-
-export function uniqueNonEmpty(
-	values: Array<string | null | undefined>,
-): string[] {
-	return Array.from(
-		new Set(values.map((value) => value?.trim() ?? "").filter(Boolean)),
-	);
-}
-
-export function selectPreferredDefaultAgentId({
-	currentDefaultId,
-	configuredAgentIds,
-	discoveredAgentIds,
-	fallbackAgentId,
-}: {
-	currentDefaultId: string | null | undefined;
-	configuredAgentIds: string[];
-	discoveredAgentIds: string[];
-	fallbackAgentId: string;
-}): string {
-	const configured = uniqueNonEmpty(configuredAgentIds);
-	const discovered = uniqueNonEmpty(discoveredAgentIds);
-	const current = currentDefaultId?.trim() ?? "";
-
-	if (current && discovered.includes(current)) return current;
-	if (
-		current &&
-		current !== fallbackAgentId &&
-		configured.includes(current)
-	) {
-		return current;
-	}
-	if (discovered.length > 0) return discovered[0];
-	if (current && configured.includes(current)) return current;
-	return configured[0] ?? fallbackAgentId;
 }
 
 /**
@@ -99,7 +58,7 @@ export function shouldPersistResolvedSessionId(
  * Get the default agent ID from settings (for new views).
  */
 export function getDefaultAgentId(settings: HarnessPluginSettings): string {
-	return settings.defaultAgentId || settings.claude.id;
+	return settings.defaultAgentId || settings.agents[0]?.id || "";
 }
 
 /**
@@ -108,24 +67,10 @@ export function getDefaultAgentId(settings: HarnessPluginSettings): string {
 export function getAvailableAgentsFromSettings(
 	settings: HarnessPluginSettings,
 ): AgentDisplayInfo[] {
-	return [
-		{
-			id: settings.claude.id,
-			displayName: settings.claude.displayName || settings.claude.id,
-		},
-		{
-			id: settings.codex.id,
-			displayName: settings.codex.displayName || settings.codex.id,
-		},
-		{
-			id: settings.gemini.id,
-			displayName: settings.gemini.displayName || settings.gemini.id,
-		},
-		...settings.customAgents.map((agent) => ({
-			id: agent.id,
-			displayName: agent.displayName || agent.id,
-		})),
-	];
+	return settings.agents.map((agent) => ({
+		id: agent.id,
+		displayName: agent.displayName || agent.id,
+	}));
 }
 
 /**
@@ -151,90 +96,47 @@ export function getCurrentAgent(
 
 /**
  * Find agent settings by ID from plugin settings.
+ *
+ * Plain array lookup over the unified agents[] model — built-in and
+ * user-added entries are isomorphic (BR-068), and there are no
+ * per-backend discovery fallbacks (BR-075).
  */
 export function findAgentSettings(
 	settings: HarnessPluginSettings,
 	agentId: string,
-): BaseAgentSettings | null {
-	if (agentId === settings.claude.id) {
-		return settings.claude;
-	}
-	if (agentId === settings.codex.id) {
-		return settings.codex;
-	}
-	if (agentId === settings.gemini.id) {
-		return settings.gemini;
-	}
-	// Search in custom agents
-	const customAgent = settings.customAgents.find(
-		(agent) => agent.id === agentId,
-	);
-	if (customAgent) return customAgent;
-
-	// Auto-discovered pi-acp: use pi Node.js npx path
-	// (Electron does not inherit the user PATH, so npx is not found)
-	if (agentId === "pi-acp") {
-		return {
-			id: "pi-acp",
-			displayName: "pi-acp",
-			command: "pi-acp",
-			args: [],
-			env: [],
-		};
-	}
-
-	return null;
+): AgentSettings | null {
+	return settings.agents.find((agent) => agent.id === agentId) ?? null;
 }
 
 /**
- * Build AgentConfig with API key injection intent for known agents.
+ * Build AgentConfig with an optional API key injection intent.
  *
- * For built-in agents, attaches an `apiKey` intent (secretId + envVarName)
- * to the config. AcpClient.initialize() resolves the secret value from
- * Obsidian's secret storage just before spawn.
- *
- * Custom agents pass through unchanged (they manage env vars directly).
+ * The decision depends only on the entry's own fields (AR-012-3): when both
+ * `apiKeySecretId` and `apiKeyEnvVarName` are set, an `apiKey` intent is
+ * attached and AcpClient.initialize() resolves the secret value from
+ * Obsidian's secret storage just before spawn, overriding any same-named
+ * manual `env` entry (BR-072/BR-073). Otherwise the backend relies on its
+ * own login state or manual env vars.
  */
 export function buildAgentConfigWithApiKey(
-	settings: HarnessPluginSettings,
-	agentSettings: BaseAgentSettings,
-	agentId: string,
+	agentSettings: AgentSettings,
 	workingDirectory: string,
 ) {
 	const baseConfig = toAgentConfig(agentSettings, workingDirectory);
 
-	if (agentId === settings.claude.id) {
-		const claudeSettings = agentSettings as ClaudeAgentSettings;
+	if (
+		agentSettings.apiKeySecretId.length > 0 &&
+		agentSettings.apiKeyEnvVarName.length > 0
+	) {
 		return {
 			...baseConfig,
 			apiKey: {
-				secretId: claudeSettings.apiKeySecretId,
-				envVarName: "ANTHROPIC_API_KEY",
-			},
-		};
-	}
-	if (agentId === settings.codex.id) {
-		const codexSettings = agentSettings as CodexAgentSettings;
-		return {
-			...baseConfig,
-			apiKey: {
-				secretId: codexSettings.apiKeySecretId,
-				envVarName: "OPENAI_API_KEY",
-			},
-		};
-	}
-	if (agentId === settings.gemini.id) {
-		const geminiSettings = agentSettings as GeminiAgentSettings;
-		return {
-			...baseConfig,
-			apiKey: {
-				secretId: geminiSettings.apiKeySecretId,
-				envVarName: "GEMINI_API_KEY",
+				secretId: agentSettings.apiKeySecretId,
+				envVarName: agentSettings.apiKeyEnvVarName,
 			},
 		};
 	}
 
-	// Custom agents — no API key injection
 	return baseConfig;
 }
 
