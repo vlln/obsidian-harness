@@ -8,13 +8,14 @@ import {
 } from "obsidian";
 import type HarnessPlugin from "../plugin";
 import type {
-	CustomAgentSettings,
+	AgentSettings,
 	AgentEnvVar,
 	ChatViewLocation,
 } from "../plugin";
 import { resolveCommandPath, resolveCommandPathInWsl } from "../utils/paths";
 import {
 	normalizeEnvVars,
+	generateUnoccupiedAgentId,
 	CHAT_FONT_SIZE_MAX,
 	CHAT_FONT_SIZE_MIN,
 	parseChatFontSize,
@@ -544,15 +545,9 @@ export class HarnessSettingTab extends PluginSettingTab {
 		// Agents
 		// ─────────────────────────────────────────────────────────────────────
 
-		new Setting(containerEl).setName("Built-in agents").setHeading();
+		new Setting(containerEl).setName("Agents").setHeading();
 
-		this.renderClaudeSettings(containerEl);
-		this.renderCodexSettings(containerEl);
-		this.renderGeminiSettings(containerEl);
-
-		new Setting(containerEl).setName("Custom agents").setHeading();
-
-		this.renderCustomAgents(containerEl);
+		this.renderAgents(containerEl);
 
 		// ─────────────────────────────────────────────────────────────────────
 		// Export
@@ -855,30 +850,10 @@ export class HarnessSettingTab extends PluginSettingTab {
 			id,
 			label: `${displayName} (${id})`,
 		});
-		const options: { id: string; label: string }[] = [
-			toOption(
-				this.plugin.settings.claude.id,
-				this.plugin.settings.claude.displayName ||
-					this.plugin.settings.claude.id,
-			),
-			toOption(
-				this.plugin.settings.codex.id,
-				this.plugin.settings.codex.displayName ||
-					this.plugin.settings.codex.id,
-			),
-			toOption(
-				this.plugin.settings.gemini.id,
-				this.plugin.settings.gemini.displayName ||
-					this.plugin.settings.gemini.id,
-			),
-		];
-		for (const agent of this.plugin.settings.customAgents) {
+		const options: { id: string; label: string }[] = [];
+		for (const agent of this.plugin.settings.agents) {
 			if (agent.id && agent.id.length > 0) {
-				const labelSource =
-					agent.displayName && agent.displayName.length > 0
-						? agent.displayName
-						: agent.id;
-				options.push(toOption(agent.id, labelSource));
+				options.push(toOption(agent.id, agent.displayName || agent.id));
 			}
 		}
 		const seen = new Set<string>();
@@ -891,312 +866,35 @@ export class HarnessSettingTab extends PluginSettingTab {
 		});
 	}
 
-	private renderGeminiSettings(sectionEl: HTMLElement) {
-		const gemini = this.plugin.settings.gemini;
-
-		new Setting(sectionEl)
-			.setName(gemini.displayName || "Gemini CLI")
-			.setHeading();
-
-		new Setting(sectionEl)
-			.setName("API key")
-			.setDesc(
-				"Gemini API key. Required if not logging in with a Google account. Select from Obsidian's Keychain or create a new secret.",
-			)
-			.addComponent((el) =>
-				new SecretComponent(this.app, el)
-					.setValue(gemini.apiKeySecretId)
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							gemini: {
-								...this.plugin.settings.gemini,
-								apiKeySecretId: value,
-							},
-						});
-					}),
-			);
-
-		const geminiPathSetting = new Setting(sectionEl)
-			.setName("Path")
-			.setDesc(
-				'Command name or path to the Gemini CLI. Use just "gemini" to let the login shell resolve it, or enter an absolute path for a specific version.',
-			)
-			.addText((text) => {
-				text.setPlaceholder("gemini")
-					.setValue(gemini.command)
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							gemini: {
-								...this.plugin.settings.gemini,
-								command: value.trim(),
-							},
-						});
-					});
-			});
-		this.addAutoDetectButton(geminiPathSetting, "gemini", async (path) => {
-			await this.plugin.settingsService.updateSettings({
-				gemini: {
-					...this.plugin.settings.gemini,
-					command: path,
-				},
-			});
-		});
-		this.addInstallHint(sectionEl, "@google/gemini-cli");
-
-		new Setting(sectionEl)
-			.setName("Arguments")
-			.setDesc(
-				'Enter one argument per line. Leave empty to run without arguments.(Currently, the Gemini CLI requires the "--experimental-acp" option.)',
-			)
-			.addTextArea((text) => {
-				text.setPlaceholder("")
-					.setValue(this.formatArgs(gemini.args))
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							gemini: {
-								...this.plugin.settings.gemini,
-								args: this.parseArgs(value),
-							},
-						});
-					});
-				text.inputEl.rows = 3;
-			});
-
-		new Setting(sectionEl)
-			.setName("Environment variables")
-			.setDesc(
-				"Enter KEY=VALUE pairs, one per line. Required to authenticate with Vertex AI. GEMINI_API_KEY is derived from the field above.",
-			)
-			.addTextArea((text) => {
-				text.setPlaceholder("GOOGLE_CLOUD_PROJECT=...")
-					.setValue(this.formatEnv(gemini.env))
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							gemini: {
-								...this.plugin.settings.gemini,
-								env: this.parseEnv(value),
-							},
-						});
-					});
-				text.inputEl.rows = 3;
-			});
-	}
-
-	private renderClaudeSettings(sectionEl: HTMLElement) {
-		const claude = this.plugin.settings.claude;
-
-		new Setting(sectionEl)
-			.setName(claude.displayName || "Claude Code (ACP)")
-			.setHeading();
-
-		new Setting(sectionEl)
-			.setName("API key")
-			.setDesc(
-				"Anthropic API key. Required if not logging in with an Anthropic account. Select from Obsidian's Keychain or create a new secret.",
-			)
-			.addComponent((el) =>
-				new SecretComponent(this.app, el)
-					.setValue(claude.apiKeySecretId)
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							claude: {
-								...this.plugin.settings.claude,
-								apiKeySecretId: value,
-							},
-						});
-					}),
-			);
-
-		const claudePathSetting = new Setting(sectionEl)
-			.setName("Path")
-			.setDesc(
-				'Command name or path to claude-agent-acp. Use just "claude-agent-acp" to let the login shell resolve it, or enter an absolute path.',
-			)
-			.addText((text) => {
-				text.setPlaceholder("claude-agent-acp")
-					.setValue(claude.command)
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							claude: {
-								...this.plugin.settings.claude,
-								command: value.trim(),
-							},
-						});
-					});
-			});
-		this.addAutoDetectButton(
-			claudePathSetting,
-			"claude-agent-acp",
-			async (path) => {
-				await this.plugin.settingsService.updateSettings({
-					claude: {
-						...this.plugin.settings.claude,
-						command: path,
-					},
-				});
-			},
-		);
-		this.addInstallHint(sectionEl, "@agentclientprotocol/claude-agent-acp");
-
-		new Setting(sectionEl)
-			.setName("Arguments")
-			.setDesc(
-				"Enter one argument per line. Leave empty to run without arguments.",
-			)
-			.addTextArea((text) => {
-				text.setPlaceholder("")
-					.setValue(this.formatArgs(claude.args))
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							claude: {
-								...this.plugin.settings.claude,
-								args: this.parseArgs(value),
-							},
-						});
-					});
-				text.inputEl.rows = 3;
-			});
-
-		new Setting(sectionEl)
-			.setName("Environment variables")
-			.setDesc(
-				"Enter KEY=VALUE pairs, one per line. ANTHROPIC_API_KEY is derived from the field above.",
-			)
-			.addTextArea((text) => {
-				text.setPlaceholder("")
-					.setValue(this.formatEnv(claude.env))
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							claude: {
-								...this.plugin.settings.claude,
-								env: this.parseEnv(value),
-							},
-						});
-					});
-				text.inputEl.rows = 3;
-			});
-	}
-
-	private renderCodexSettings(sectionEl: HTMLElement) {
-		const codex = this.plugin.settings.codex;
-
-		new Setting(sectionEl)
-			.setName(codex.displayName || "Codex")
-			.setHeading();
-
-		new Setting(sectionEl)
-			.setName("API key")
-			.setDesc(
-				"OpenAI API key. Required if not logging in with an OpenAI account. Select from Obsidian's Keychain or create a new secret.",
-			)
-			.addComponent((el) =>
-				new SecretComponent(this.app, el)
-					.setValue(codex.apiKeySecretId)
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							codex: {
-								...this.plugin.settings.codex,
-								apiKeySecretId: value,
-							},
-						});
-					}),
-			);
-
-		const codexPathSetting = new Setting(sectionEl)
-			.setName("Path")
-			.setDesc(
-				'Command name or path to codex-acp. Use just "codex-acp" to let the login shell resolve it, or enter an absolute path.',
-			)
-			.addText((text) => {
-				text.setPlaceholder("codex-acp")
-					.setValue(codex.command)
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							codex: {
-								...this.plugin.settings.codex,
-								command: value.trim(),
-							},
-						});
-					});
-			});
-		this.addAutoDetectButton(
-			codexPathSetting,
-			"codex-acp",
-			async (path) => {
-				await this.plugin.settingsService.updateSettings({
-					codex: {
-						...this.plugin.settings.codex,
-						command: path,
-					},
-				});
-			},
-		);
-		this.addInstallHint(sectionEl, "@zed-industries/codex-acp");
-
-		new Setting(sectionEl)
-			.setName("Arguments")
-			.setDesc(
-				"Enter one argument per line. Leave empty to run without arguments.",
-			)
-			.addTextArea((text) => {
-				text.setPlaceholder("")
-					.setValue(this.formatArgs(codex.args))
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							codex: {
-								...this.plugin.settings.codex,
-								args: this.parseArgs(value),
-							},
-						});
-					});
-				text.inputEl.rows = 3;
-			});
-
-		new Setting(sectionEl)
-			.setName("Environment variables")
-			.setDesc(
-				"Enter KEY=VALUE pairs, one per line. OPENAI_API_KEY is derived from the field above.",
-			)
-			.addTextArea((text) => {
-				text.setPlaceholder("")
-					.setValue(this.formatEnv(codex.env))
-					.onChange(async (value) => {
-						await this.plugin.settingsService.updateSettings({
-							codex: {
-								...this.plugin.settings.codex,
-								env: this.parseEnv(value),
-							},
-						});
-					});
-				text.inputEl.rows = 3;
-			});
-	}
-
-	private renderCustomAgents(containerEl: HTMLElement) {
-		if (this.plugin.settings.customAgents.length === 0) {
+	private renderAgents(containerEl: HTMLElement) {
+		const { agents } = this.plugin.settings;
+		if (agents.length === 0) {
 			containerEl.createEl("p", {
-				text: "No custom agents configured yet.",
+				text: "No agents configured yet. Add an agent to start a session.",
 			});
 		} else {
-			this.plugin.settings.customAgents.forEach((agent, index) => {
-				this.renderCustomAgent(containerEl, agent, index);
+			agents.forEach((agent, index) => {
+				this.renderAgentBlock(containerEl, agent, index);
 			});
 		}
 
 		new Setting(containerEl).addButton((button) => {
 			button
-				.setButtonText("Add custom agent")
+				.setButtonText("Add agent")
 				.setCta()
 				.onClick(async () => {
-					const newId = this.generateCustomAgentId();
-					const newDisplayName =
-						this.generateCustomAgentDisplayName();
-					this.plugin.settings.customAgents.push({
+					const newId = generateUnoccupiedAgentId(
+						this.plugin.settings.agents,
+					);
+					const newDisplayName = this.generateAgentDisplayName();
+					this.plugin.settings.agents.push({
 						id: newId,
 						displayName: newDisplayName,
 						command: "",
 						args: [],
 						env: [],
+						apiKeySecretId: "",
+						apiKeyEnvVarName: "",
 					});
 					this.plugin.ensureDefaultAgentId();
 					await this.flushSettings();
@@ -1205,15 +903,16 @@ export class HarnessSettingTab extends PluginSettingTab {
 		});
 	}
 
-	private renderCustomAgent(
+	private renderAgentBlock(
 		containerEl: HTMLElement,
-		agent: CustomAgentSettings,
+		agent: AgentSettings,
 		index: number,
 	) {
 		const blockEl = containerEl.createDiv({
 			cls: "harness-custom-agent",
 		});
 
+		// 1. Agent ID (with delete button at the end of the row)
 		const idSetting = new Setting(blockEl)
 			.setName("Agent ID")
 			.setDesc("Unique identifier used to reference this agent.")
@@ -1222,14 +921,22 @@ export class HarnessSettingTab extends PluginSettingTab {
 					.setValue(agent.id)
 					.onChange(async (value) => {
 						const previousId =
-							this.plugin.settings.customAgents[index].id;
+							this.plugin.settings.agents[index].id;
 						const trimmed = value.trim();
 						let nextId = trimmed;
-						if (nextId.length === 0) {
-							nextId = this.generateCustomAgentId();
+						const occupiedByOther = this.plugin.settings.agents.some(
+							(entry, entryIndex) =>
+								entryIndex !== index && entry.id === trimmed,
+						);
+						if (nextId.length === 0 || occupiedByOther) {
+							nextId = generateUnoccupiedAgentId(
+								this.plugin.settings.agents.filter(
+									(_, entryIndex) => entryIndex !== index,
+								),
+							);
 							text.setValue(nextId);
 						}
-						this.plugin.settings.customAgents[index].id = nextId;
+						this.plugin.settings.agents[index].id = nextId;
 						if (
 							this.plugin.settings.defaultAgentId === previousId
 						) {
@@ -1241,50 +948,60 @@ export class HarnessSettingTab extends PluginSettingTab {
 					});
 			});
 
+		// Any entry — including built-in default entries — can be deleted (BR-071)
 		idSetting.addExtraButton((button) => {
 			button
 				.setIcon("trash")
 				.setTooltip("Delete this agent")
 				.onClick(async () => {
-					this.plugin.settings.customAgents.splice(index, 1);
+					this.plugin.settings.agents.splice(index, 1);
 					this.plugin.ensureDefaultAgentId();
 					await this.flushSettings();
 					this.refresh();
 				});
 		});
 
+		// 2. Display name
 		new Setting(blockEl)
 			.setName("Display name")
 			.setDesc("Shown in menus and headers.")
 			.addText((text) => {
-				text.setPlaceholder("Custom agent")
+				text.setPlaceholder(agent.id)
 					.setValue(agent.displayName || agent.id)
 					.onChange(async (value) => {
 						const trimmed = value.trim();
-						this.plugin.settings.customAgents[index].displayName =
+						this.plugin.settings.agents[index].displayName =
 							trimmed.length > 0
 								? trimmed
-								: this.plugin.settings.customAgents[index].id;
+								: this.plugin.settings.agents[index].id;
 						await this.flushSettings();
 						this.refreshAgentDropdown();
 					});
 			});
 
-		new Setting(blockEl)
+		// 3. Path (with auto-detect button)
+		const pathSetting = new Setting(blockEl)
 			.setName("Path")
 			.setDesc(
-				"Command name or path to the custom agent. Use just the command name to let the login shell resolve it, or enter an absolute path.",
+				"Command name or path to the agent. Use just the command name to let the login shell resolve it, or enter an absolute path.",
 			)
 			.addText((text) => {
 				text.setPlaceholder("Command name or path")
 					.setValue(agent.command)
 					.onChange(async (value) => {
-						this.plugin.settings.customAgents[index].command =
+						this.plugin.settings.agents[index].command =
 							value.trim();
 						await this.flushSettings();
 					});
 			});
+		if (agent.command) {
+			this.addAutoDetectButton(pathSetting, agent.command, async (path) => {
+				this.plugin.settings.agents[index].command = path;
+				await this.flushSettings();
+			});
+		}
 
+		// 4. Arguments
 		new Setting(blockEl)
 			.setName("Arguments")
 			.setDesc(
@@ -1294,23 +1011,56 @@ export class HarnessSettingTab extends PluginSettingTab {
 				text.setPlaceholder("--flag\n--another=value")
 					.setValue(this.formatArgs(agent.args))
 					.onChange(async (value) => {
-						this.plugin.settings.customAgents[index].args =
+						this.plugin.settings.agents[index].args =
 							this.parseArgs(value);
 						await this.flushSettings();
 					});
 				text.inputEl.rows = 3;
 			});
 
+		// 5. API key (secret reference — the key itself never touches data.json)
+		new Setting(blockEl)
+			.setName("API key")
+			.setDesc(
+				"API key for this agent. The key is stored in Obsidian's Keychain and is never written to data.json — only the secret reference is saved.",
+			)
+			.addComponent((el) =>
+				new SecretComponent(this.app, el)
+					.setValue(agent.apiKeySecretId)
+					.onChange(async (value) => {
+						this.plugin.settings.agents[index].apiKeySecretId =
+							value;
+						await this.flushSettings();
+					}),
+			);
+
+		// 6. API key env var name
+		new Setting(blockEl)
+			.setName("API key env var name")
+			.setDesc(
+				"Environment variable name used to inject the API key into the agent process. Only meaningful when an API key is configured above; leave empty to disable injection.",
+			)
+			.addText((text) => {
+				text.setPlaceholder("ANTHROPIC_API_KEY")
+					.setValue(agent.apiKeyEnvVarName)
+					.onChange(async (value) => {
+						this.plugin.settings.agents[index].apiKeyEnvVarName =
+							value.trim();
+						await this.flushSettings();
+					});
+			});
+
+		// 7. Environment variables
 		new Setting(blockEl)
 			.setName("Environment variables")
 			.setDesc(
-				"Enter KEY=VALUE pairs, one per line. (Stored as plain text)",
+				"Enter KEY=VALUE pairs, one per line. Stored as plain text in data.json — do not put secrets here; use the API key field above instead.",
 			)
 			.addTextArea((text) => {
 				text.setPlaceholder("TOKEN=...")
 					.setValue(this.formatEnv(agent.env))
 					.onChange(async (value) => {
-						this.plugin.settings.customAgents[index].env =
+						this.plugin.settings.agents[index].env =
 							this.parseEnv(value);
 						await this.flushSettings();
 					});
@@ -1328,27 +1078,15 @@ export class HarnessSettingTab extends PluginSettingTab {
 	 */
 	private async flushSettings(): Promise<void> {
 		await this.plugin.settingsService.updateSettings({
-			customAgents: this.plugin.settings.customAgents,
+			agents: this.plugin.settings.agents,
 			defaultAgentId: this.plugin.settings.defaultAgentId,
 		});
 	}
 
-	private generateCustomAgentDisplayName(): string {
+	private generateAgentDisplayName(): string {
 		const base = "Custom agent";
 		const existing = new Set<string>();
-		existing.add(
-			this.plugin.settings.claude.displayName ||
-				this.plugin.settings.claude.id,
-		);
-		existing.add(
-			this.plugin.settings.codex.displayName ||
-				this.plugin.settings.codex.id,
-		);
-		existing.add(
-			this.plugin.settings.gemini.displayName ||
-				this.plugin.settings.gemini.id,
-		);
-		for (const item of this.plugin.settings.customAgents) {
+		for (const item of this.plugin.settings.agents) {
 			existing.add(item.displayName || item.id);
 		}
 		if (!existing.has(base)) {
@@ -1361,47 +1099,6 @@ export class HarnessSettingTab extends PluginSettingTab {
 			candidate = `${base} ${counter}`;
 		}
 		return candidate;
-	}
-
-	// Create a readable ID for new custom agents and avoid collisions
-	private generateCustomAgentId(): string {
-		const base = "custom-agent";
-		const existing = new Set(
-			this.plugin.settings.customAgents.map((item) => item.id),
-		);
-		if (!existing.has(base)) {
-			return base;
-		}
-		let counter = 2;
-		let candidate = `${base}-${counter}`;
-		while (existing.has(candidate)) {
-			counter += 1;
-			candidate = `${base}-${counter}`;
-		}
-		return candidate;
-	}
-
-	/**
-	 * Renders a copyable npm install command hint below a Path setting.
-	 */
-	private addInstallHint(containerEl: HTMLElement, npmPackage: string): void {
-		const command = `npm install -g ${npmPackage}@latest`;
-		const frag = createFragment();
-		frag.appendText("Not installed? Run in terminal: ");
-		frag.createEl("code", { text: command });
-		new Setting(containerEl).setDesc(frag).addButton((btn) => {
-			btn.setButtonText("Copy").onClick(() => {
-				void navigator.clipboard.writeText(command).then(
-					() => {
-						btn.setButtonText("Copied!");
-						window.setTimeout(() => {
-							btn.setButtonText("Copy");
-						}, 1500);
-					},
-					() => undefined,
-				);
-			});
-		});
 	}
 
 	/**

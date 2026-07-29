@@ -5,8 +5,7 @@
  * Used by plugin.ts (loadSettings) and SettingsTab.ts.
  */
 
-import type { AgentEnvVar, CustomAgentSettings } from "../plugin";
-import type { BaseAgentSettings } from "../types/agent";
+import type { AgentEnvVar, AgentSettings } from "../types/agent";
 import type { AgentConfig } from "../acp/acp-client";
 
 // ============================================================================
@@ -114,63 +113,158 @@ export const normalizeEnvVars = (value: unknown): AgentEnvVar[] => {
 	});
 };
 
-// Rebuild a custom agent entry with defaults and cleaned values
-export const normalizeCustomAgent = (
-	agent: Record<string, unknown>,
-): CustomAgentSettings => {
-	const rawId =
-		agent && typeof agent.id === "string" && agent.id.trim().length > 0
-			? agent.id.trim()
-			: "custom-agent";
-	const rawDisplayName =
-		agent &&
-		typeof agent.displayName === "string" &&
-		agent.displayName.trim().length > 0
-			? agent.displayName.trim()
-			: rawId;
-	return {
-		id: rawId,
-		displayName: rawDisplayName,
-		command:
-			agent &&
-			typeof agent.command === "string" &&
-			agent.command.trim().length > 0
-				? agent.command.trim()
-				: "",
-		args: sanitizeArgs(agent?.args),
-		env: normalizeEnvVars(agent?.env),
-	};
-};
+// ============================================================================
+// Agent Settings (Spec-0008 §4)
+// ============================================================================
 
-// Ensure custom agent IDs are unique within the collection
-export const ensureUniqueCustomAgentIds = (
-	agents: CustomAgentSettings[],
-): CustomAgentSettings[] => {
-	const seen = new Set<string>();
-	return agents.map((agent) => {
-		const base =
-			agent.id && agent.id.trim().length > 0
-				? agent.id.trim()
-				: "custom-agent";
-		let candidate = base;
-		let suffix = 2;
-		while (seen.has(candidate)) {
-			candidate = `${base}-${suffix}`;
-			suffix += 1;
-		}
-		seen.add(candidate);
-		return { ...agent, id: candidate };
-	});
+/**
+ * Built-in default agent entries (Spec-0008 §4.3).
+ *
+ * These are plain AgentSettings entries — after loading they are fully
+ * isomorphic to user-added entries (BR-068). Adding a new built-in backend
+ * only requires appending an entry here.
+ */
+export const DEFAULT_AGENT_SETTINGS: AgentSettings[] = [
+	{
+		id: "claude-code-acp",
+		displayName: "Claude Code",
+		command: "claude-agent-acp",
+		args: [],
+		env: [],
+		apiKeySecretId: "",
+		apiKeyEnvVarName: "ANTHROPIC_API_KEY",
+	},
+	{
+		id: "codex-acp",
+		displayName: "Codex",
+		command: "codex-acp",
+		args: [],
+		env: [],
+		apiKeySecretId: "",
+		apiKeyEnvVarName: "OPENAI_API_KEY",
+	},
+	{
+		id: "gemini-cli",
+		displayName: "Gemini CLI",
+		command: "gemini",
+		args: ["--experimental-acp"],
+		env: [],
+		apiKeySecretId: "",
+		apiKeyEnvVarName: "GEMINI_API_KEY",
+	},
+	{
+		id: "pi-acp",
+		displayName: "Pi",
+		command: "pi-acp",
+		args: [],
+		env: [],
+		apiKeySecretId: "",
+		apiKeyEnvVarName: "",
+	},
+];
+
+// Rebuild an agent entry with per-field defaults and cleaned values.
+// Wrong-typed or missing fields fall back individually ("" / []) — the
+// entry itself is always kept (Spec-0008 §7).
+export const normalizeAgentEntry = (
+	agent: Record<string, unknown>,
+): AgentSettings => ({
+	id: str(agent.id, "").trim(),
+	displayName: str(agent.displayName, "").trim(),
+	command: str(agent.command, "").trim(),
+	args: sanitizeArgs(agent.args),
+	env: normalizeEnvVars(agent.env),
+	apiKeySecretId: str(agent.apiKeySecretId, "").trim(),
+	apiKeyEnvVarName: str(agent.apiKeyEnvVarName, "").trim(),
+});
+
+const copyAgentSettings = (agent: AgentSettings): AgentSettings => ({
+	...agent,
+	args: [...agent.args],
+	env: agent.env.map((entry) => ({ ...entry })),
+});
+
+/**
+ * Generate an id of the form `custom-agent-N` that is not occupied in the
+ * given collection (BR-069). Used when the user clears an id in the editor
+ * and when a loaded entry has an empty/missing id.
+ */
+export const generateUnoccupiedAgentId = (
+	agents: ReadonlyArray<{ id: string }>,
+	base = "custom-agent",
+): string => {
+	const existing = new Set(agents.map((agent) => agent.id));
+	if (!existing.has(base)) {
+		return base;
+	}
+	let counter = 2;
+	let candidate = `${base}-${counter}`;
+	while (existing.has(candidate)) {
+		counter += 1;
+		candidate = `${base}-${counter}`;
+	}
+	return candidate;
 };
 
 /**
- * Convert BaseAgentSettings to AgentConfig for process execution.
+ * Normalize the persisted `agents` value into the unified model (AC-0028).
  *
- * Transforms the storage format (BaseAgentSettings) to the runtime format (AgentConfig)
+ * - Non-array values fall back to a deep copy of `fallback` (built-in defaults).
+ * - Each entry is normalized per-field; empty/missing ids are regenerated as
+ *   unoccupied `custom-agent-N` ids.
+ * - Duplicate ids keep the first entry; later duplicates are dropped (BR-069).
+ *
+ * Legacy schema fields (claude/codex/gemini/customAgents/plaintext apiKey)
+ * are never read here — the caller passes only `raw.agents` (BR-074).
+ */
+export const normalizeAgents = (
+	raw: unknown,
+	fallback: AgentSettings[],
+): AgentSettings[] => {
+	if (!Array.isArray(raw)) {
+		return fallback.map(copyAgentSettings);
+	}
+	const result: AgentSettings[] = [];
+	const seen = new Set<string>();
+	for (const entry of raw) {
+		const normalized = normalizeAgentEntry(obj(entry) ?? {});
+		let id = normalized.id;
+		if (id.length === 0) {
+			id = generateUnoccupiedAgentId(result);
+		}
+		if (seen.has(id)) {
+			continue;
+		}
+		seen.add(id);
+		result.push({ ...normalized, id });
+	}
+	return result;
+};
+
+/**
+ * Resolve `defaultAgentId` against the agents[] array (BR-070): a valid
+ * reference is kept, a dangling one falls back to the first entry, and an
+ * empty array yields "".
+ */
+export const resolveDefaultAgentId = (
+	currentDefaultId: unknown,
+	agents: AgentSettings[],
+): string => {
+	const current = str(currentDefaultId, "").trim();
+	if (current.length > 0 && agents.some((agent) => agent.id === current)) {
+		return current;
+	}
+	return agents[0]?.id ?? "";
+};
+
+/**
+ * Convert AgentSettings to AgentConfig for process execution.
+ *
+ * Transforms the storage format (AgentSettings) to the runtime format (AgentConfig)
  * needed by AcpClient.initialize().
  */
 export const toAgentConfig = (
-	settings: BaseAgentSettings,
+	settings: AgentSettings,
 	workingDirectory: string,
 ): AgentConfig => {
 	// Convert AgentEnvVar[] to Record<string, string> for process.spawn()
