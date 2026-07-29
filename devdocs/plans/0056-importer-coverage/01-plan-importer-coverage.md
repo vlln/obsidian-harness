@@ -2,7 +2,7 @@
 title: Plan-0056-01: Importer Coverage Restoration
 description: 补齐 harness-session-importer Python 测试，恢复 gate:mr 覆盖率阈值 85%（BL-0011）。
 type: plan
-status: pending
+status: done
 created: 2026-07-28T07:42:34Z
 ---
 
