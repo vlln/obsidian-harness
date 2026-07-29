@@ -118,6 +118,8 @@ export interface ChatPanelProps {
 	containerEl?: HTMLElement | null;
 	/** Enable per-user-message navigation for .session FileViews only. */
 	showTurnNavigator?: boolean;
+	/** Show the Session Navigator toggle in the sidebar header (.session FileViews only, BR-066/067). */
+	showNavigatorToggle?: boolean;
 }
 
 // ============================================================================
@@ -163,6 +165,7 @@ export function ChatPanel({
 	viewHost: viewHostProp,
 	containerEl: containerElProp,
 	showTurnNavigator = false,
+	showNavigatorToggle = false,
 }: ChatPanelProps) {
 	// ============================================================
 	// Platform Check
@@ -1049,7 +1052,9 @@ export function ChatPanel({
 				variant="sidebar"
 				agentLabel={activeAgentLabel}
 				isUpdateAvailable={isUpdateAvailable}
-				onOpenNavigator={handleOpenNavigator}
+				onOpenNavigator={
+					showNavigatorToggle ? handleOpenNavigator : undefined
+				}
 				onShowMenu={handleShowSidebarMenu}
 			/>
 		) : (
