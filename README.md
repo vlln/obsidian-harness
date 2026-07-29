@@ -14,7 +14,7 @@
 
 > **Obsidian as cockpit, Agent as engine.** Your knowledge base is the control plane; AI coding agents are the execution layer. Sessions are vault files you can open, link, search, and resume — not just a chat panel.
 
-Obsidian Harness turns your vault into a cockpit for AI coding agents (Claude Code, Codex, Gemini CLI, and any ACP-compatible agent). Unlike a plain "chat with agents" plugin, Harness treats every **agent session as a first-class file** in your vault — a `.session` note you move, link, and reopen like any other note — and gives you Codex-style navigators to roam your work across projects, turns, and agent backends.
+Obsidian Harness turns your vault into a cockpit for AI coding agents (Claude Code, Codex, Gemini CLI, Pi, and any ACP-compatible agent). Unlike a plain "chat with agents" plugin, Harness treats every **agent session as a first-class file** in your vault — a `.session` note you move, link, and reopen like any other note — and gives you Codex-style navigators to roam your work across projects, turns, and agent backends.
 
 Built on [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol) by Zed.
 
@@ -27,7 +27,7 @@ Every AI coding agent keeps its own session in its own silo — context doesn't 
 - **Sessions are vault files.** A session lives as a `.session` note you can move between folders, backlink from other notes, find via search, and reopen any time. The IDE becomes a file viewer; the agent does the work; you stay in the cockpit.
 - **Readable offline.** A transcript renders full conversations — user turns, assistant replies, tool calls — without a live agent running. Your history stays useful even after the backend is gone.
 - **Cross-agent & resumable.** Sessions store in ACP format; an imported session carries an `acpBinding` to its original backend, so you can resume the real conversation in place when the agent is configured locally.
-- **One cockpit, many agents.** Claude Code, Codex, Gemini CLI, or any ACP-compatible agent — switch backends without losing your session graph.
+- **One cockpit, many agents.** Claude Code, Codex, Gemini CLI, Pi, or any ACP-compatible agent — switch backends without losing your session graph.
 
 ## Features
 
@@ -43,7 +43,7 @@ Every AI coding agent keeps its own session in its own silo — context doesn't 
 
 ### Chat & agent integration
 - **Note Mentions** — pull any note's content into your prompt with `@notename`.
-- **Multi-Agent** — switch between Claude Code, Codex, Gemini CLI, and custom agents.
+- **Multi-Agent** — switch between Claude Code, Codex, Gemini CLI, Pi, and custom agents.
 - **Multi-Session** — run several agents in separate views at once.
 - **Floating Chat** — a persistent, collapsible window for quick access.
 - **Mode & Model Switching** — change models and agent modes from the chat.

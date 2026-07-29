@@ -14,7 +14,7 @@
 
 > Obsidian をコックピットに、Agent をエンジンに — ナレッジベースから AI コーディングエージェントを管理。
 
-AIエージェント（Claude Code、Codex、Gemini CLI）をObsidianに直接統合。Vault内からAIアシスタントとチャットでき、ノートをすべてのエージェントセッションの制御平面として利用できます。
+AIエージェント（Claude Code、Codex、Gemini CLI、Pi）をObsidianに直接統合。Vault内からAIアシスタントとチャットでき、ノートをすべてのエージェントセッションの制御平面として利用できます。
 
 このプラグインは、Zed の [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol) で構築されています。
 
@@ -25,7 +25,7 @@ https://github.com/user-attachments/assets/0fcb6751-84cb-4eb9-b373-adb28e8115e0
 - **ノートメンション**: `@ノート名`でノートを参照
 - **画像添付**: チャットに画像をペーストまたはドラッグ&ドロップ
 - **スラッシュコマンド**: エージェントが提供する`/`コマンドを使用
-- **マルチエージェント**: Claude Code、Codex、Gemini CLI、カスタムエージェントを切り替え
+- **マルチエージェント**: Claude Code、Codex、Gemini CLI、Pi、カスタムエージェントを切り替え
 - **マルチセッション**: 複数のエージェントを別々のビューで同時実行
 - **フローティングチャット**: 素早くアクセスできる折りたたみ可能なチャットウィンドウ
 - **モード・モデル切り替え**: チャット画面からAIモデルやエージェントモードを変更

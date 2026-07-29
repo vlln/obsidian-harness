@@ -40,6 +40,7 @@ Built on [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/ag
 | <span class="oh-agent-badge" style="--c:#d97757">C</span> | **[Claude Code](https://github.com/anthropics/claude-code)** | Anthropic | via [ACP adapter](https://github.com/agentclientprotocol/claude-agent-acp) |
 | <span class="oh-agent-badge" style="--c:#10a37f">Co</span> | **[Codex](https://github.com/openai/codex)** | OpenAI | via [Zed's adapter](https://github.com/zed-industries/codex-acp) |
 | <span class="oh-agent-badge" style="--c:#4285f4">G</span> | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | Google | with `--experimental-acp` option |
+| <span class="oh-agent-badge" style="--c:#f59e0b">Pi</span> | **Pi Agent** | Pi | built-in preset, runs the `pi-acp` command |
 | <span class="oh-agent-badge" style="--c:#a88bfa">◇</span> | **Custom** | Various | [Any ACP-compatible agent](https://agentclientprotocol.com/overview/agents) (e.g., OpenCode, Qwen Code, Kiro) |
 
 ### Key capabilities
