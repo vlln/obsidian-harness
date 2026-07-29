@@ -11,14 +11,14 @@ hero:
       link: /getting-started/
     - theme: alt
       text: View on GitHub
-      link: https://github.com/vlln/obsidian-harness-frontend
+      link: https://github.com/vlln/obsidian-harness
 ---
 
 <p class="oh-badges">
-  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness-frontend?label=release&color=a88bfa" alt="GitHub release" />
-  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness-frontend/total?label=installs&color=a88bfa" alt="Downloads" />
-  <img src="https://img.shields.io/github/license/vlln/obsidian-harness-frontend?label=license&color=a88bfa" alt="License" />
-  <img src="https://img.shields.io/github/stars/vlln/obsidian-harness-frontend?label=stars&color=a88bfa" alt="Stars" />
+  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness?label=release&color=a88bfa" alt="GitHub release" />
+  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness/total?label=installs&color=a88bfa" alt="Downloads" />
+  <img src="https://img.shields.io/github/license/vlln/obsidian-harness?label=license&color=a88bfa" alt="License" />
+  <img src="https://img.shields.io/github/stars/vlln/obsidian-harness?label=stars&color=a88bfa" alt="Stars" />
 </p>
 
 <div class="oh-demo">

@@ -8,14 +8,14 @@
 2. In Obsidian settings, go to **Community Plugins → BRAT → Add Beta Plugin**
 3. Paste this repo URL:
    ```
-   https://github.com/vlln/obsidian-harness-frontend
+   https://github.com/vlln/obsidian-harness
    ```
 4. BRAT will download the latest release and keep it auto-updated
 5. Enable **Obsidian Harness** from the plugin list
 
 ### Manual Installation
 
-1. Download the latest release files from [GitHub Releases](https://github.com/vlln/obsidian-harness-frontend/releases):
+1. Download the latest release files from [GitHub Releases](https://github.com/vlln/obsidian-harness/releases):
    - `main.js`
    - `manifest.json`
    - `styles.css`

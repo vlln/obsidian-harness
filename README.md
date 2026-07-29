@@ -1,11 +1,11 @@
 <h1 align="center">Obsidian Harness</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness-frontend/total" alt="GitHub Downloads">
-  <img src="https://img.shields.io/github/license/vlln/obsidian-harness-frontend" alt="License">
-  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness-frontend" alt="GitHub release">
-  <img src="https://img.shields.io/github/last-commit/vlln/obsidian-harness-frontend" alt="GitHub last commit">
-  <a href="https://github.com/vlln/obsidian-harness-frontend/discussions"><img src="https://img.shields.io/github/discussions/vlln/obsidian-harness-frontend" alt="GitHub Discussions"></a>
+  <img src="https://img.shields.io/github/downloads/vlln/obsidian-harness/total" alt="GitHub Downloads">
+  <img src="https://img.shields.io/github/license/vlln/obsidian-harness" alt="License">
+  <img src="https://img.shields.io/github/v/release/vlln/obsidian-harness" alt="GitHub release">
+  <img src="https://img.shields.io/github/last-commit/vlln/obsidian-harness" alt="GitHub last commit">
+  <a href="https://github.com/vlln/obsidian-harness/discussions"><img src="https://img.shields.io/github/discussions/vlln/obsidian-harness" alt="GitHub Discussions"></a>
 </p>
 
 <p align="center">
@@ -60,12 +60,12 @@ This plugin is not (yet) in the Obsidian Community Plugins directory. Install it
 
 1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin
 2. Go to **Settings → BRAT → Add Beta Plugin**
-3. Paste: `https://github.com/vlln/obsidian-harness-frontend`
+3. Paste: `https://github.com/vlln/obsidian-harness`
 4. Enable **Obsidian Harness** from the plugin list
 
 ### Manual Installation
 
-1. Download `main.js`, `manifest.json`, `styles.css` from [Releases](https://github.com/vlln/obsidian-harness-frontend/releases)
+1. Download `main.js`, `manifest.json`, `styles.css` from [Releases](https://github.com/vlln/obsidian-harness/releases)
 2. Place them in `VaultFolder/.obsidian/plugins/obsidian-harness/`
 3. Enable the plugin in **Settings → Community Plugins**
 

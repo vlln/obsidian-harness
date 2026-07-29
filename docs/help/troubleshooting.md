@@ -218,7 +218,7 @@ If you need more detailed information about an issue, enable Debug mode:
 If you're still experiencing issues:
 
 1. Enable **Debug mode** and check console logs
-2. Search [GitHub Issues](https://github.com/vlln/obsidian-harness-frontend/issues)
+2. Search [GitHub Issues](https://github.com/vlln/obsidian-harness/issues)
 3. Open a new issue with:
    - Your OS and Obsidian version
    - The agent you're using
