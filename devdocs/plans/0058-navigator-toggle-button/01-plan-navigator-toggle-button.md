@@ -2,7 +2,7 @@
 title: Plan-0058-01: Navigator Toggle Button
 description: 在 .session FileView 的 sidebar header 增加 Navigator 切换按钮（Spec-0007 v3 §5.4/§6.4，BR-066/067，BL-0010）。
 type: plan
-status: pending
+status: done
 created: 2026-07-29T05:12:23Z
 ---
 
