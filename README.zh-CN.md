@@ -18,7 +18,7 @@ Obsidian Harness 把你的 vault 变成 AI 编程 Agent（Claude Code、Codex、
 
 基于 Zed 的 [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/agent-client-protocol) 构建。
 
-https://github.com/vlln/obsidian-harness-frontend/releases/download/v0.6.0/demo.mp4
+<video controls muted width="100%"><source src="https://github.com/vlln/obsidian-harness-frontend/releases/download/v0.6.0/demo.mp4" type="video/mp4">Your browser does not support the video tag.</video>
 
 ## 为什么用 Harness
 
