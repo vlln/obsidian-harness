@@ -24,6 +24,8 @@ export default defineConfig({
 				"src/services/turn-navigation.ts",
 				"src/services/session-continuation.ts",
 				"src/services/session-import*.ts",
+				"src/services/session-helpers.ts",
+				"src/services/settings-normalizer.ts",
 				"src/types/session-import.ts",
 			],
 		},

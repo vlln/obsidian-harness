@@ -304,12 +304,8 @@ export default class HarnessPlugin extends Plugin {
 		// hot-reload races onunload/onload (e.g. rapid toggle or npm run dev).
 		// Phase 2 migration: clean up old view-type strings from prior versions
 		// so stale leaves don't linger as blank panels after the rename.
-		this.app.workspace.detachLeavesOfType(
-			"agent-client-chat-view" as any as typeof VIEW_TYPE_CHAT,
-		);
-		this.app.workspace.detachLeavesOfType(
-			"agent-client-session-manager" as any as typeof VIEW_TYPE_SESSION_MANAGER,
-		);
+		this.app.workspace.detachLeavesOfType("agent-client-chat-view");
+		this.app.workspace.detachLeavesOfType("agent-client-session-manager");
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_CHAT);
 		this.registerView(VIEW_TYPE_CHAT, (leaf) => new ChatView(leaf, this));
 
